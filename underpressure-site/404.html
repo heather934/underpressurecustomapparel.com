@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — Page Not Found · Under Pressure Custom Apparel</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --up-black:  #060810;
+  --up-navy:   #0d1220;
+  --up-card:   #111827;
+  --up-border: #1e2d4a;
+  --up-blue:   #1565ff;
+  --up-blue2:  #0a4fd6;
+  --up-sky:    #4d9fff;
+  --up-silver: #c8d4e8;
+  --up-mist:   #5a7296;
+  --up-white:  #eef2fb;
+}
+
+html,body{
+  height:100%;
+  background:var(--up-black);
+  color:var(--up-white);
+  font-family:'Barlow',sans-serif;
+  overflow-x:hidden;
+}
+
+body{
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* Subtle grid lines */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(21,101,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21,101,255,.04) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+  z-index:0;
+}
+
+.page{
+  position:relative;z-index:1;
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:40px 24px;
+  text-align:center;
+}
+
+/* Big 404 */
+.four-oh-four{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(120px, 25vw, 220px);
+  line-height:1;
+  letter-spacing:4px;
+  background:linear-gradient(135deg, var(--up-blue) 0%, var(--up-sky) 50%, var(--up-blue2) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  opacity:.9;
+  animation:fadeDown .6s ease both;
+}
+
+.divider{
+  width:60px;height:3px;
+  background:linear-gradient(90deg,var(--up-blue),var(--up-sky));
+  margin:20px auto 24px;
+  animation:fadeUp .6s .1s ease both;
+}
+
+.headline{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(22px,4vw,34px);
+  letter-spacing:3px;
+  color:var(--up-white);
+  text-transform:uppercase;
+  animation:fadeUp .6s .15s ease both;
+}
+
+.sub{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:16px;
+  font-weight:400;
+  color:var(--up-mist);
+  letter-spacing:.5px;
+  margin-top:10px;
+  max-width:380px;
+  line-height:1.6;
+  animation:fadeUp .6s .2s ease both;
+}
+
+.actions{
+  display:flex;gap:12px;flex-wrap:wrap;justify-content:center;
+  margin-top:36px;
+  animation:fadeUp .6s .3s ease both;
+}
+
+.btn-primary{
+  display:inline-block;
+  background:var(--up-blue);
+  color:#fff;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:14px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;
+  text-decoration:none;
+  padding:13px 28px;
+  border:none;cursor:pointer;
+  transition:background .2s,transform .15s;
+}
+.btn-primary:hover{background:var(--up-blue2);transform:translateY(-1px);}
+
+.btn-ghost{
+  display:inline-block;
+  background:transparent;
+  color:var(--up-sky);
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:14px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;
+  text-decoration:none;
+  padding:12px 28px;
+  border:1px solid var(--up-border);
+  cursor:pointer;
+  transition:border-color .2s,color .2s,transform .15s;
+}
+.btn-ghost:hover{border-color:var(--up-sky);color:var(--up-white);transform:translateY(-1px);}
+
+.brand{
+  margin-top:60px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--up-border);
+  animation:fadeUp .6s .4s ease both;
+}
+.brand span{color:var(--up-mist);}
+
+@keyframes fadeDown{from{opacity:0;transform:translateY(-20px);}to{opacity:.9;transform:translateY(0);}}
+@keyframes fadeUp  {from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="four-oh-four">404</div>
+  <div class="divider"></div>
+  <div class="headline">Page Not Found</div>
+  <p class="sub">Looks like this page got lost in the wash. The gear you're looking for may have moved or never existed.</p>
+  <div class="actions">
+    <a href="/" class="btn-primary">← Back to the Store</a>
+    <a href="mailto:underpressureapparel@gmail.com" class="btn-ghost">Contact Us</a>
+  </div>
+  <div class="brand"><span>Under Pressure</span> &nbsp;·&nbsp; Custom Apparel</div>
+</div>
+</body>
+</html>
