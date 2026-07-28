@@ -1,8 +1,4 @@
-# Cloudflare Pages _redirects
-
+# Cloudflare Workers Static Assets — _redirects
 # Admin site — served as its own page, locked behind PIN on load
 /admin    /admin.html    200
 /admin/   /admin.html    200
-
-# SPA fallback — only fires when no real file matches
-/*        /index.html    200
