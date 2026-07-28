@@ -8,9 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
 <!-- PayPal — Client ID read from Admin → Integrations or hardcoded below -->
 <script>
-// PIN variables declared here so they exist before any onclick handler fires
-var currentPinEntry = '';
-var pendingAdminTab = 'dashboard';
 (function() {
   const pid = localStorage.getItem('upPaypalClientId') || 'YOUR_PAYPAL_CLIENT_ID';
   const s = document.createElement('script');
@@ -58,9 +55,6 @@ var pendingAdminTab = 'dashboard';
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 html{scroll-behavior:smooth;}
 body{background:var(--up-black);color:var(--up-white);font-family:'Barlow',sans-serif;overflow-x:hidden;}
-/* Admin build: hide all storefront content until admin panel opens */
-body > *:not(.admin-lock-screen):not(script):not(style) { visibility: hidden; }
-body.admin-unlocked > *:not(script):not(style) { visibility: visible; }
 
 /* ── GRAIN ── */
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;opacity:.15;
@@ -1706,19 +1700,7 @@ nav { position: relative; }
 .btn-print-invoice:hover { background: #0a4fd6; }
 
 /* ── ADMIN: PASSWORD PROTECTION ── */
-.admin-lock-screen { position: fixed; inset: 0; background: rgba(6,8,16,.98); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-.admin-lock-box { background: var(--up-card); border: 1px solid var(--up-border); border-top: 3px solid var(--up-blue); padding: 40px; max-width: 380px; width: 90%; text-align: center; }
-.admin-lock-icon { font-size: 48px; margin-bottom: 16px; }
-.admin-lock-title { font-family: 'Black Han Sans', sans-serif; font-size: 26px; letter-spacing: 2px; margin-bottom: 6px; }
-.admin-lock-sub { font-size:14px; color: var(--up-mist); font-weight: 300; margin-bottom: 24px; line-height: 1.5; }
-.admin-pin-dots { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
-.admin-pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--up-border); transition: all .2s; }
-.admin-pin-dot.filled { background: var(--up-blue); border-color: var(--up-blue); }
-.admin-pin-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
-.admin-pin-btn { background: var(--up-navy); border: 1px solid var(--up-border); color: var(--up-white); padding: 16px; font-family: 'Bebas Neue', sans-serif; font-size: 22px; cursor: pointer; transition: all .2s; }
-.admin-pin-btn:hover { background: var(--up-blue); border-color: var(--up-blue); }
-.admin-pin-btn:active { transform: scale(.95); }
-.admin-pin-error { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; color: var(--hs-red); letter-spacing: 1px; height: 18px; }
+
 
 /* ── ADMIN: BULK EMAIL ── */
 .bulk-email-form { background: var(--up-card); border: 1px solid var(--up-border); border-top: 3px solid var(--up-sky); padding: 24px; margin-bottom: 16px; }
@@ -1746,8 +1728,7 @@ nav { position: relative; }
 .disc-form-grid { display:grid; grid-template-columns:repeat(3,1fr) auto; gap:10px; align-items:end; margin-bottom:10px; }
 .disc-form-grid-2 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
 
-@keyframes pinShake {
-  0%,100%{transform:translateX(0)}
+
   20%{transform:translateX(-10px)}
   40%{transform:translateX(10px)}
   60%{transform:translateX(-8px)}
@@ -6666,364 +6647,10 @@ renderGallery();
 // ══════════════════════════════════════════════════════
 //  ADMIN PIN PROTECTION
 // ══════════════════════════════════════════════════════
-// currentPinEntry and pendingAdminTab declared at top of first script block
-const MAX_ATTEMPTS = 5;
-
-const DEFAULT_PIN = '3746'; // fallback for new devices — change via Security tab
-
-function getAdminPin() {
-  return localStorage.getItem('upAdminPin') || DEFAULT_PIN;
-}
-
-function setAdminPin(newPin) {
-  localStorage.setItem('upAdminPin', newPin);
-}
-
-function isPinLocked() {
-  const lockUntil = parseInt(localStorage.getItem('upPinLockUntil') || '0', 10);
-  return Date.now() < lockUntil;
-}
-
-function getPinAttempts() {
-  return parseInt(localStorage.getItem('upPinAttempts') || '0', 10);
-}
-
-function setPinAttempts(n) {
-  localStorage.setItem('upPinAttempts', String(n));
-}
-
-function lockPin() {
-  localStorage.setItem('upPinLockUntil', String(Date.now() + 30000));
-}
-
-function clearPinLock() {
-  localStorage.removeItem('upPinLockUntil');
-  localStorage.removeItem('upPinAttempts');
-}
-
-// Admin mode check — PIN required every session
-function checkAdminMode() {
-  // Admin build: always require PIN on load
-  showPinLock('dashboard');
-}
-
-function showPinLock(targetTab) {
-  pendingAdminTab = targetTab || 'dashboard';
-  currentPinEntry = '';
-  updatePinDots();
-  // Check persistent lockout
-  if (isPinLocked()) {
-    const remaining = Math.ceil((parseInt(localStorage.getItem('upPinLockUntil'), 10) - Date.now()) / 1000);
-    showPinError('Too many attempts. Wait ' + remaining + ' seconds.');
-  } else {
-    clearPinError();
-  }
-  const screen = document.getElementById('adminLockScreen');
-  if (screen) screen.style.display = 'flex';
-  document.body.classList.remove('admin-unlocked');
-  document.body.style.overflow = 'hidden';
-}
-
-function hidePinLock() {
-  const screen = document.getElementById('adminLockScreen');
-  if (screen) screen.style.display = 'none';
-  document.body.classList.add('admin-unlocked');
-  document.body.style.overflow = '';
-}
-
-function adminPinEntry(key) {
-  if (isPinLocked()) return;
-
-  if (key === 'clear') {
-    currentPinEntry = '';
-  } else if (key === 'back') {
-    currentPinEntry = currentPinEntry.slice(0, -1);
-  } else if (currentPinEntry.length < 4) {
-    currentPinEntry += key;
-  }
-
-  updatePinDots();
-  clearPinError();
-
-  // Auto-submit when 4 digits entered
-  if (currentPinEntry.length === 4) {
-    setTimeout(submitPin, 150); // small delay so 4th dot fills before check
-  }
-}
-
-function updatePinDots() {
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById('pd' + i);
-    if (dot) dot.classList.toggle('filled', i < currentPinEntry.length);
-  }
-}
-
-function submitPin() {
-  const correctPin = getAdminPin();
-  // If no PIN has been set yet, block access and prompt owner to set one
-  if (!correctPin) {
-    showPinError('No PIN set. Set a PIN via the Security settings.');
-    currentPinEntry = '';
-    updatePinDots();
-    return;
-  }
-  if (currentPinEntry === correctPin) {
-    // SUCCESS — clear lockout state
-    clearPinLock();
-    hidePinLock();
-    isAdminMode = true;
-    showAdminPanel(pendingAdminTab);
-    currentPinEntry = '';
-  } else {
-    // FAIL — increment persistent counter
-    const attempts = getPinAttempts() + 1;
-    setPinAttempts(attempts);
-    currentPinEntry = '';
-    updatePinDots();
-
-    // Shake animation
-    const box = document.querySelector('.admin-lock-box');
-    if (box) {
-      box.style.animation = 'pinShake .4s ease';
-      setTimeout(() => { box.style.animation = ''; }, 400);
-    }
-
-    if (attempts >= MAX_ATTEMPTS) {
-      lockPin();
-      setPinAttempts(0);
-      showPinError('Too many attempts. Wait 30 seconds.');
-      setTimeout(() => { clearPinError(); }, 30000);
-    } else {
-      const left = MAX_ATTEMPTS - attempts;
-      showPinError(`Incorrect PIN — ${left} attempt${left !== 1 ? 's' : ''} remaining`);
-    }
-  }
-}
-
-function showPinError(msg) {
-  const el = document.getElementById('pinError');
-  if (el) el.textContent = msg;
-}
-
-function clearPinError() {
-  const el = document.getElementById('pinError');
-  if (el) el.textContent = '';
-}
-
-// ── PIN CHANGE IN ADMIN SETTINGS ──
-function saveTaxRate() {
-  const v = parseFloat(document.getElementById('taxRateInput')?.value);
-  if (isNaN(v) || v < 0 || v > 20) { showToast('Enter a tax rate between 0 and 20%'); return; }
-  localStorage.setItem('upTaxRate', String(v));
-  showToast(`Sales tax rate set to ${v}%`);
-}
-
-// ══ INTEGRATIONS ══
-function loadIntegrationCreds() {
-  return {
-    paypal:   localStorage.getItem('upPaypalClientId')  || '',
-    ejsKey:   localStorage.getItem('upEmailjsKey')      || '',
-    ejsService:  localStorage.getItem('upEmailjsService')  || '',
-    ejsTemplate: localStorage.getItem('upEmailjsTemplate') || '',
-  };
-}
-function saveIntegrations() {
-  const paypal  = document.getElementById('int-paypal')?.value.trim()      || '';
-  const ejsKey  = document.getElementById('int-ejs-key')?.value.trim()     || '';
-  const ejsSvc  = document.getElementById('int-ejs-service')?.value.trim() || '';
-  const ejsTpl  = document.getElementById('int-ejs-template')?.value.trim()|| '';
-
-  if (paypal)   localStorage.setItem('upPaypalClientId',    paypal);
-  if (ejsKey)   localStorage.setItem('upEmailjsKey',        ejsKey);
-  if (ejsSvc)   localStorage.setItem('upEmailjsService',    ejsSvc);
-  if (ejsTpl)   localStorage.setItem('upEmailjsTemplate',   ejsTpl);
-
-  // Apply EmailJS immediately if the SDK is loaded
-  if (typeof emailjs !== 'undefined' && ejsKey) {
-    emailjs.init(ejsKey);
-  }
-
-  showToast('Integrations saved ✓ — refresh the customer site to apply PayPal');
-  renderAdminPanel('integrations');
-}
-function clearIntegration(key) {
-  localStorage.removeItem(key);
-  showToast('Credential cleared');
-  renderAdminPanel('integrations');
-}
-function renderIntegrations() {
-  const c = loadIntegrationCreds();
-  const mask = v => v ? v.slice(0,6) + '••••••••••••' : '';
-  const statusDot = v => v
-    ? `<span style="color:#4ade80;font-size:11px;letter-spacing:1px;">● SAVED</span>`
-    : `<span style="color:#ff6b6b;font-size:11px;letter-spacing:1px;">○ NOT SET</span>`;
-
-  return `
-    <div class="cm-section-head" style="margin-bottom:28px;">
-      <div>
-        <div class="cm-section-title" style="color:var(--up-sky);">Store <span style="color:var(--up-white)">Integrations</span></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">
-          PayPal &amp; EmailJS credentials — stored locally, never sent anywhere
-        </div>
-      </div>
-    </div>
-
-    <div style="max-width:560px;display:flex;flex-direction:column;gap:28px;">
-
-      <!-- PAYPAL -->
-      <div style="background:var(--up-navy);border:1px solid var(--up-border);padding:22px 24px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-          <div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--up-white);">PayPal</div>
-            <div style="font-size:11px;color:var(--up-mist);margin-top:2px;">Enables real checkout payments</div>
-          </div>
-          ${statusDot(c.paypal)}
-        </div>
-        ${c.paypal ? `
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--up-mist);letter-spacing:1px;flex:1;">${mask(c.paypal)}</div>
-            <button class="cm-btn-del" onclick="clearIntegration('upPaypalClientId')" style="padding:4px 12px;font-size:11px;">Clear</button>
-          </div>
-        ` : ''}
-        <div class="f" style="margin-bottom:10px;">
-          <label>Client ID <span style="font-weight:300;color:var(--up-mist);">— from developer.paypal.com → My Apps &amp; Credentials</span></label>
-          <input id="int-paypal" type="text" placeholder="AaBbCcDdEe... (starts with A or sandbox...)" value="">
-        </div>
-        <div style="font-size:11px;color:var(--up-mist);line-height:1.6;margin-bottom:14px;">
-          Get this from <strong style="color:var(--up-chalk);">developer.paypal.com</strong> → Log in → My Apps &amp; Credentials → your app → Client ID.<br>
-          Use your <strong style="color:#fbbf24;">Sandbox</strong> ID for testing, <strong style="color:#4ade80;">Live</strong> ID when ready to take real payments.
-        </div>
-      </div>
-
-      <!-- EMAILJS -->
-      <div style="background:var(--up-navy);border:1px solid var(--up-border);padding:22px 24px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-          <div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--up-white);">EmailJS</div>
-            <div style="font-size:11px;color:var(--up-mist);margin-top:2px;">Sends order confirmations, quote requests &amp; design submissions</div>
-          </div>
-          ${statusDot(c.ejsKey && c.ejsService && c.ejsTemplate)}
-        </div>
-        ${c.ejsKey || c.ejsService || c.ejsTemplate ? `
-          <div style="background:var(--up-card);border:1px solid var(--up-border);padding:10px 14px;margin-bottom:14px;font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);line-height:2;">
-            ${c.ejsKey      ? `Public Key: <strong style="color:var(--up-chalk);">${mask(c.ejsKey)}</strong><br>` : ''}
-            ${c.ejsService  ? `Service ID: <strong style="color:var(--up-chalk);">${c.ejsService}</strong><br>` : ''}
-            ${c.ejsTemplate ? `Template ID: <strong style="color:var(--up-chalk);">${c.ejsTemplate}</strong>` : ''}
-          </div>
-          <button class="cm-btn-del" onclick="['upEmailjsKey','upEmailjsService','upEmailjsTemplate'].forEach(k=>localStorage.removeItem(k));showToast('EmailJS credentials cleared');renderAdminPanel('integrations');" style="padding:5px 14px;font-size:11px;margin-bottom:14px;">Clear All EmailJS</button>
-        ` : ''}
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div class="f">
-            <label>Public Key <span style="font-weight:300;color:var(--up-mist);">— emailjs.com → Account → API Keys</span></label>
-            <input id="int-ejs-key" type="text" placeholder="user_xxxxxxxxxxxxxx" value="">
-          </div>
-          <div class="f">
-            <label>Service ID <span style="font-weight:300;color:var(--up-mist);">— emailjs.com → Email Services</span></label>
-            <input id="int-ejs-service" type="text" placeholder="service_xxxxxxx" value="">
-          </div>
-          <div class="f">
-            <label>Template ID <span style="font-weight:300;color:var(--up-mist);">— emailjs.com → Email Templates</span></label>
-            <input id="int-ejs-template" type="text" placeholder="template_xxxxxxx" value="">
-          </div>
-        </div>
-        <div style="font-size:11px;color:var(--up-mist);line-height:1.6;margin-top:12px;">
-          Sign up free at <strong style="color:var(--up-chalk);">emailjs.com</strong>. Add Gmail or your business email as a service, create a template, then paste all three IDs above.
-        </div>
-      </div>
-
-      <button class="btn-save-up" onclick="saveIntegrations()" style="align-self:flex-start;padding:13px 32px;font-size:13px;">
-        Save Integrations
-      </button>
-    </div>`;
-}
-
-function renderPinSettings() {
-  const taxRate = getTaxRate();
-  return `
-    <div class="cm-section-head" style="margin-bottom:20px;">
-      <div>
-        <div class="cm-section-title" style="color:var(--up-sky);">Store <span style="color:var(--up-white)">Settings</span></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">
-          Sales tax applied at checkout
-        </div>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:36px;max-width:340px;">
-      <div class="f" style="flex:1;">
-        <label>Sales Tax Rate (%)</label>
-        <input id="taxRateInput" type="number" step="0.1" min="0" max="20" value="${taxRate}">
-      </div>
-      <button class="btn-save-up" onclick="saveTaxRate()">Save</button>
-    </div>
-    <div class="cm-section-head">
-      <div>
-        <div class="cm-section-title" style="color:var(--up-sky);">Admin <span style="color:var(--up-white)">Security</span></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">
-          Change your 4-digit admin PIN
-        </div>
-      </div>
-    </div>
-
-    <div class="disc-add-form" style="border-top-color:var(--up-blue);max-width:480px;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--up-sky);text-transform:uppercase;margin-bottom:16px;">🔐 Change Admin PIN</div>
-
-      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;">
-        <div class="df">
-          <label>Current PIN</label>
-          <input id="pinCurrent" type="password" maxlength="4" placeholder="••••"
-            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:6px;outline:none;width:140px;text-align:center;">
-        </div>
-        <div class="df">
-          <label>New PIN (4 digits)</label>
-          <input id="pinNew" type="password" maxlength="4" placeholder="••••"
-            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:6px;outline:none;width:140px;text-align:center;"
-            oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-        </div>
-        <div class="df">
-          <label>Confirm New PIN</label>
-          <input id="pinConfirm" type="password" maxlength="4" placeholder="••••"
-            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:6px;outline:none;width:140px;text-align:center;"
-            oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-        </div>
-      </div>
-
-      <button class="btn-save-up" style="background:var(--up-blue);color:#fff;" onclick="changeAdminPin()">
-        🔐 Update PIN
-      </button>
-
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--up-border);">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);line-height:1.6;">
-          🔒 <strong style="color:var(--up-chalk);">Current PIN:</strong> Known only to you<br>
-          🌐 <strong style="color:var(--up-chalk);">Admin URL:</strong> yoursite.com/admin<br>
-          ⏱ <strong style="color:var(--up-chalk);">Session:</strong> PIN required each browser session
-        </div>
-      </div>
-
-      <div style="margin-top:14px;padding:10px 14px;background:rgba(200,16,46,.08);border:1px solid rgba(200,16,46,.2);">
-        <button class="cm-btn-del" style="padding:6px 16px;" onclick="adminLogout()">🚪 Log Out of Admin</button>
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);margin-left:10px;">Clears your session — PIN required next visit</span>
-      </div>
-    </div>`;
-}
-
-function changeAdminPin() {
-  const current = document.getElementById('pinCurrent')?.value.trim();
-  const newPin  = document.getElementById('pinNew')?.value.trim();
-  const confirm = document.getElementById('pinConfirm')?.value.trim();
-
-  if (current !== getAdminPin()) { showToast('Current PIN is incorrect'); return; }
-  if (!/^\d{4}$/.test(newPin))  { showToast('New PIN must be exactly 4 digits'); return; }
-  if (newPin !== confirm)        { showToast('PINs do not match'); return; }
-
-  setAdminPin(newPin);
-  showToast('PIN updated successfully! 🔐');
-  renderAdminPanel('security');
-}
-
 function adminLogout() {
-  isAdminMode = false;
+  // Cloudflare Access manages sessions — just close the overlay
   document.getElementById('adminOverlay').style.display = 'none';
-  showToast('Logged out of admin');
+  showToast('Admin panel closed.');
 }
 
 // ══════════════════════════════════════════════════════
@@ -7101,36 +6728,7 @@ function renderInvoiceAdmin() {
 .admin-close-btn:hover{background:rgba(200,16,46,.3);}
 </style>
 
-<!-- ═══ ADMIN PIN LOCK SCREEN ═══ -->
-<div class="admin-lock-screen" id="adminLockScreen" style="display:flex;">
-  <div class="admin-lock-box">
-    <div class="admin-lock-icon">🔐</div>
-    <div class="admin-lock-title">Admin Access</div>
-    <div class="admin-lock-sub">Enter your 4-digit PIN to access the Under Pressure admin panel.</div>
-    <div class="admin-pin-dots">
-      <div class="admin-pin-dot" id="pd0"></div>
-      <div class="admin-pin-dot" id="pd1"></div>
-      <div class="admin-pin-dot" id="pd2"></div>
-      <div class="admin-pin-dot" id="pd3"></div>
-    </div>
-    <div class="admin-pin-grid">
-      <button class="admin-pin-btn" onclick="adminPinEntry('1')">1</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('2')">2</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('3')">3</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('4')">4</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('5')">5</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('6')">6</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('7')">7</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('8')">8</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('9')">9</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('clear')" style="font-size:13px;">CLR</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('0')">0</button>
-      <button class="admin-pin-btn" onclick="adminPinEntry('back')" style="font-size:18px;">⌫</button>
-    </div>
-    <div class="admin-pin-error" id="pinError"></div>
-    <div style="margin-top:14px;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:rgba(90,114,150,.45);text-transform:uppercase;">Default PIN: 1138</div>
-  </div>
-</div>
+
 
 <!-- ═══ ADMIN FULL OVERLAY ═══ -->
 <div class="admin-overlay-backdrop" id="adminOverlay">
@@ -7560,14 +7158,17 @@ document.addEventListener('keydown', function(e) {
 //  Trigger admin check on page load
 // ═══════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
-  checkAdminMode();
+  // Cloudflare Access handles authentication — open admin directly
+  document.getElementById('adminOverlay').style.display = 'flex';
   loadUP();
   renderUP();
+  renderAdminPanel('dashboard');
 });
 // Also run immediately in case DOMContentLoaded already fired
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  checkAdminMode();
+  document.getElementById('adminOverlay').style.display = 'flex';
   loadUP();
   renderUP();
+  renderAdminPanel('dashboard');
 }
 </script>
