@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Allow all major search engines to index the site
+# Block admin page from search indexing
+Disallow: /admin
+Disallow: /admin.html
+
+Sitemap: https://underpressurecustomapparel.com/sitemap.xml
