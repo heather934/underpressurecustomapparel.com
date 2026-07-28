@@ -1,5 +1,6 @@
 name = "under-pressure-website"
 compatibility_date = "2026-07-28"
+main = "worker.js"
 
 [assets]
-directory = "./underpressure-site" 
+directory = "./underpressure-site"
