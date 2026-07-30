@@ -1,0 +1,6 @@
+/admin          /index.html     200
+/rampage        /index.html     200
+/rome           /index.html     200
+/canva          /index.html     200
+/product/*      /index.html     200
+/*              /index.html     200
