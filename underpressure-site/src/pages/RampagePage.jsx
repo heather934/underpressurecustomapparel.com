@@ -1,4 +1,9 @@
-// Migrate team-store-template.html content here
 export default function RampagePage() {
-  return <div style={{ color: '#eef2fb', padding: '40px', fontFamily: 'Barlow, sans-serif' }}>River City Rampage — migration in progress</div>
+  return (
+    <iframe
+      src="/team-store-template.html"
+      style={{ width:'100%', height:'100vh', border:'none', display:'block' }}
+      title="River City Rampage"
+    />
+  )
 }
