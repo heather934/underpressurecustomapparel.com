@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "cd ../up-widget && npm install && npx vite build --config vite.widget.config.js && cp dist-widget/up-previewers.iife.js ../underpressure-site/public/up-previewers.iife.js && cd ../underpressure-site && vite build",
+      "build": "cd ../up-widget && npm install && npx vite build --config vite.widget.config.js && cp dist-widget/up-previewers.iife.js ../underpressure-site/public/up-previewers.iife.js && cd ../underpressure-site && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
