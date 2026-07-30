@@ -1,5 +1,0 @@
-# Cloudflare Workers Static Assets — _redirects
-# Admin site — served as its own page, locked behind PIN on load
-/admin    /admin.html    200
-/admin/   /admin.html    200
-
