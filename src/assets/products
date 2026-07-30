@@ -1,0 +1,24 @@
+root/
+├── index.html
+├── package.json
+├── vite.config.js
+├── src/
+│   ├── main.jsx
+│   ├── App.jsx
+│   ├── styles/
+│   │   └── globals.css
+│   ├── data/
+│   │   └── brand.js
+│   ├── components/
+│   │   ├── ColorPreviewer.jsx
+│   │   └── products/
+│   │       └── index.jsx
+│   ├── assets/
+│   │   └── products/
+│   └── pages/
+│       ├── MainStore.jsx
+│       ├── AdminPanel.jsx
+│       ├── ProductPage.jsx
+│       ├── RampagePage.jsx
+│       ├── RomePage.jsx
+│       └── CanvaGuide.jsx
