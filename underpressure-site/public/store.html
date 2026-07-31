@@ -7174,3 +7174,20 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   renderAdminPanel('dashboard');
 }
 </script>
+document.addEventListener('DOMContentLoaded', function() {
+  loadUP();
+  renderUP();
+  // Open admin if on /admin route
+  if (window.location.pathname === '/admin' || window.location.pathname === '/admin/') {
+    document.getElementById('adminOverlay').style.display = 'flex';
+    renderAdminPanel('dashboard');
+  }
+});
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  loadUP();
+  renderUP();
+  if (window.location.pathname === '/admin' || window.location.pathname === '/admin/') {
+    document.getElementById('adminOverlay').style.display = 'flex';
+    renderAdminPanel('dashboard');
+  }
+}
