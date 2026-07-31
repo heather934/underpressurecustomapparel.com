@@ -7160,11 +7160,9 @@ document.addEventListener('keydown', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
   loadUP();
   renderUP();
-  if (window.location.pathname === '/admin' || window.location.pathname === '/admin/') {
-    const overlay = document.getElementById('adminOverlay');
-    if (overlay) {
-      overlay.style.display = 'flex';
-      renderAdminPanel('dashboard');
-    }
+  const overlay = document.getElementById('adminOverlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    renderAdminPanel('dashboard');
   }
 });
