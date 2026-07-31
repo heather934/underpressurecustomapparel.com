@@ -7158,11 +7158,13 @@ document.addEventListener('keydown', function(e) {
 //  Trigger admin check on page load
 // ═══════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
-  // Cloudflare Access handles authentication — open admin directly
-  document.getElementById('adminOverlay').style.display = 'flex';
   loadUP();
   renderUP();
-  renderAdminPanel('dashboard');
+});
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  loadUP();
+  renderUP();
+}
 });
 // Also run immediately in case DOMContentLoaded already fired
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
