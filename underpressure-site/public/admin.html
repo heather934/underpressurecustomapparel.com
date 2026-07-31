@@ -6649,7 +6649,9 @@ renderGallery();
 // ══════════════════════════════════════════════════════
 function adminLogout() {
   // Cloudflare Access manages sessions — just close the overlay
-  document.getElementById('adminOverlay').style.display = 'none';
+  const overlay = document.getElementById('adminOverlay');
+  overlay.style.display = 'none';
+  overlay.classList.remove('show');
   showToast('Admin panel closed.');
 }
 
@@ -6706,7 +6708,7 @@ function renderInvoiceAdmin() {
 
 <style>
 .admin-overlay-backdrop{position:fixed;inset:0;background:rgba(6,8,16,.98);z-index:900;display:none;overflow-y:auto;}
-.admin-overlay-backdrop.show{display:block;}
+.admin-overlay-backdrop.show{display:flex;}
 .admin-shell{display:flex;min-height:100vh;}
 .admin-sidebar{width:220px;flex-shrink:0;background:#0a0e18;border-right:1px solid #1a2535;padding:24px 0;position:sticky;top:0;height:100vh;overflow-y:auto;}
 .admin-sidebar-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:#4d9fff;padding:0 20px 20px;border-bottom:1px solid #1a2535;margin-bottom:16px;}
@@ -7015,7 +7017,7 @@ function deleteGalleryItem(idx) {
 function renderAdminPanel(tab) {
   // Activate overlay if not already shown
   const overlay = document.getElementById('adminOverlay');
-  if (overlay) overlay.classList.add('show');
+  if (overlay) { overlay.classList.add('show'); overlay.style.display = 'flex'; }
 
   // Update nav highlight
   document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
@@ -7158,11 +7160,17 @@ document.addEventListener('keydown', function(e) {
 //  Trigger admin check on page load
 // ═══════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
+  // Cloudflare Access handles authentication — open admin directly
+  document.getElementById('adminOverlay').style.display = 'flex';
   loadUP();
   renderUP();
-  const overlay = document.getElementById('adminOverlay');
-  if (overlay) {
-    overlay.style.display = 'flex';
-    renderAdminPanel('dashboard');
-  }
+  renderAdminPanel('dashboard');
 });
+// Also run immediately in case DOMContentLoaded already fired
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  document.getElementById('adminOverlay').style.display = 'flex';
+  loadUP();
+  renderUP();
+  renderAdminPanel('dashboard');
+}
+</script>
