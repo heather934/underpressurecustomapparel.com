@@ -1,5 +1,7 @@
-# Cloudflare Workers Static Assets — _redirects
-# Admin site — served as its own page, locked behind PIN on load
-/admin    /admin.html    200
-/admin/   /admin.html    200
-
+# Cloudflare Pages _redirects
+/             /store.html    302
+/admin        /store.html    200
+/admin/       /store.html    200
+/rampage      /team-store-template.html    200
+/rome         /rome-coc-tshirt-store.html  200
+/canva        /canva-template-guide.html   200
