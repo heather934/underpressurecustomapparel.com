@@ -7160,34 +7160,11 @@ document.addEventListener('keydown', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
   loadUP();
   renderUP();
-});
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  loadUP();
-  renderUP();
-}
-});
-// Also run immediately in case DOMContentLoaded already fired
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  document.getElementById('adminOverlay').style.display = 'flex';
-  loadUP();
-  renderUP();
-  renderAdminPanel('dashboard');
-}
-</script>
-document.addEventListener('DOMContentLoaded', function() {
-  loadUP();
-  renderUP();
-  // Open admin if on /admin route
   if (window.location.pathname === '/admin' || window.location.pathname === '/admin/') {
-    document.getElementById('adminOverlay').style.display = 'flex';
-    renderAdminPanel('dashboard');
+    const overlay = document.getElementById('adminOverlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      renderAdminPanel('dashboard');
+    }
   }
 });
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  loadUP();
-  renderUP();
-  if (window.location.pathname === '/admin' || window.location.pathname === '/admin/') {
-    document.getElementById('adminOverlay').style.display = 'flex';
-    renderAdminPanel('dashboard');
-  }
-}
