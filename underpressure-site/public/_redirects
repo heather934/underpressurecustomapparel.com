@@ -1,7 +1,6 @@
-# Cloudflare Pages _redirects
-/             /store.html    302
-/admin        /store.html    200
-/admin/       /store.html    200
+/             /store.html    200
+/admin        /admin.html    200
+/admin/       /admin.html    200
 /rampage      /team-store-template.html    200
 /rome         /rome-coc-tshirt-store.html  200
 /canva        /canva-template-guide.html   200
