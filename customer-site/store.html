@@ -2928,50 +2928,6 @@ function showOrderSuccess(details){
 // UP SPORTSWEAR
 // ══════════════════════════════
 let upProducts=[],editIdx=null,upFilter="all";
-// ═══════════════════════════════════════════════════
-//  KV READ LAYER
-// ═══════════════════════════════════════════════════
-const KV_API = 'https://up-store-api.h-m-ward1846.workers.dev';
-
-async function kvGet(key) {
-  try {
-    const res = await fetch(`${KV_API}/data/${key}`);
-    const data = await res.json();
-    if (data && Object.keys(data).length > 0) return data;
-    return null;
-  } catch(e) { return null; }
-}
-
-async function loadFromKV() {
-  const kvProducts = await kvGet('products');
-  if (kvProducts && Array.isArray(kvProducts) && kvProducts.length > 0) upProducts = kvProducts;
-  else { try { upProducts = JSON.parse(localStorage.getItem('upSportswear')||'[]'); } catch(e) { upProducts=[]; } }
-
-  const kvTeams = await kvGet('teams');
-  if (kvTeams && Array.isArray(kvTeams)) teams = kvTeams;
-  else { try { teams = JSON.parse(localStorage.getItem('upTeams')||'[]'); } catch(e) { teams=[]; } }
-
-  const kvHidden = await kvGet('hiddenStores');
-  if (kvHidden && Array.isArray(kvHidden)) hiddenStores = new Set(kvHidden);
-  else { try { hiddenStores = new Set(JSON.parse(localStorage.getItem('hiddenStores')||'[]')); } catch(e) { hiddenStores=new Set(); } }
-
-  const kvAccess = await kvGet('storeAccess');
-  if (kvAccess) storeAccess = kvAccess;
-  else { try { storeAccess = JSON.parse(localStorage.getItem('storeAccess')||'{}'); } catch(e) { storeAccess={}; } }
-
-  const kvCodes = await kvGet('storeCodes');
-  if (kvCodes) storeCodes = kvCodes;
-  else { try { storeCodes = JSON.parse(localStorage.getItem('storeCodes')||'{}'); } catch(e) { storeCodes={}; } }
-
-  const kvGallery = await kvGet('gallery');
-  if (kvGallery && Array.isArray(kvGallery)) galleryItems = kvGallery;
-  else { try { galleryItems = JSON.parse(localStorage.getItem('upGallery')||'[]'); } catch(e) { galleryItems=[]; } }
-
-  const kvDiscounts = await kvGet('discountCodes');
-  if (kvDiscounts && Array.isArray(kvDiscounts)) discountCodes = kvDiscounts;
-  else { try { discountCodes = JSON.parse(localStorage.getItem('upDiscountCodes')||'[]'); } catch(e) { discountCodes=[]; } }
-}
-
 function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")||"[]");}catch(e){upProducts=[];}}
 function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));}
 function renderUP(filter="all"){
@@ -7288,6 +7244,50 @@ document.addEventListener('keydown', function(e) {
 // ═══════════════════════════════════════════════════
 //  Trigger admin check on page load
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  KV READ LAYER
+// ═══════════════════════════════════════════════════
+const KV_API = 'https://up-store-api.h-m-ward1846.workers.dev';
+
+async function kvGet(key) {
+  try {
+    const res = await fetch(`${KV_API}/data/${key}`);
+    const data = await res.json();
+    if (data && Object.keys(data).length > 0) return data;
+    return null;
+  } catch(e) { return null; }
+}
+
+async function loadFromKV() {
+  const kvProducts = await kvGet('products');
+  if (kvProducts && Array.isArray(kvProducts) && kvProducts.length > 0) upProducts = kvProducts;
+  else { try { upProducts = JSON.parse(localStorage.getItem('upSportswear')||'[]'); } catch(e) { upProducts=[]; } }
+
+  const kvTeams = await kvGet('teams');
+  if (kvTeams && Array.isArray(kvTeams)) teams = kvTeams;
+  else { try { teams = JSON.parse(localStorage.getItem('upTeams')||'[]'); } catch(e) { teams=[]; } }
+
+  const kvHidden = await kvGet('hiddenStores');
+  if (kvHidden && Array.isArray(kvHidden)) hiddenStores = new Set(kvHidden);
+  else { try { hiddenStores = new Set(JSON.parse(localStorage.getItem('hiddenStores')||'[]')); } catch(e) { hiddenStores=new Set(); } }
+
+  const kvAccess = await kvGet('storeAccess');
+  if (kvAccess) storeAccess = kvAccess;
+  else { try { storeAccess = JSON.parse(localStorage.getItem('storeAccess')||'{}'); } catch(e) { storeAccess={}; } }
+
+  const kvCodes = await kvGet('storeCodes');
+  if (kvCodes) storeCodes = kvCodes;
+  else { try { storeCodes = JSON.parse(localStorage.getItem('storeCodes')||'{}'); } catch(e) { storeCodes={}; } }
+
+  const kvGallery = await kvGet('gallery');
+  if (kvGallery && Array.isArray(kvGallery)) galleryItems = kvGallery;
+  else { try { galleryItems = JSON.parse(localStorage.getItem('upGallery')||'[]'); } catch(e) { galleryItems=[]; } }
+
+  const kvDiscounts = await kvGet('discountCodes');
+  if (kvDiscounts && Array.isArray(kvDiscounts)) discountCodes = kvDiscounts;
+  else { try { discountCodes = JSON.parse(localStorage.getItem('upDiscountCodes')||'[]'); } catch(e) { discountCodes=[]; } }
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
   await loadFromKV();
   renderUP();
