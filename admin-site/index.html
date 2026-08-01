@@ -3011,7 +3011,34 @@ function showOrderSuccess(details){
 // ══════════════════════════════
 var upProducts=[],editIdx=null,upFilter="all";
 function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")||"[]");}catch(e){upProducts=[];}}
-function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));}
+// ═══════════════════════════════════════════════════
+//  KV SYNC LAYER
+// ═══════════════════════════════════════════════════
+const KV_API = 'https://up-store-api.h-m-ward1846.workers.dev';
+
+async function kvSet(key, data) {
+  try {
+    await fetch(`${KV_API}/data/${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch(e) {
+    console.warn('KV sync failed for', key, e);
+  }
+}
+
+async function kvGet(key) {
+  try {
+    const res = await fetch(`${KV_API}/data/${key}`);
+    return await res.json();
+  } catch(e) {
+    console.warn('KV get failed for', key, e);
+    return null;
+  }
+}
+
+function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));kvSet('products',upProducts);}
 function renderUP(filter="all"){
   upFilter=filter;
   const grid=document.getElementById("upGrid");
@@ -3297,8 +3324,8 @@ function loadTeams() {
   } catch(e) { hiddenStores = new Set(); }
   loadStoreAccess();
 }
-function saveTeams() { localStorage.setItem("upTeams", JSON.stringify(teams)); }
-function saveHiddenStores() { localStorage.setItem("hiddenStores", JSON.stringify([...hiddenStores])); }
+function saveTeams() { localStorage.setItem("upTeams", JSON.stringify(teams)); kvSet('teams', teams); }
+function saveHiddenStores() { localStorage.setItem("hiddenStores", JSON.stringify([...hiddenStores])); kvSet('hiddenStores', [...hiddenStores]); }
 
 // Store access states: 'public' | 'code' | 'private'
 // storeCodes: { storeKey: 'ACCESSCODE' }
@@ -3312,6 +3339,8 @@ function loadStoreAccess() {
 function saveStoreAccess() {
   localStorage.setItem("storeAccess", JSON.stringify(storeAccess));
   localStorage.setItem("storeCodes",  JSON.stringify(storeCodes));
+  kvSet('storeAccess', storeAccess);
+  kvSet('storeCodes', storeCodes);
 }
 
 function setStoreState(storeKey, state) {
@@ -5846,6 +5875,7 @@ function loadDiscountCodes() {
 }
 function saveDiscountCodes() {
   localStorage.setItem('upDiscountCodes', JSON.stringify(discountCodes));
+  kvSet('discountCodes', discountCodes);
 }
 
 function applyDiscount() {
@@ -6349,6 +6379,7 @@ function loadGallery() {
 }
 function saveGallery() {
   localStorage.setItem('upGallery', JSON.stringify(galleryItems));
+  kvSet('gallery', galleryItems);
 }
 
 function renderGallery() {
@@ -6649,9 +6680,7 @@ renderGallery();
 // ══════════════════════════════════════════════════════
 function adminLogout() {
   // Cloudflare Access manages sessions — just close the overlay
-  const overlay = document.getElementById('adminOverlay');
-  overlay.style.display = 'none';
-  overlay.classList.remove('show');
+  document.getElementById('adminOverlay').style.display = 'none';
   showToast('Admin panel closed.');
 }
 
@@ -6708,7 +6737,7 @@ function renderInvoiceAdmin() {
 
 <style>
 .admin-overlay-backdrop{position:fixed;inset:0;background:rgba(6,8,16,.98);z-index:900;display:none;overflow-y:auto;}
-.admin-overlay-backdrop.show{display:flex;}
+.admin-overlay-backdrop.show{display:block;}
 .admin-shell{display:flex;min-height:100vh;}
 .admin-sidebar{width:220px;flex-shrink:0;background:#0a0e18;border-right:1px solid #1a2535;padding:24px 0;position:sticky;top:0;height:100vh;overflow-y:auto;}
 .admin-sidebar-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:#4d9fff;padding:0 20px 20px;border-bottom:1px solid #1a2535;margin-bottom:16px;}
@@ -7017,7 +7046,7 @@ function deleteGalleryItem(idx) {
 function renderAdminPanel(tab) {
   // Activate overlay if not already shown
   const overlay = document.getElementById('adminOverlay');
-  if (overlay) { overlay.classList.add('show'); overlay.style.display = 'flex'; }
+  if (overlay) overlay.classList.add('show');
 
   // Update nav highlight
   document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
@@ -7159,18 +7188,68 @@ document.addEventListener('keydown', function(e) {
 // ═══════════════════════════════════════════════════
 //  Trigger admin check on page load
 // ═══════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', function() {
+async function loadFromKV() {
+  // Load products from KV, fall back to localStorage
+  const kvProducts = await kvGet('products');
+  if (kvProducts && Array.isArray(kvProducts) && kvProducts.length > 0) {
+    upProducts = kvProducts;
+    localStorage.setItem('upSportswear', JSON.stringify(upProducts));
+  } else {
+    loadUP();
+  }
+
+  // Load teams from KV
+  const kvTeams = await kvGet('teams');
+  if (kvTeams && Array.isArray(kvTeams) && kvTeams.length > 0) {
+    teams = kvTeams;
+    localStorage.setItem('upTeams', JSON.stringify(teams));
+  }
+
+  // Load hidden stores from KV
+  const kvHidden = await kvGet('hiddenStores');
+  if (kvHidden && Array.isArray(kvHidden)) {
+    hiddenStores = new Set(kvHidden);
+    localStorage.setItem('hiddenStores', JSON.stringify(kvHidden));
+  }
+
+  // Load gallery from KV
+  const kvGallery = await kvGet('gallery');
+  if (kvGallery && Array.isArray(kvGallery)) {
+    galleryItems = kvGallery;
+    localStorage.setItem('upGallery', JSON.stringify(galleryItems));
+  }
+
+  // Load discount codes from KV
+  const kvDiscounts = await kvGet('discountCodes');
+  if (kvDiscounts && Array.isArray(kvDiscounts)) {
+    discountCodes = kvDiscounts;
+    localStorage.setItem('upDiscountCodes', JSON.stringify(discountCodes));
+  }
+
+  // Load store access from KV
+  const kvAccess = await kvGet('storeAccess');
+  if (kvAccess) {
+    storeAccess = kvAccess;
+    localStorage.setItem('storeAccess', JSON.stringify(storeAccess));
+  }
+
+  const kvCodes = await kvGet('storeCodes');
+  if (kvCodes) {
+    storeCodes = kvCodes;
+    localStorage.setItem('storeCodes', JSON.stringify(storeCodes));
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
   // Cloudflare Access handles authentication — open admin directly
   document.getElementById('adminOverlay').style.display = 'flex';
-  loadUP();
+  await loadFromKV();
   renderUP();
   renderAdminPanel('dashboard');
 });
 // Also run immediately in case DOMContentLoaded already fired
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   document.getElementById('adminOverlay').style.display = 'flex';
-  loadUP();
-  renderUP();
-  renderAdminPanel('dashboard');
+  loadFromKV().then(() => { renderUP(); renderAdminPanel('dashboard'); });
 }
 </script>
