@@ -3210,6 +3210,8 @@ function saveHiddenStores() { localStorage.setItem("hiddenStores", JSON.stringif
 // storeCodes: { storeKey: 'ACCESSCODE' }
 let storeAccess  = {};
 let storeCodes   = {};
+let discountCodes = [];
+let appliedDiscount = null;
 
 function loadStoreAccess() {
   try { storeAccess = JSON.parse(localStorage.getItem("storeAccess") || "{}"); } catch(e) { storeAccess = {}; }
@@ -4214,7 +4216,7 @@ function submitCodeGate() {
     setTimeout(() => { err.style.display='none'; document.getElementById('gateCodeInput').style.borderColor=''; }, 2500);
   }
 }
-document.getElementById('codeGateModal').addEventListener('click', function(e){ if(e.target===this) closeCodeGate(); });
+document.getElementById('codeGateModal')?.addEventListener('click', function(e){ if(e.target===this) closeCodeGate(); });
 
 // ══════════════════════════════════════════════════════
 //  PRODUCTION BOARD
@@ -6083,8 +6085,6 @@ function loadBannerFromHistory(idx) {
 // ══════════════════════════════════════════════════════
 //  DISCOUNT CODES
 // ══════════════════════════════════════════════════════
-let discountCodes = [];
-let appliedDiscount = null; // { code, type, value, label }
 
 function loadDiscountCodes() {
   try { discountCodes = JSON.parse(localStorage.getItem('upDiscountCodes') || '[]'); }
