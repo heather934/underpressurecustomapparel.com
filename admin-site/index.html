@@ -3011,7 +3011,35 @@ function showOrderSuccess(details){
 // ══════════════════════════════
 var upProducts=[],editIdx=null,upFilter="all";
 function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")||"[]");}catch(e){upProducts=[];}}
-function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));}
+
+// ═══════════════════════════════════════════════════
+//  KV SYNC LAYER
+// ═══════════════════════════════════════════════════
+const KV_API = 'https://up-store-api.h-m-ward1846.workers.dev';
+
+async function kvSet(key, data) {
+  try {
+    await fetch(`${KV_API}/data/${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch(e) {
+    console.warn('KV sync failed for', key, e);
+  }
+}
+
+async function kvGet(key) {
+  try {
+    const res = await fetch(`${KV_API}/data/${key}`);
+    return await res.json();
+  } catch(e) {
+    console.warn('KV get failed for', key, e);
+    return null;
+  }
+}
+
+function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));kvSet('products',upProducts);}
 function renderUP(filter="all"){
   upFilter=filter;
   const grid=document.getElementById("upGrid");
@@ -3297,8 +3325,8 @@ function loadTeams() {
   } catch(e) { hiddenStores = new Set(); }
   loadStoreAccess();
 }
-function saveTeams() { localStorage.setItem("upTeams", JSON.stringify(teams)); }
-function saveHiddenStores() { localStorage.setItem("hiddenStores", JSON.stringify([...hiddenStores])); }
+function saveTeams() { localStorage.setItem("upTeams", JSON.stringify(teams)); kvSet('teams', teams); }
+function saveHiddenStores() { localStorage.setItem("hiddenStores", JSON.stringify([...hiddenStores])); kvSet('hiddenStores', [...hiddenStores]); }
 
 // Store access states: 'public' | 'code' | 'private'
 // storeCodes: { storeKey: 'ACCESSCODE' }
@@ -3312,6 +3340,8 @@ function loadStoreAccess() {
 function saveStoreAccess() {
   localStorage.setItem("storeAccess", JSON.stringify(storeAccess));
   localStorage.setItem("storeCodes",  JSON.stringify(storeCodes));
+  kvSet('storeAccess', storeAccess);
+  kvSet('storeCodes', storeCodes);
 }
 
 function setStoreState(storeKey, state) {
@@ -3495,7 +3525,47 @@ function teamFormHTML(t) {
         </div>
       </div>
     </div>
-    <div class="cm-fg cm-full"><label>Description (shown on card)</label><textarea id="tm-desc" placeholder="Custom team apparel for the whole squad...">${t?.desc||''}</textarea></div>`;
+    <div class="cm-fg cm-full"><label>Description (shown on card)</label><textarea id="tm-desc" placeholder="Custom team apparel for the whole squad...">${t?.desc||''}</textarea></div>
+    <div class="cm-fg cm-full">
+      <label style="margin-bottom:10px;display:block;">📸 Gallery Photos <span style="font-weight:300;color:var(--up-mist);font-size:11px;letter-spacing:0;">(shown under this team's card on the storefront)</span></label>
+      <div id="tm-gallery-rows">${(t?.gallery||[]).map((g,i)=>`
+        <div class="tm-gallery-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+          <input value="${g.img||''}" placeholder="Image URL..." oninput="updateGalRow(${i},'img',this.value)"
+            style="flex:2;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
+          <input value="${g.caption||''}" placeholder="Caption (optional)" oninput="updateGalRow(${i},'caption',this.value)"
+            style="flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
+          <button onclick="removeGalRow(${i})" style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.2);color:var(--hs-red);padding:8px 12px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
+        </div>`).join('')}
+      </div>
+      <button onclick="addGalRow()" style="background:rgba(21,101,255,.12);border:1px solid rgba(21,101,255,.25);color:var(--up-sky);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;cursor:pointer;margin-top:4px;">+ Add Photo</button>
+    </div>`;
+}
+
+// ── Gallery row helpers (used by team form) ──
+let tmGalleryRows = [];
+function initGalRows(existing) { tmGalleryRows = existing ? [...existing] : []; }
+function addGalRow() {
+  tmGalleryRows.push({img:'',caption:''});
+  refreshGalRows();
+}
+function removeGalRow(i) {
+  tmGalleryRows.splice(i,1);
+  refreshGalRows();
+}
+function updateGalRow(i, field, val) {
+  if (tmGalleryRows[i]) tmGalleryRows[i][field] = val;
+}
+function refreshGalRows() {
+  const wrap = document.getElementById('tm-gallery-rows');
+  if (!wrap) return;
+  wrap.innerHTML = tmGalleryRows.map((g,i)=>`
+    <div class="tm-gallery-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+      <input value="${g.img||''}" placeholder="Image URL..." oninput="updateGalRow(${i},'img',this.value)"
+        style="flex:2;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
+      <input value="${g.caption||''}" placeholder="Caption (optional)" oninput="updateGalRow(${i},'caption',this.value)"
+        style="flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
+      <button onclick="removeGalRow(${i})" style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.2);color:var(--hs-red);padding:8px 12px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
+    </div>`).join('');
 }
 
 var cmTeamEditIdx = -1;
@@ -3515,6 +3585,7 @@ function openCMTeamAdd() {
   document.getElementById("cmModal").classList.add("open");
   a11yOpenTrap(document.getElementById("cmModal"));
   syncColorPicker();
+  initGalRows([]);
 }
 
 function openCMTeamEdit(idx) {
@@ -3534,6 +3605,7 @@ function openCMTeamEdit(idx) {
   document.getElementById("cmModal").classList.add("open");
   a11yOpenTrap(document.getElementById("cmModal"));
   syncColorPicker();
+  initGalRows(teams[idx]?.gallery || []);
 }
 
 function closeCMModal() {
@@ -3586,6 +3658,7 @@ function saveCMTeam() {
     color: document.getElementById("tm-color")?.value || '#1565ff',
     logo:  document.getElementById("tm-logo")?.value.trim() || '',
     desc:  document.getElementById("tm-desc")?.value.trim() || '',
+    gallery: tmGalleryRows.filter(g => g.img.trim()),
   };
 
   const isNew = cmTeamEditIdx === -1;
@@ -5846,6 +5919,7 @@ function loadDiscountCodes() {
 }
 function saveDiscountCodes() {
   localStorage.setItem('upDiscountCodes', JSON.stringify(discountCodes));
+  kvSet('discountCodes', discountCodes);
 }
 
 function applyDiscount() {
@@ -6338,320 +6412,21 @@ document.addEventListener('click', function(e) {
 });
 
 // ══════════════════════════════════════════════════════
-//  DESIGN GALLERY
+//  TEAM GALLERY (photos live on team records, not standalone)
 // ══════════════════════════════════════════════════════
-var galleryItems = [];
-var galleryAdminView = 'grid'; // 'grid' | 'list'
-
-function loadGallery() {
-  try { galleryItems = JSON.parse(localStorage.getItem('upGallery') || '[]'); }
-  catch(e) { galleryItems = []; }
-}
-function saveGallery() {
-  localStorage.setItem('upGallery', JSON.stringify(galleryItems));
-}
-
-function renderGallery() {
-  loadGallery();
-  const section = document.getElementById('gallerySection');
-  const grid = document.getElementById('galleryGrid');
-  if (!grid) return;
-
-  if (!galleryItems.length) {
-    section.style.display = 'none';
-    return;
-  }
-
-  section.style.display = 'block';
-  grid.innerHTML = galleryItems.map((item, i) => `
-    <div class="gallery-item" onclick="openGalleryLightbox(${i})">
-      <img src="${item.img}" alt="${item.title}" loading="lazy" onerror="this.parentElement.style.display='none'">
-      <div class="gallery-item-overlay">
-        <div class="gallery-item-title">${item.title}</div>
-        ${item.store ? `<div class="gallery-item-store">${item.store}</div>` : ''}
-        ${item.desc ? `<div style="font-size:11px;color:var(--up-mist);margin-top:4px;">${item.desc}</div>` : ''}
-      </div>
-    </div>`).join('');
-}
-
-function openGalleryLightbox(idx) {
-  const item = galleryItems[idx];
-  if (!item) return;
-  // Create lightbox overlay
-  const existing = document.getElementById('galleryLightbox');
-  if (existing) existing.remove();
-  const lb = document.createElement('div');
-  lb.id = 'galleryLightbox';
-  lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;cursor:pointer;';
-  lb.onclick = () => closeGalleryLightbox();
-  lb.innerHTML = `
-    <button style="position:absolute;top:20px;right:24px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;" onclick="closeGalleryLightbox()" aria-label="Close image preview">✕</button>
-    <img src="${item.img}" style="max-width:85vw;max-height:75vh;object-fit:contain;border:2px solid rgba(255,255,255,.1);" onerror="this.src=''">
-    <div style="text-align:center;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;">${item.title}</div>
-      ${item.store ? `<div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;color:rgba(255,255,255,.5);text-transform:uppercase;">${item.store}</div>` : ''}
-    </div>
-    <div style="display:flex;gap:16px;">
-      ${idx > 0 ? `<button onclick="event.stopPropagation();openGalleryLightbox(${idx-1})" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:10px 20px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;">← PREV</button>` : ''}
-      ${idx < galleryItems.length-1 ? `<button onclick="event.stopPropagation();openGalleryLightbox(${idx+1})" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:10px 20px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;">NEXT →</button>` : ''}
-    </div>`;
-  document.body.appendChild(lb);
-  a11yOpenTrap(lb);
-}
-function closeGalleryLightbox() {
-  const lb = document.getElementById('galleryLightbox');
-  if (lb) lb.remove();
-  a11yCloseTrap();
-}
-
-// ── ADMIN: GALLERY MANAGER ──
-function renderGalleryAdmin() {
-  loadGallery();
-
-  const itemsHTML = galleryItems.length
-    ? galleryItems.map((item, i) => `
-        <div style="background:var(--up-card);border:1px solid var(--up-border);display:flex;align-items:center;gap:14px;padding:12px 16px;margin-bottom:2px;">
-          <div style="width:64px;height:64px;flex-shrink:0;overflow:hidden;background:var(--up-navy);">
-            <img src="${item.img}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity='.2'">
-          </div>
-          <div style="flex:1;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--up-white);">${item.title}</div>
-            <div style="font-size:11px;color:var(--up-mist);margin-top:2px;">${item.store||'General'} ${item.desc ? '· '+item.desc : ''}</div>
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            ${i > 0 ? `<button class="btn-add-note" onclick="moveGalleryItem(${i},-1)" title="Move up">↑</button>` : ''}
-            ${i < galleryItems.length-1 ? `<button class="btn-add-note" onclick="moveGalleryItem(${i},1)" title="Move down">↓</button>` : ''}
-            <button class="cm-btn-del" onclick="deleteGalleryItem(${i})" aria-label="Delete gallery photo" style="padding:4px 10px;">✕</button>
-          </div>
-        </div>`).join('')
-    : `<div class="dash-empty">No gallery photos yet — add your first one below.</div>`;
-
-  return `
-    <div class="cm-section-head">
-      <div>
-        <div class="cm-section-title" style="color:var(--up-sky);">Design <span style="color:var(--up-white)">Gallery</span></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">
-          ${galleryItems.length} photo${galleryItems.length!==1?'s':''} · ${galleryItems.length ? 'Visible on the front page' : 'Hidden until you add photos'}
-        </div>
-      </div>
-    </div>
-
-    <!-- CURRENT PHOTOS -->
-    <div style="margin-bottom:20px;">${itemsHTML}</div>
-
-    <!-- ADD NEW PHOTO -->
-    <div class="disc-add-form">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--up-sky);text-transform:uppercase;margin-bottom:14px;">+ Add Gallery Photo</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="df">
-          <label>Photo Title *</label>
-          <input id="galTitle" type="text" placeholder="e.g. Rampage Batting Jackets 2026"
-            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:100%;">
-        </div>
-        <div class="df">
-          <label>Store / Team</label>
-          <select id="galStore" style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:100%;">
-            <option value="">General</option>
-            <option>River City Rampage</option>
-            <option>Rome CoC Youth T-Shirts</option>
-            <option>Huntington Steel</option>
-            <option>UP Sportswear</option>
-          </select>
-        </div>
-        <div class="df full" style="grid-column:1/-1;">
-          <label>Photo Image</label>
-          <div class="img-field-wrap">
-
-            <!-- Tab toggle -->
-            <div style="display:flex;gap:0;margin-bottom:10px;">
-              <button id="galTabUrl" onclick="galSwitchTab('url')"
-                style="flex:1;padding:8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid var(--up-border);background:var(--up-blue);color:#fff;border-right:none;transition:all .2s;">
-                🔗 URL / Canva
-              </button>
-              <button id="galTabFile" onclick="galSwitchTab('file')"
-                style="flex:1;padding:8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid var(--up-border);background:var(--up-navy);color:var(--up-mist);transition:all .2s;">
-                📁 Upload from Device
-              </button>
-            </div>
-
-            <!-- URL / Canva panel -->
-            <div id="galPanelUrl">
-              <div class="img-input-row">
-                <input id="galImg" type="text" placeholder="Paste image URL or Canva share link..."
-                  oninput="previewImg('gal')"
-                  style="background:var(--up-navy);border:1px solid var(--up-border);border-right:none;color:var(--up-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;flex:1;">
-                <button class="btn-canva" onclick="importCanva('gal')" id="gal-canva-btn">🎨 Import from Canva</button>
-              </div>
-              <div class="canva-hint">Paste a direct image URL or a Canva published link.</div>
-              <div class="canva-status" id="gal-canva-status"></div>
-            </div>
-
-            <!-- Upload from device panel -->
-            <div id="galPanelFile" style="display:none;">
-              <label for="galFileInput"
-                style="display:flex;align-items:center;justify-content:center;gap:10px;padding:28px;border:2px dashed var(--up-border);cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px;color:var(--up-mist);transition:border-color .2s;"
-                id="galDropZone"
-                ondragover="event.preventDefault();this.style.borderColor='var(--up-sky)'"
-                ondragleave="this.style.borderColor='var(--up-border)'"
-                ondrop="galHandleDrop(event)">
-                <span style="font-size:28px;">📷</span>
-                <div>
-                  <div style="color:var(--up-white);font-size:14px;">Click to choose a photo</div>
-                  <div style="font-size:11px;margin-top:3px;">or drag and drop here · JPG, PNG, WEBP up to 5MB</div>
-                </div>
-              </label>
-              <input id="galFileInput" type="file" accept="image/*" style="display:none;"
-                onchange="galHandleFile(this.files[0])">
-              <div id="galUploadProgress" style="display:none;margin-top:8px;">
-                <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-sky);margin-bottom:4px;" id="galUploadLabel">Converting...</div>
-                <div style="background:var(--up-border);height:3px;border-radius:2px;">
-                  <div id="galUploadBar" style="background:var(--up-sky);height:3px;border-radius:2px;width:0%;transition:width .3s;"></div>
-                </div>
-              </div>
-              <!-- hidden field stores the base64 result -->
-              <input id="galImgFile" type="hidden" value="">
-            </div>
-
-            <!-- Shared preview -->
-            <div class="img-preview-wrap" id="gal-img-preview" style="margin-top:10px;">
-              <img id="gal-img-preview-img" src="" alt="Preview" onerror="this.parentElement.style.display='none'">
-              <button class="img-preview-clear" onclick="clearGalImg()" aria-label="Remove gallery image">✕</button>
-            </div>
-          </div>
-        </div>
-        <div class="df full" style="grid-column:1/-1;">
-          <label>Caption (optional)</label>
-          <input id="galDesc" type="text" placeholder="e.g. Full team order of 24 jackets with player names"
-            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:100%;">
-        </div>
-      </div>
-      <button class="btn-save-up" style="background:var(--up-sky);color:#000;" onclick="addGalleryItem()">
-        📸 Add to Gallery
-      </button>
-    </div>`;
-}
-
-function galSwitchTab(tab) {
-  const urlPanel  = document.getElementById('galPanelUrl');
-  const filePanel = document.getElementById('galPanelFile');
-  const tabUrl    = document.getElementById('galTabUrl');
-  const tabFile   = document.getElementById('galTabFile');
-  if (!urlPanel) return;
-  if (tab === 'url') {
-    urlPanel.style.display  = '';
-    filePanel.style.display = 'none';
-    tabUrl.style.background  = 'var(--up-blue)';  tabUrl.style.color  = '#fff';
-    tabFile.style.background = 'var(--up-navy)';  tabFile.style.color = 'var(--up-mist)';
-  } else {
-    urlPanel.style.display  = 'none';
-    filePanel.style.display = '';
-    tabFile.style.background = 'var(--up-blue)';  tabFile.style.color  = '#fff';
-    tabUrl.style.background  = 'var(--up-navy)';  tabUrl.style.color   = 'var(--up-mist)';
-    document.getElementById('galFileInput')?.click();
-  }
-}
-
-function galHandleDrop(e) {
-  e.preventDefault();
-  document.getElementById('galDropZone').style.borderColor = 'var(--up-border)';
-  const file = e.dataTransfer?.files?.[0];
-  if (file && file.type.startsWith('image/')) galHandleFile(file);
-}
-
-function galHandleFile(file) {
-  if (!file) return;
-  if (file.size > 5 * 1024 * 1024) { showToast('Image must be under 5MB'); return; }
-  const progress = document.getElementById('galUploadProgress');
-  const bar      = document.getElementById('galUploadBar');
-  const label    = document.getElementById('galUploadLabel');
-  if (progress) progress.style.display = 'block';
-  if (bar)      bar.style.width = '30%';
-  if (label)    label.textContent = 'Converting image...';
-
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    const b64 = ev.target.result;
-    // Store in the hidden input
-    const inp = document.getElementById('galImgFile');
-    if (inp) inp.value = b64;
-    // Show preview
-    const preview    = document.getElementById('gal-img-preview');
-    const previewImg = document.getElementById('gal-img-preview-img');
-    if (previewImg) { previewImg.src = b64; previewImg.style.opacity = '1'; }
-    if (preview)    preview.style.display = 'flex';
-    if (bar)        bar.style.width = '100%';
-    if (label)      label.textContent = `✓ ${file.name} ready`;
-    setTimeout(() => { if (progress) progress.style.display = 'none'; }, 1500);
-  };
-  reader.onerror = function() {
-    showToast('Could not read file — please try again');
-    if (progress) progress.style.display = 'none';
-  };
-  if (bar) bar.style.width = '60%';
-  reader.readAsDataURL(file);
-}
-
-function clearGalImg() {
-  const inp = document.getElementById('galImgFile');
-  if (inp) inp.value = '';
-  const urlInp = document.getElementById('galImg');
-  if (urlInp) urlInp.value = '';
-  const previewImg = document.getElementById('gal-img-preview-img');
-  if (previewImg) previewImg.src = '';
-  const preview = document.getElementById('gal-img-preview');
-  if (preview) preview.style.display = 'none';
-  const fileInput = document.getElementById('galFileInput');
-  if (fileInput) fileInput.value = '';
-  const bar   = document.getElementById('galUploadBar');
-  const label = document.getElementById('galUploadLabel');
-  if (bar)   bar.style.width = '0%';
-  if (label) label.textContent = 'Converting...';
-}
-
-function addGalleryItem() {
-  const title = document.getElementById('galTitle')?.value.trim();
-  const store = document.getElementById('galStore')?.value;
-  const desc  = document.getElementById('galDesc')?.value.trim();
-  // Determine which tab is active and read the correct image source
-  const filePanel = document.getElementById('galPanelFile');
-  const usingFile = filePanel && filePanel.style.display !== 'none';
-  const img = usingFile
-    ? document.getElementById('galImgFile')?.value.trim()
-    : document.getElementById('galImg')?.value.trim();
-  if (!title) { showToast('Please enter a photo title'); return; }
-  if (!img)   { showToast('Please add an image — paste a URL or upload from your device'); return; }
-  loadGallery();
-  galleryItems.unshift({ title, img, store, desc, addedAt: new Date().toISOString() });
-  saveGallery();
-  renderGallery();
-  renderAdminPanel('gallery');
-  showToast('Photo added to gallery! 📸');
-}
 
 
 
-function moveGalleryItem(idx, dir) {
-  loadGallery();
-  const newIdx = idx + dir;
-  if (newIdx < 0 || newIdx >= galleryItems.length) return;
-  [galleryItems[idx], galleryItems[newIdx]] = [galleryItems[newIdx], galleryItems[idx]];
-  saveGallery();
-  renderGallery();
-  renderAdminPanel('gallery');
-}
 
-// Init gallery
-loadGallery();
-renderGallery();
+
+
 
 // ══════════════════════════════════════════════════════
 //  ADMIN PIN PROTECTION
 // ══════════════════════════════════════════════════════
 function adminLogout() {
   // Cloudflare Access manages sessions — just close the overlay
-  const overlay = document.getElementById('adminOverlay');
-  overlay.style.display = 'none';
-  overlay.classList.remove('show');
+  document.getElementById('adminOverlay').style.display = 'none';
   showToast('Admin panel closed.');
 }
 
@@ -6752,7 +6527,7 @@ function renderInvoiceAdmin() {
         <div class="admin-nav-item" id="anav-deadlines" onclick="renderAdminPanel('deadlines')">📅 <span class="admin-nav-item-label">Deadlines</span></div>
         <div class="admin-nav-item" id="anav-invoices" onclick="renderAdminPanel('invoices')">🧾 <span class="admin-nav-item-label">Invoices</span></div>
         <div class="admin-nav-item" id="anav-discounts" onclick="renderAdminPanel('discounts')">🏷 <span class="admin-nav-item-label">Discounts</span></div>
-        <div class="admin-nav-item" id="anav-gallery" onclick="renderAdminPanel('gallery')">🖼 <span class="admin-nav-item-label">Gallery</span></div>
+
         <div class="admin-nav-item" id="anav-security" onclick="renderAdminPanel('security')">🔒 <span class="admin-nav-item-label">Security</span></div>
         <div class="admin-nav-item" id="anav-integrations" onclick="renderAdminPanel('integrations')">🔌 <span class="admin-nav-item-label">Integrations</span></div>
         <div class="admin-nav-no-results" id="adminNavNoResults" style="display:none;">No matching sections</div>
@@ -6997,27 +6772,10 @@ function deleteDiscountCode(idx) {
   });
 }
 
-function deleteGalleryItem(idx) {
-  showConfirmModal({
-    title: 'REMOVE PHOTO',
-    msg: 'Remove this photo from the gallery? It will no longer appear on the storefront.',
-    icon: '🖼️',
-    label: 'Remove',
-    onConfirm: () => {
-      loadGallery();
-      galleryItems.splice(idx, 1);
-      saveGallery();
-      renderGallery();
-      renderAdminPanel('gallery');
-      showToast('Photo removed');
-    }
-  });
-}
-
 function renderAdminPanel(tab) {
   // Activate overlay if not already shown
   const overlay = document.getElementById('adminOverlay');
-  if (overlay) { overlay.classList.add('show'); overlay.style.display = 'flex'; }
+  if (overlay) overlay.classList.add('show');
 
   // Update nav highlight
   document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
@@ -7038,7 +6796,7 @@ function renderAdminPanel(tab) {
       case 'deadlines':    content.innerHTML = renderDeadlines();       break;
       case 'invoices':     content.innerHTML = renderInvoiceAdmin();    break;
       case 'discounts':    content.innerHTML = renderDiscountAdmin();   break;
-      case 'gallery':      content.innerHTML = renderGalleryAdmin();    break;
+
       case 'security':     content.innerHTML = renderPinSettings();     break;
       case 'integrations': content.innerHTML = renderIntegrations();   break;
       default:             content.innerHTML = renderDashboard();       break;
@@ -7138,7 +6896,7 @@ function a11yCloseTrap() {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     // Gallery lightbox takes priority since it's created dynamically
-    if (document.getElementById('galleryLightbox')) { closeGalleryLightbox(); return; }
+    if (document.getElementById('galleryLightbox')) { document.getElementById('galleryLightbox').remove(); return; }
     for (const m of A11Y_MODALS) {
       const el = document.getElementById(m.id);
       if (el && el.classList.contains('open')) { m.close(); return; }
@@ -7159,18 +6917,61 @@ document.addEventListener('keydown', function(e) {
 // ═══════════════════════════════════════════════════
 //  Trigger admin check on page load
 // ═══════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', function() {
+async function loadFromKV() {
+  // Load products from KV, fall back to localStorage
+  const kvProducts = await kvGet('products');
+  if (kvProducts && Array.isArray(kvProducts) && kvProducts.length > 0) {
+    upProducts = kvProducts;
+    localStorage.setItem('upSportswear', JSON.stringify(upProducts));
+  } else {
+    loadUP();
+  }
+
+  // Load teams from KV
+  const kvTeams = await kvGet('teams');
+  if (kvTeams && Array.isArray(kvTeams) && kvTeams.length > 0) {
+    teams = kvTeams;
+    localStorage.setItem('upTeams', JSON.stringify(teams));
+  }
+
+  // Load hidden stores from KV
+  const kvHidden = await kvGet('hiddenStores');
+  if (kvHidden && Array.isArray(kvHidden)) {
+    hiddenStores = new Set(kvHidden);
+    localStorage.setItem('hiddenStores', JSON.stringify(kvHidden));
+  }
+
+  // Load discount codes from KV
+  const kvDiscounts = await kvGet('discountCodes');
+  if (kvDiscounts && Array.isArray(kvDiscounts)) {
+    discountCodes = kvDiscounts;
+    localStorage.setItem('upDiscountCodes', JSON.stringify(discountCodes));
+  }
+
+  // Load store access from KV
+  const kvAccess = await kvGet('storeAccess');
+  if (kvAccess) {
+    storeAccess = kvAccess;
+    localStorage.setItem('storeAccess', JSON.stringify(storeAccess));
+  }
+
+  const kvCodes = await kvGet('storeCodes');
+  if (kvCodes) {
+    storeCodes = kvCodes;
+    localStorage.setItem('storeCodes', JSON.stringify(storeCodes));
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
   // Cloudflare Access handles authentication — open admin directly
   document.getElementById('adminOverlay').style.display = 'flex';
-  loadUP();
+  await loadFromKV();
   renderUP();
   renderAdminPanel('dashboard');
 });
 // Also run immediately in case DOMContentLoaded already fired
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   document.getElementById('adminOverlay').style.display = 'flex';
-  loadUP();
-  renderUP();
-  renderAdminPanel('dashboard');
+  loadFromKV().then(() => { renderUP(); renderAdminPanel('dashboard'); });
 }
 </script>
