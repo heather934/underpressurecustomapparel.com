@@ -3267,6 +3267,7 @@ function renderTeamCards() {
       color: '#1a6b2f',
       logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png',
       desc: 'Custom baseball & softball apparel for the Rampage family',
+      gallery: [],
     },
     {
       name: 'Rome CoC Youth T-Shirts',
@@ -3275,20 +3276,31 @@ function renderTeamCards() {
       color: '#7c3aed',
       logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png',
       desc: 'Faith-inspired graphic tees — portions benefit Rome Church of Christ Youth Ministries',
+      gallery: [],
     },
   ];
 
-  // Merge built-in + admin-added custom stores
+  // Merge built-in + admin-added custom stores, filtering by visibility
   const allStores = [
-    ...builtIn,
-    ...teams.map(t => ({
-      name: t.name,
-      subdomain: t.subdomain || slugify(t.name),
-      url: `https://${t.subdomain || slugify(t.name)}.underpressure.com`,
-      color: t.color || '#1565ff',
-      logo: t.logo || '',
-      desc: t.desc || 'Custom team apparel — powered by Under Pressure',
-    })),
+    ...builtIn.filter(t => {
+      const state = storeAccess[t.subdomain] || 'public';
+      return state !== 'private';
+    }),
+    ...teams
+      .filter(t => {
+        const key = t.subdomain || slugify(t.name);
+        const state = storeAccess[key] || 'public';
+        return state !== 'private';
+      })
+      .map(t => ({
+        name: t.name,
+        subdomain: t.subdomain || slugify(t.name),
+        url: `https://${t.subdomain || slugify(t.name)}.underpressure.com`,
+        color: t.color || '#1565ff',
+        logo: t.logo || '',
+        desc: t.desc || 'Custom team apparel — powered by Under Pressure',
+        gallery: t.gallery || [],
+      })),
   ];
 
   if (!allStores.length) {
