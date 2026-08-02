@@ -3283,12 +3283,15 @@ function renderTeamCards() {
   // Merge built-in + admin-added custom stores, filtering by visibility
   const allStores = [
     ...builtIn.filter(t => {
-      const state = storeAccess[t.subdomain] || 'public';
+      const builtInKeys = { 'rivercityrampage': 'builtin-rampage', 'romecoc': 'builtin-romecoc' };
+      const key = builtInKeys[t.subdomain] || t.subdomain;
+      const state = storeAccess[key] || 'public';
       return state !== 'private';
     }),
     ...teams
+      .map((t, i) => ({ ...t, _idx: i }))
       .filter(t => {
-        const key = t.subdomain || slugify(t.name);
+        const key = t.key || `team-${t._idx}`;
         const state = storeAccess[key] || 'public';
         return state !== 'private';
       })
