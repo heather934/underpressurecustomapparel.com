@@ -1166,7 +1166,7 @@ nav { position: relative; }
 .prod-search:focus { border-color: var(--up-sky); }
 .prod-search::placeholder { color: var(--up-mist); }
 .prod-stats {
-  display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; margin-bottom: 20px;
+  display: grid; grid-template-columns: repeat(5,1fr); gap: 2px; margin-bottom: 20px;
 }
 .prod-stat-card {
   background: var(--up-card); border: 1px solid var(--up-border);
@@ -3597,10 +3597,13 @@ function teamFormHTML(t) {
           <div class="tm-prod-row-icon">${p.icon}</div>
           <div class="tm-prod-row-fields">
             <div class="tm-prod-row-name">${p.label}</div>
+            <input type="text" id="tm-pgname-${p.type}" value="${ep?.graphicName||''}"
+              placeholder="Graphic name (e.g. Rampage Front Chest 2026)"
+              style="border-color:rgba(167,139,250,.4);">
             <input type="text" id="tm-pimg-${p.type}" value="${ep?.img||''}"
               placeholder="Design image URL (Canva link or direct PNG)…"
               oninput="tmPreviewDesign('${p.type}',this.value)">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-mist);letter-spacing:1px;">Paste a Canva share link or direct image URL for this garment's design</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-mist);letter-spacing:1px;">Graphic name is shown on the print sheet sent to your DTF printer</div>
             <div id="tm-pimg-prev-${p.type}" style="display:${ep?.img?'block':'none'};margin-top:4px;">
               <img src="${ep?.img||''}" style="max-height:60px;max-width:180px;object-fit:contain;border:1px solid var(--up-border);" onerror="this.parentElement.style.display='none'">
             </div>
@@ -3770,11 +3773,12 @@ function saveCMTeam() {
       return cb && cb.checked;
     })
     .map(p => ({
-      type:  p.type,
-      label: p.label,
-      icon:  p.icon,
-      img:   document.getElementById('tm-pimg-' + p.type)?.value.trim() || '',
-      price: document.getElementById('tm-pprice-' + p.type)?.value.trim() || p.defaultPrice,
+      type:       p.type,
+      label:      p.label,
+      icon:       p.icon,
+      graphicName: document.getElementById('tm-pgname-' + p.type)?.value.trim() || '',
+      img:        document.getElementById('tm-pimg-' + p.type)?.value.trim() || '',
+      price:      document.getElementById('tm-pprice-' + p.type)?.value.trim() || p.defaultPrice,
     }));
 
   const team = {
@@ -4468,6 +4472,25 @@ function saveProductionOrders() {
 
 // Auto-log orders when submitted via cart checkout
 function logProductionOrder(orderData) {
+  // Enrich items with graphicName/graphicImg from saved team store products
+  const enrichedItems = (orderData.items || []).map(item => {
+    if (item.graphicName || item.graphicImg) return item; // already set
+    // Look up team store by store name
+    const team = teams.find(t => t.name === orderData.store);
+    if (team && team.products) {
+      // Match by product label or partial name
+      const match = team.products.find(p =>
+        item.name && (
+          item.name.toLowerCase().includes(p.label.toLowerCase()) ||
+          p.label.toLowerCase().includes(item.name.toLowerCase()) ||
+          item.name.toLowerCase().includes(p.type.toLowerCase())
+        )
+      );
+      if (match) return { ...item, graphicName: match.graphicName || '', graphicImg: match.img || '' };
+    }
+    return item;
+  });
+
   const entry = {
     id: Date.now(),
     timestamp: new Date().toISOString(),
@@ -4475,7 +4498,7 @@ function logProductionOrder(orderData) {
     customer: orderData.customer || '',
     phone: orderData.phone || '',
     email: orderData.email || '',
-    items: orderData.items || [],
+    items: enrichedItems,
     completed: false,
   };
   productionOrders.unshift(entry);
@@ -4527,6 +4550,32 @@ var prodFilterStore = 'all';
 var prodFilterStatus = 'all';
 var prodSearch = '';
 
+// ══════════════════════════════════════════════════════════════════
+//  GRAPHICS LOCATIONS — maps product type keywords → print locations
+//  Used to calculate total graphics needed across all pending orders.
+//  Rules are keyword-based (case-insensitive, checks item name).
+//  Override per-product by setting p.locations on a UP product.
+// ══════════════════════════════════════════════════════════════════
+const GRAPHIC_LOCATIONS_MAP = [
+  { keywords: ['jersey','sublimated'],                     locations: 2 },
+  { keywords: ['hoodie','hooded','full-zip','full zip'],    locations: 2 },
+  { keywords: ['crew neck','crewneck','sweatshirt'],        locations: 2 },
+  { keywords: ['long sleeve','longsleeve','long-sleeve'],   locations: 2 },
+  { keywords: ['batting jacket','jacket'],                  locations: 2 },
+  { keywords: ['tee','t-shirt','t shirt','dry-fit','dry fit','performance'], locations: 1 },
+  { keywords: ['hat','cap','snapback','trucker','beanie'],  locations: 1 },
+  { keywords: ['bag','backpack','tote'],                    locations: 1 },
+];
+
+function getGraphicLocations(itemName) {
+  if (!itemName) return 1;
+  const lower = itemName.toLowerCase();
+  for (const rule of GRAPHIC_LOCATIONS_MAP) {
+    if (rule.keywords.some(kw => lower.includes(kw))) return rule.locations;
+  }
+  return 1; // default: 1 location
+}
+
 function renderProductionAdmin() {
   loadProductionOrders();
 
@@ -4552,10 +4601,12 @@ function renderProductionAdmin() {
   const pending = realOrders.filter(o=>!o.completed).reduce((s,o) => s+(o.items||[]).reduce((ss,i)=>ss+(i.qty||1),0), 0);
   const done = total - pending;
   const orders = realOrders.length;
+  // Graphics needed = sum of (qty × print locations) for all pending items
+  const graphicsNeeded = realOrders.filter(o=>!o.completed).reduce((s,o) =>
+    s + (o.items||[]).reduce((ss,i) => ss + (i.qty||1) * getGraphicLocations(i.name), 0), 0);
 
-  // Build rows — flatten to individual items for easy reading
   const rowsHTML = filtered.length === 0
-    ? `<tr><td colspan="9" class="prod-empty">
+    ? `<tr><td colspan="10" class="prod-empty">
         ${productionOrders.length === 0
           ? '📋 No production orders yet — orders submitted through the store will appear here automatically.'
           : 'No orders match your filter.'}
@@ -4567,7 +4618,7 @@ function renderProductionAdmin() {
             : o.store === 'Rome CoC Youth T-Shirts' ? '#7c3aed'
             : o.store === 'Huntington Steel' ? '#c8102e' : 'var(--up-blue)';
           return [`<tr style="background:rgba(255,255,255,.02);">
-            <td colspan="9" style="padding:8px 12px;border-bottom:1px solid var(--up-border);">
+            <td colspan="10" style="padding:8px 12px;border-bottom:1px solid var(--up-border);">
               <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${o.store}</span>
               <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);margin-left:10px;">
                 Store registered ${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} — awaiting first order
@@ -4578,7 +4629,12 @@ function renderProductionAdmin() {
         const storeColor = o.store === 'River City Rampage' ? '#1a6b2f'
           : o.store === 'Rome CoC Youth T-Shirts' ? '#7c3aed'
           : o.store === 'Huntington Steel' ? '#c8102e' : 'var(--up-blue)';
-        return (o.items||[]).map((item, itemIdx) => `
+        return (o.items||[]).map((item, itemIdx) => {
+          const locs = getGraphicLocations(item.name);
+          const qty = item.qty || 1;
+          const graphicsThisLine = locs * qty;
+          const locsLabel = locs === 1 ? '1 location' : `${locs} locations`;
+          return `
           <tr class="prod-row${o.completed?' prod-completed':''}" id="prodrow-${o.id}">
             ${itemIdx === 0 ? `
               <td class="prod-td" rowspan="${o.items.length}" style="border-right:1px solid var(--up-border);vertical-align:middle;">
@@ -4606,7 +4662,12 @@ function renderProductionAdmin() {
               ${item.size||'—'}
             </td>
             <td class="prod-td" style="border-right:1px solid var(--up-border);text-align:center;">
-              <span style="font-size:18px;font-weight:700;">${item.qty||1}</span>
+              <span style="font-size:18px;font-weight:700;">${qty}</span>
+            </td>
+            <td class="prod-td" style="border-right:1px solid var(--up-border);text-align:center;${o.completed?'':''}">
+              <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${o.completed?'var(--up-mist)':'#a78bfa'};">${graphicsThisLine}</span>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:var(--up-mist);text-transform:uppercase;">${locsLabel}</div>
+              ${(item.graphicImg || item.graphicName) ? `<button onclick="openPrintSheet(${JSON.stringify({orderId:o.id,customer:o.customer,store:o.store,date:o.timestamp,itemName:item.name,color:item.color||'',size:item.size||'',qty:item.qty||1,playerName:item.playerName||'',playerNumber:item.playerNumber||'',graphicName:item.graphicName||'',graphicImg:item.graphicImg||''}).replace(/"/g,'&quot;')})" style="margin-top:5px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:#a78bfa;padding:4px 10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;display:block;width:100%;transition:all .2s;" onmouseover="this.style.background='rgba(167,139,250,.3)'" onmouseout="this.style.background='rgba(167,139,250,.15)'">🖨 Print Sheet</button>` : ''}
             </td>
             ${itemIdx === 0 ? `
               <td class="prod-td" rowspan="${o.items.length}" style="vertical-align:middle;text-align:center;min-width:120px;">
@@ -4621,7 +4682,8 @@ function renderProductionAdmin() {
                   <button class="btn-save-up" style="padding:6px 10px;font-size:11px;" onclick="saveNote(${o.id})">Save</button>
                 </div>
               </td>` : ''}
-          </tr>`);
+          </tr>`;
+        });
       }).join('');
 
   return `
@@ -4636,7 +4698,8 @@ function renderProductionAdmin() {
       <div class="prod-stat-card"><div class="prod-stat-n">${orders}</div><div class="prod-stat-l">Total Orders</div></div>
       <div class="prod-stat-card"><div class="prod-stat-n">${total}</div><div class="prod-stat-l">Total Items</div></div>
       <div class="prod-stat-card green"><div class="prod-stat-n">${done}</div><div class="prod-stat-l">Completed</div></div>
-      <div class="prod-stat-card red"><div class="prod-stat-n">${pending}</div><div class="prod-stat-l">Pending</div></div>
+      <div class="prod-stat-card red"><div class="prod-stat-n">${pending}</div><div class="prod-stat-l">Pending Items</div></div>
+      <div class="prod-stat-card purple"><div class="prod-stat-n">${graphicsNeeded}</div><div class="prod-stat-l">Graphics Needed</div></div>
     </div>
 
     <div class="prod-actions-bar">
@@ -4660,6 +4723,7 @@ function renderProductionAdmin() {
           <th class="sortable">#</th>
           <th class="sortable">Size</th>
           <th class="sortable">Qty</th>
+          <th class="sortable" title="Print locations × qty = graphics needed for this line">🎨</th>
           <th></th>
         </tr></thead>
         <tbody>${rowsHTML}</tbody>
@@ -4674,6 +4738,105 @@ function renderProductionAdmin() {
 // ══════════════════════════════════════════════════════
 //  PURCHASE LIST — Size breakdown per item per store
 // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+//  PRINT SHEET — opens a clean printable window for DTF printing
+// ══════════════════════════════════════════════════════════════════
+function openPrintSheet(data) {
+  if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) { return; } }
+
+  const date = data.date ? new Date(data.date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '';
+  const playerLine = [data.playerName, data.playerNumber ? '#' + data.playerNumber : ''].filter(Boolean).join(' ');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Print Sheet — ${data.graphicName || data.itemName}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;700&family=Barlow:wght@300;400&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#fff;color:#060810;font-family:'Barlow',sans-serif;padding:32px;max-width:800px;margin:0 auto;}
+  .sheet-header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #1565ff;padding-bottom:16px;margin-bottom:24px;}
+  .sheet-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#1565ff;}
+  .sheet-sub{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:#5a7296;text-transform:uppercase;margin-top:2px;}
+  .sheet-date{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:#5a7296;text-align:right;}
+  .graphic-name{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:#060810;margin-bottom:4px;line-height:1;}
+  .graphic-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:#5a7296;text-transform:uppercase;margin-bottom:24px;}
+  .graphic-img-wrap{border:2px solid #e5e7eb;padding:24px;text-align:center;margin-bottom:24px;background:#f9fafb;min-height:260px;display:flex;align-items:center;justify-content:center;}
+  .graphic-img-wrap img{max-width:100%;max-height:400px;object-fit:contain;}
+  .no-img{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;}
+  .order-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#e5e7eb;border:1px solid #e5e7eb;margin-bottom:24px;}
+  .order-cell{background:#fff;padding:14px 16px;}
+  .order-label{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px;}
+  .order-value{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#060810;line-height:1.1;}
+  .order-cell.span2{grid-column:span 2;}
+  .btn-print{background:#1565ff;color:#fff;border:none;padding:14px 40px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;cursor:pointer;display:block;margin:0 auto 8px;}
+  .btn-print:hover{background:#0a4fd6;}
+  .print-note{text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;}
+  .locations-badge{display:inline-block;background:#f3f0ff;border:1px solid #ddd6fe;color:#7c3aed;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;margin-bottom:24px;}
+  @media print{
+    .btn-print,.print-note{display:none;}
+    body{padding:16px;}
+    @page{margin:12mm;}
+  }
+</style>
+</head>
+<body>
+  <div class="sheet-header">
+    <div>
+      <div class="sheet-logo">Under Pressure</div>
+      <div class="sheet-sub">DTF Print Sheet</div>
+    </div>
+    <div class="sheet-date">
+      <div>${data.store}</div>
+      <div style="margin-top:4px;">${date}</div>
+      <div style="margin-top:4px;font-size:10px;">Order #${data.orderId}</div>
+    </div>
+  </div>
+
+  <div class="graphic-name">${data.graphicName || data.itemName}</div>
+  <div class="graphic-sub">${data.itemName}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + data.graphicName : ''}</div>
+  <div class="locations-badge">🎨 ${getGraphicLocations ? getGraphicLocations(data.itemName) : 1} print location${getGraphicLocations && getGraphicLocations(data.itemName) > 1 ? 's' : ''}</div>
+
+  <div class="graphic-img-wrap">
+    ${data.graphicImg
+      ? `<img src="${data.graphicImg}" alt="${data.graphicName}" onerror="this.parentElement.innerHTML='<div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all>${data.graphicImg}</div>'">`
+      : `<div class="no-img">No graphic image on file<br><span style="font-size:11px;margin-top:6px;display:block;">Add a design image URL in the team store admin</span></div>`}
+  </div>
+
+  <div class="order-grid">
+    <div class="order-cell span2">
+      <div class="order-label">Customer</div>
+      <div class="order-value">${data.customer}</div>
+    </div>
+    <div class="order-cell">
+      <div class="order-label">Qty</div>
+      <div class="order-value" style="font-size:28px;">${data.qty}</div>
+    </div>
+    <div class="order-cell">
+      <div class="order-label">Size</div>
+      <div class="order-value">${data.size || '—'}</div>
+    </div>
+    <div class="order-cell">
+      <div class="order-label">Color</div>
+      <div class="order-value">${data.color || '—'}</div>
+    </div>
+    <div class="order-cell">
+      <div class="order-label">Player</div>
+      <div class="order-value">${playerLine || '—'}</div>
+    </div>
+  </div>
+
+  <button class="btn-print" onclick="window.print()">🖨 PRINT / SAVE AS PDF</button>
+  <div class="print-note">Print this sheet or save as PDF to send to your DTF printer</div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=860,height=900');
+  if (win) { win.document.write(html); win.document.close(); }
+  else showToast('Pop-up blocked — allow pop-ups for this site to open print sheets');
+}
+
 function renderPurchaseList() {
   loadProductionOrders();
 
