@@ -467,7 +467,7 @@ footer{border-top:1px solid var(--up-border);padding:34px 48px;display:flex;alig
 .team-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,.5); }
 .team-card-banner {
   height: 10px;
-  background: var(--team-color, var(--up-blue));
+  background: var(--team-banner-bg, var(--team-color, var(--up-blue)));
 }
 .team-card-body { padding: 28px 26px 24px; }
 .team-card-logo {
@@ -3411,18 +3411,21 @@ function renderTeamCards() {
     const subdomain = t.subdomain || slugify(t.name);
     const url = `https://${subdomain}.underpressure.com`;
     const color = t.color || '#1565ff';
+    const color2 = t.color2 || '';
+    const bannerBg = color2 ? `linear-gradient(90deg,${color},${color2})` : color;
+    const colorStyle = `--team-color:${color};--team-color2:${color2 || color};--team-banner-bg:${bannerBg};`;
     const logoHTML = t.logo
       ? `<img src="${t.logo}" class="team-card-logo" alt="${t.name}" onerror="this.style.display='none'">`
       : `<div class="team-card-logo-placeholder" style="--team-color:${color}">🏆</div>`;
     return `
-      <a class="team-card" href="${url}" target="_blank" style="--team-color:${color};animation-delay:${i*.07}s" rel="noopener noreferrer">
+      <a class="team-card" href="${url}" target="_blank" style="${colorStyle}animation-delay:${i*.07}s" rel="noopener noreferrer">
         <div class="team-card-banner"></div>
         <div class="team-card-body">
           ${logoHTML}
           <div class="team-card-name">${t.name}</div>
           <div class="team-card-desc">${t.desc || 'Custom team apparel — powered by Under Pressure'}</div>
           <div class="team-card-url">${subdomain}.underpressure.com</div>
-          <div class="team-card-cta">Shop ${t.name} Store →</div>
+          <div class="team-card-cta" style="background:${bannerBg}">Shop ${t.name} Store →</div>
         </div>
         <div class="team-card-arrow">→</div>
       </a>`;
@@ -3530,11 +3533,18 @@ function teamFormHTML(t) {
       <label>Subdomain * — will become <span id="tm-preview" style="color:var(--up-sky)">${subdomain||'teamname'}.underpressure.com</span></label>
       <input id="tm-sub" value="${subdomain}" placeholder="fairlandlittleleague" oninput="updateSubPreview()" style="font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">
     </div>
-    <div class="cm-fg"><label>Brand Color</label>
+    <div class="cm-fg"><label>Primary Color</label>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="color" id="tm-color" value="${t?.color||'#1565ff'}" style="width:44px;height:38px;padding:2px;cursor:pointer;background:var(--up-navy);border:1px solid var(--up-border);">
         <input id="tm-color-hex" value="${t?.color||'#1565ff'}" placeholder="#1565ff" oninput="syncColorHex()" style="flex:1;">
       </div>
+    </div>
+    <div class="cm-fg"><label>Accent Color <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;">(optional — creates gradient)</span></label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="color" id="tm-color2" value="${t?.color2||t?.color||'#1565ff'}" style="width:44px;height:38px;padding:2px;cursor:pointer;background:var(--up-navy);border:1px solid var(--up-border);">
+        <input id="tm-color2-hex" value="${t?.color2||''}" placeholder="Leave blank for solid color" oninput="syncColorHex2()" style="flex:1;">
+      </div>
+      <div id="tm-color-preview" style="margin-top:6px;height:8px;border-radius:2px;background:${t?.color2 ? `linear-gradient(90deg,${t.color||'#1565ff'},${t.color2})` : (t?.color||'#1565ff')};transition:background .3s;"></div>
     </div>
     <div class="cm-fg cm-full">
       <label>Team Logo / Banner Image</label>
@@ -3718,12 +3728,33 @@ function syncColorHex() {
   const hex = document.getElementById("tm-color-hex")?.value;
   const picker = document.getElementById("tm-color");
   if (picker && hex && /^#[0-9a-fA-F]{6}$/.test(hex)) picker.value = hex;
+  updateColorPreview();
+}
+function syncColorHex2() {
+  const hex = document.getElementById("tm-color2-hex")?.value;
+  const picker = document.getElementById("tm-color2");
+  if (picker && hex && /^#[0-9a-fA-F]{6}$/.test(hex)) picker.value = hex;
+  updateColorPreview();
+}
+function updateColorPreview() {
+  const c1 = document.getElementById("tm-color")?.value || '#1565ff';
+  const c2hex = document.getElementById("tm-color2-hex")?.value.trim() || '';
+  const c2 = document.getElementById("tm-color2")?.value || c1;
+  const preview = document.getElementById("tm-color-preview");
+  if (preview) preview.style.background = c2hex ? `linear-gradient(90deg,${c1},${c2})` : c1;
 }
 function syncColorPicker() {
   const picker = document.getElementById("tm-color");
   if (picker) picker.addEventListener("input", () => {
     const hex = document.getElementById("tm-color-hex");
     if (hex) hex.value = picker.value;
+    updateColorPreview();
+  });
+  const picker2 = document.getElementById("tm-color2");
+  if (picker2) picker2.addEventListener("input", () => {
+    const hex2 = document.getElementById("tm-color2-hex");
+    if (hex2) hex2.value = picker2.value;
+    updateColorPreview();
   });
 }
 
@@ -3750,6 +3781,7 @@ function saveCMTeam() {
     name,
     subdomain: sub,
     color: document.getElementById("tm-color")?.value || '#1565ff',
+    color2: document.getElementById("tm-color2-hex")?.value.trim() || '',
     logo:  document.getElementById("tm-logo")?.value.trim() || '',
     desc:  document.getElementById("tm-desc")?.value.trim() || '',
     gallery: tmGalleryRows.filter(g => g.img.trim()),
@@ -4183,6 +4215,9 @@ function buildCarousel() {
     return `<div class="carousel-slide ${colClass}">
       ${slideTeams.map(t => {
         const color = t.color || '#1565ff';
+        const color2 = t.color2 || '';
+        const bannerBg = color2 ? `linear-gradient(90deg,${color},${color2})` : color;
+        const colorStyle = `--team-color:${color};--team-color2:${color2||color};--team-banner-bg:${bannerBg};text-decoration:none;position:relative;`;
         const url = t.url || `https://${t.subdomain || slugify(t.name)}.underpressure.com`;
         const stateForCard = getStoreState(t.key);
         const cardHref = stateForCard === 'code'
@@ -4190,7 +4225,7 @@ function buildCarousel() {
           : url;
         const cardTarget = stateForCard === 'code' ? '' : (url.startsWith('http') && !url.includes(window.location.hostname) ? 'target="_blank" rel="noopener noreferrer"' : '');
         const lockIcon = stateForCard === 'code' ? `<div style="position:absolute;top:12px;right:12px;background:rgba(232,180,0,.2);border:1px solid var(--accent);color:var(--accent);padding:3px 8px;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;">🔑 Code Access</div>` : '';
-        return `<a class="team-card" href="${cardHref}" ${cardTarget} style="--team-color:${color};text-decoration:none;position:relative;">
+        return `<a class="team-card" href="${cardHref}" ${cardTarget} style="${colorStyle}">
           ${lockIcon}
           <div class="team-card-banner"></div>
           <div class="team-card-body">
@@ -4199,7 +4234,7 @@ function buildCarousel() {
               : `<div class="team-card-logo-placeholder" style="--team-color:${color}">🏆</div>`}
             <div class="team-card-name">${t.name}</div>
             <div class="team-card-desc">${t.desc || 'Custom team apparel — powered by Under Pressure'}</div>
-            <div class="team-card-cta" style="background:${color}">Shop ${t.name} →</div>
+            <div class="team-card-cta" style="background:${bannerBg}">Shop ${t.name} →</div>
           </div>
           <div class="team-card-arrow" style="color:${color}">→</div>
         </a>`;
