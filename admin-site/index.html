@@ -5309,7 +5309,8 @@ function exportPurchaseCSV() {
 // ══════════════════════════════════════════════════════
 //  COST ANALYSIS
 // ══════════════════════════════════════════════════════
-var itemCosts = {};        // { itemName: costPrice }
+var itemCosts = {};        // { itemName: costPrice (blank/wholesale cost) }
+var printCostRate = 0;     // flat DTF print cost per item
 var costPeriod = 'all';    // '30' | '90' | 'all' | 'custom'
 var costView = 'store';    // 'store' | 'order' | 'product'
 var costDateFrom = '';
@@ -5318,18 +5319,25 @@ var costDateTo = '';
 function loadItemCosts() {
   try { itemCosts = JSON.parse(localStorage.getItem('itemCosts') || '{}'); }
   catch(e) { itemCosts = {}; }
+  printCostRate = parseFloat(localStorage.getItem('printCostRate') || '0') || 0;
 }
 function saveItemCosts() {
-  // Read all cost inputs from the modal
   document.querySelectorAll('.cost-input').forEach(inp => {
     const name = inp.dataset.item;
     const val = parseFloat(inp.value);
     if (name && !isNaN(val) && val >= 0) itemCosts[name] = val;
   });
+  // Save print cost rate
+  const printRateInput = document.getElementById('printCostRateInput');
+  if (printRateInput) {
+    const r = parseFloat(printRateInput.value);
+    printCostRate = (!isNaN(r) && r >= 0) ? r : 0;
+    localStorage.setItem('printCostRate', String(printCostRate));
+  }
   localStorage.setItem('itemCosts', JSON.stringify(itemCosts));
   closeCostModal();
   renderAdminPanel('costanalysis');
-  showToast('Production costs saved!');
+  showToast('Costs saved!');
 }
 function openCostModal() {
   loadProductionOrders();
@@ -5348,10 +5356,22 @@ function openCostModal() {
   }
 
   document.getElementById('costEntryTableWrap').innerHTML = `
+    <div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);padding:14px 16px;margin-bottom:16px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:#a78bfa;text-transform:uppercase;margin-bottom:8px;">🖨 DTF Print Cost — flat rate per item</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--up-white);">$</span>
+        <input id="printCostRateInput" type="number" step="0.01" min="0"
+          value="${printCostRate > 0 ? printCostRate.toFixed(2) : ''}"
+          placeholder="e.g. 3.50"
+          style="background:var(--up-navy);border:1px solid rgba(167,139,250,.4);color:var(--up-white);padding:10px 13px;font-family:'Bebas Neue',sans-serif;font-size:20px;outline:none;width:140px;transition:border-color .2s;"
+          onfocus="this.style.borderColor='#a78bfa'" onblur="this.style.borderColor='rgba(167,139,250,.4)'">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--up-mist);letter-spacing:1px;">per item (applies to all products)</span>
+      </div>
+    </div>
     <table class="cost-entry-table">
       <thead><tr>
         <th>Item Name</th>
-        <th style="text-align:right;">Your Cost ($)</th>
+        <th style="text-align:right;">Blank Cost ($)</th>
         <th style="text-align:right;">Sale Price ($)</th>
       </tr></thead>
       <tbody>
@@ -5410,32 +5430,33 @@ function filterOrdersByPeriod(orders) {
 }
 
 function calcOrderFinancials(orders) {
-  var totalRevenue = 0, totalCost = 0, totalItems = 0;
+  var totalRevenue = 0, totalBlankCost = 0, totalPrintCost = 0, totalItems = 0;
   orders.forEach(o => {
     (o.items||[]).forEach(item => {
       const qty = parseInt(item.qty) || 1;
       const sale = parseFloat(item.salePrice) || 0;
-      const cost = itemCosts[item.name] !== undefined ? parseFloat(itemCosts[item.name]) : null;
+      const blank = itemCosts[item.name] !== undefined ? parseFloat(itemCosts[item.name]) : null;
       totalRevenue += sale * qty;
-      if (cost !== null) totalCost += cost * qty;
+      if (blank !== null) totalBlankCost += blank * qty;
+      totalPrintCost += printCostRate * qty;
       totalItems += qty;
     });
   });
+  const totalCost = totalBlankCost + totalPrintCost;
   const profit = totalRevenue - totalCost;
   const margin = totalRevenue > 0 ? (profit / totalRevenue * 100) : 0;
-  return { totalRevenue, totalCost, profit, margin, totalItems };
+  return { totalRevenue, totalBlankCost, totalPrintCost, totalCost, profit, margin, totalItems };
 }
 
 function renderCostAnalysis() {
   loadProductionOrders();
   loadItemCosts();
   const filtered = filterOrdersByPeriod(productionOrders.filter(o => !o._storeRegistration));
-  const { totalRevenue, totalCost, profit, margin, totalItems } = calcOrderFinancials(filtered);
-  const hasCosts = Object.keys(itemCosts).length > 0;
+  const { totalRevenue, totalBlankCost, totalPrintCost, totalCost, profit, margin, totalItems } = calcOrderFinancials(filtered);
+  const hasCosts = Object.keys(itemCosts).length > 0 || printCostRate > 0;
   const marginClass = margin >= 40 ? 'high' : margin >= 20 ? 'mid' : 'low';
   const marginColor = margin >= 40 ? '#4ade80' : margin >= 20 ? 'var(--accent)' : 'var(--hs-red)';
 
-  // Period buttons
   const periods = [
     {k:'30', l:'Last 30 Days'},
     {k:'90', l:'Last 90 Days'},
@@ -5455,13 +5476,11 @@ function renderCostAnalysis() {
         onchange="costDateTo=this.value;renderAdminPanel('costanalysis')">
     </div>` : '';
 
-  // View tabs
   const views = [{k:'store',l:'By Store'},{k:'order',l:'By Order'},{k:'product',l:'By Product'}];
   const viewTabs = views.map(v =>
     `<button class="cost-view-tab${costView===v.k?' active':''}" onclick="costView='${v.k}';renderAdminPanel('costanalysis')">${v.l}</button>`
   ).join('');
 
-  // Build the selected view
   var viewContent = '';
   if (costView === 'store')   viewContent = buildStoreView(filtered);
   if (costView === 'order')   viewContent = buildOrderView(filtered);
@@ -5472,17 +5491,18 @@ function renderCostAnalysis() {
       <div>
         <div class="cm-section-title" style="color:#4ade80;">Cost <span style="color:var(--up-sky)">Analysis</span></div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">
-          Revenue · Production cost · Profit margin
+          Revenue · Blank cost · Print cost · Profit margin
         </div>
       </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-set-costs" onclick="openCostModal()">💰 Set Item Costs</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        ${printCostRate > 0 ? `<div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:#a78bfa;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);padding:6px 12px;">🖨 Print rate: $${printCostRate.toFixed(2)}/item</div>` : ''}
+        <button class="btn-set-costs" onclick="openCostModal()">💰 Set Costs</button>
         <button class="btn-prod-export" onclick="exportCostCSV()">⬇ Export CSV</button>
       </div>
     </div>
 
     ${!hasCosts ? `<div style="background:rgba(232,180,0,.1);border:1px solid rgba(232,180,0,.3);padding:12px 16px;margin-bottom:16px;font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--accent);letter-spacing:.5px;">
-      ⚠ No production costs set yet — click <strong>Set Item Costs</strong> to enter what you pay per item and unlock full profit analysis.
+      ⚠ No costs set yet — click <strong>Set Costs</strong> to enter what you pay per blank item and your DTF print rate.
     </div>` : ''}
 
     <div class="cost-period-bar">
@@ -5490,27 +5510,32 @@ function renderCostAnalysis() {
       ${customRange}
     </div>
 
-    <div class="cost-summary-grid">
+    <div class="cost-summary-grid" style="grid-template-columns:repeat(5,1fr);">
       <div class="cost-card revenue">
         <div class="cost-card-label">Total Revenue</div>
         <div class="cost-card-value">$${totalRevenue.toFixed(2)}</div>
         <div class="cost-card-sub">${totalItems} items · ${filtered.length} order${filtered.length!==1?'s':''}</div>
       </div>
       <div class="cost-card cost">
-        <div class="cost-card-label">Production Cost</div>
-        <div class="cost-card-value">${hasCosts ? '$'+totalCost.toFixed(2) : '—'}</div>
-        <div class="cost-card-sub">${hasCosts ? 'Based on your cost entries' : 'Set item costs to calculate'}</div>
+        <div class="cost-card-label">Blank Cost</div>
+        <div class="cost-card-value">${hasCosts && totalBlankCost > 0 ? '$'+totalBlankCost.toFixed(2) : '—'}</div>
+        <div class="cost-card-sub">Wholesale / item cost</div>
+      </div>
+      <div class="cost-card" style="border-left-color:#a78bfa;">
+        <div class="cost-card-label" style="color:#a78bfa;">Print Cost</div>
+        <div class="cost-card-value" style="color:#a78bfa;">${printCostRate > 0 ? '$'+totalPrintCost.toFixed(2) : '—'}</div>
+        <div class="cost-card-sub">${printCostRate > 0 ? '$'+printCostRate.toFixed(2)+'/item × '+totalItems+' items' : 'Set a print rate to calculate'}</div>
       </div>
       <div class="cost-card profit">
         <div class="cost-card-label">Gross Profit</div>
         <div class="cost-card-value" style="color:${profit>=0?'var(--up-sky)':'var(--hs-red)'}">${hasCosts ? (profit>=0?'+':'')+'$'+profit.toFixed(2) : '—'}</div>
-        <div class="cost-card-sub">${hasCosts ? 'Revenue minus production cost' : '—'}</div>
+        <div class="cost-card-sub">${hasCosts ? 'Revenue minus all costs' : '—'}</div>
       </div>
       <div class="cost-card margin">
         <div class="cost-card-label">Profit Margin</div>
         <div class="cost-card-value" style="color:${marginColor}">${hasCosts ? margin.toFixed(1)+'%' : '—'}</div>
         <div class="cost-card-sub">
-          ${hasCosts ? `<div class="margin-bar-wrap"><div class="margin-bar ${marginClass}" style="width:${Math.min(margin,100)}%"></div></div>` : 'Set item costs to calculate'}
+          ${hasCosts ? `<div class="margin-bar-wrap"><div class="margin-bar ${marginClass}" style="width:${Math.min(margin,100)}%"></div></div>` : 'Set costs to calculate'}
         </div>
       </div>
     </div>
@@ -5520,7 +5545,7 @@ function renderCostAnalysis() {
     ${viewContent}
 
     <div class="cm-tip" style="margin-top:14px;">
-      💡 Revenue is based on item sale prices from orders. Set your production costs via "Set Item Costs" to see accurate profit margins. Export to CSV for your accountant.
+      💡 Blank cost = what you pay per item wholesale. Print cost = flat DTF rate per item. Both are subtracted from revenue to calculate profit margin.
     </div>`;
 }
 
@@ -5531,7 +5556,7 @@ function buildStoreView(orders) {
 
   const storeData = {};
   orders.forEach(o => {
-    if (!storeData[o.store]) storeData[o.store] = { revenue:0, cost:0, items:0, orders:0 };
+    if (!storeData[o.store]) storeData[o.store] = { revenue:0, blankCost:0, printCost:0, items:0, orders:0 };
     const d = storeData[o.store];
     d.orders++;
     (o.items||[]).forEach(item => {
@@ -5539,19 +5564,23 @@ function buildStoreView(orders) {
       d.items += qty;
       d.revenue += (parseFloat(item.salePrice)||0) * qty;
       const c = itemCosts[item.name];
-      if (c !== undefined) d.cost += parseFloat(c) * qty;
+      if (c !== undefined) d.blankCost += parseFloat(c) * qty;
+      d.printCost += printCostRate * qty;
     });
   });
 
   const rows = Object.entries(storeData).map(([store, d]) => {
-    const profit = d.revenue - d.cost;
+    const totalCost = d.blankCost + d.printCost;
+    const profit = d.revenue - totalCost;
     const margin = d.revenue > 0 ? profit/d.revenue*100 : 0;
     const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
-    const hasCost = d.cost > 0;
+    const hasCost = totalCost > 0;
     return `<tr class="cost-row">
       <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;">${store}</span></td>
       <td class="cost-td"><div class="cost-revenue-val">$${d.revenue.toFixed(2)}</div></td>
-      <td class="cost-td"><div class="cost-cost-val">${hasCost?'$'+d.cost.toFixed(2):'—'}</div></td>
+      <td class="cost-td"><div class="cost-cost-val">${d.blankCost > 0 ? '$'+d.blankCost.toFixed(2) : '—'}</div></td>
+      <td class="cost-td"><div style="color:#a78bfa;font-family:'Bebas Neue',sans-serif;font-size:16px;">${d.printCost > 0 ? '$'+d.printCost.toFixed(2) : '—'}</div></td>
+      <td class="cost-td"><div class="cost-cost-val">${hasCost ? '$'+totalCost.toFixed(2) : '—'}</div></td>
       <td class="cost-td"><div class="cost-profit-val ${profit>=0?'pos':'neg'}">${hasCost?(profit>=0?'+':'')+'$'+profit.toFixed(2):'—'}</div></td>
       <td class="cost-td" style="min-width:120px;">
         ${hasCost?`<div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${margin>=40?'#4ade80':margin>=20?'var(--accent)':'var(--hs-red)'}">${margin.toFixed(1)}%</div>
@@ -5563,7 +5592,7 @@ function buildStoreView(orders) {
 
   return `<div class="cm-table-wrap"><table class="cost-table">
     <thead class="cost-thead"><tr>
-      <th>Store</th><th>Revenue</th><th>Production Cost</th><th>Profit</th><th>Margin</th><th style="text-align:right;">Volume</th>
+      <th>Store</th><th>Revenue</th><th>Blank Cost</th><th>Print Cost</th><th>Total Cost</th><th>Profit</th><th>Margin</th><th style="text-align:right;">Volume</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
@@ -5575,17 +5604,19 @@ function buildOrderView(orders) {
   const sorted = [...orders].sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
 
   const rows = sorted.map(o => {
-    let rev = 0, cost = 0, items = 0;
+    let rev = 0, blankCost = 0, printCost = 0, items = 0;
     (o.items||[]).forEach(item => {
       const qty = parseInt(item.qty)||1;
       items += qty;
       rev += (parseFloat(item.salePrice)||0)*qty;
       const c = itemCosts[item.name];
-      if (c!==undefined) cost += parseFloat(c)*qty;
+      if (c!==undefined) blankCost += parseFloat(c)*qty;
+      printCost += printCostRate * qty;
     });
-    const profit = rev - cost;
+    const totalCost = blankCost + printCost;
+    const profit = rev - totalCost;
     const margin = rev > 0 ? profit/rev*100 : 0;
-    const hasCost = cost > 0;
+    const hasCost = totalCost > 0;
     const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':o.store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
     return `<tr class="cost-row">
       <td class="cost-td">
@@ -5594,7 +5625,9 @@ function buildOrderView(orders) {
       </td>
       <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;font-size:9px;">${o.store}</span></td>
       <td class="cost-td"><div class="cost-revenue-val">$${rev.toFixed(2)}</div></td>
-      <td class="cost-td"><div class="cost-cost-val">${hasCost?'$'+cost.toFixed(2):'—'}</div></td>
+      <td class="cost-td"><div class="cost-cost-val">${blankCost > 0 ? '$'+blankCost.toFixed(2) : '—'}</div></td>
+      <td class="cost-td"><div style="color:#a78bfa;font-family:'Bebas Neue',sans-serif;font-size:16px;">${printCost > 0 ? '$'+printCost.toFixed(2) : '—'}</div></td>
+      <td class="cost-td"><div class="cost-cost-val">${hasCost ? '$'+totalCost.toFixed(2) : '—'}</div></td>
       <td class="cost-td"><div class="cost-profit-val ${profit>=0?'pos':'neg'}">${hasCost?(profit>=0?'+':'')+'$'+profit.toFixed(2):'—'}</div></td>
       <td class="cost-td">${hasCost?`<span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${margin>=40?'#4ade80':margin>=20?'var(--accent)':'var(--hs-red)'}">${margin.toFixed(1)}%</span>`:'—'}</td>
       <td class="cost-td" style="color:var(--up-mist);font-size:12px;text-align:right;">${items} item${items!==1?'s':''}</td>
@@ -5603,7 +5636,7 @@ function buildOrderView(orders) {
 
   return `<div class="cm-table-wrap"><table class="cost-table">
     <thead class="cost-thead"><tr>
-      <th>Customer</th><th>Store</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Margin</th><th style="text-align:right;">Items</th>
+      <th>Customer</th><th>Store</th><th>Revenue</th><th>Blank</th><th>Print</th><th>Total Cost</th><th>Profit</th><th>Margin</th><th style="text-align:right;">Items</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
@@ -5616,30 +5649,38 @@ function buildProductView(orders) {
   orders.forEach(o => {
     (o.items||[]).forEach(item => {
       const name = item.name||'Unknown';
-      if (!products[name]) products[name] = { revenue:0, cost:0, qty:0 };
+      if (!products[name]) products[name] = { revenue:0, blankCost:0, printCost:0, qty:0 };
       const qty = parseInt(item.qty)||1;
       products[name].qty += qty;
       products[name].revenue += (parseFloat(item.salePrice)||0)*qty;
       const c = itemCosts[name];
-      if (c!==undefined) products[name].cost += parseFloat(c)*qty;
+      if (c!==undefined) products[name].blankCost += parseFloat(c)*qty;
+      products[name].printCost += printCostRate * qty;
     });
   });
 
   const sorted = Object.entries(products).sort((a,b) => b[1].revenue - a[1].revenue);
 
   const rows = sorted.map(([name, d]) => {
-    const profit = d.revenue - d.cost;
+    const totalCost = d.blankCost + d.printCost;
+    const profit = d.revenue - totalCost;
     const margin = d.revenue > 0 ? profit/d.revenue*100 : 0;
-    const hasCost = d.cost > 0;
-    const unitCost = itemCosts[name] !== undefined ? '$'+parseFloat(itemCosts[name]).toFixed(2) : '—';
+    const hasCost = totalCost > 0;
+    const unitBlank = itemCosts[name] !== undefined ? '$'+parseFloat(itemCosts[name]).toFixed(2) : '—';
+    const unitPrint = printCostRate > 0 ? '$'+printCostRate.toFixed(2) : '—';
+    const unitTotal = (itemCosts[name] !== undefined || printCostRate > 0)
+      ? '$'+((parseFloat(itemCosts[name])||0) + printCostRate).toFixed(2) : '—';
     const unitSale = d.qty > 0 && d.revenue > 0 ? '$'+(d.revenue/d.qty).toFixed(2) : '—';
     return `<tr class="cost-row">
-      <td class="cost-td"><div class="cost-name">${name}</div>
-        <div class="cost-sub">Unit cost: ${unitCost} · Avg sale: ${unitSale}</div>
+      <td class="cost-td">
+        <div class="cost-name">${name}</div>
+        <div class="cost-sub">Blank: ${unitBlank} · Print: ${unitPrint} · Total/unit: ${unitTotal} · Avg sale: ${unitSale}</div>
       </td>
       <td class="cost-td" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--up-sky);">${d.qty}</td>
       <td class="cost-td"><div class="cost-revenue-val">$${d.revenue.toFixed(2)}</div></td>
-      <td class="cost-td"><div class="cost-cost-val">${hasCost?'$'+d.cost.toFixed(2):'—'}</div></td>
+      <td class="cost-td"><div class="cost-cost-val">${d.blankCost > 0 ? '$'+d.blankCost.toFixed(2) : '—'}</div></td>
+      <td class="cost-td"><div style="color:#a78bfa;font-family:'Bebas Neue',sans-serif;font-size:16px;">${d.printCost > 0 ? '$'+d.printCost.toFixed(2) : '—'}</div></td>
+      <td class="cost-td"><div class="cost-cost-val">${hasCost ? '$'+totalCost.toFixed(2) : '—'}</div></td>
       <td class="cost-td"><div class="cost-profit-val ${profit>=0?'pos':'neg'}">${hasCost?(profit>=0?'+':'')+'$'+profit.toFixed(2):'—'}</div></td>
       <td class="cost-td" style="min-width:130px;">
         ${hasCost?`<div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${margin>=40?'#4ade80':margin>=20?'var(--accent)':'var(--hs-red)'}">${margin.toFixed(1)}%</div>
@@ -5650,7 +5691,7 @@ function buildProductView(orders) {
 
   return `<div class="cm-table-wrap"><table class="cost-table">
     <thead class="cost-thead"><tr>
-      <th>Product</th><th style="text-align:center;">Units Sold</th><th>Revenue</th><th>Total Cost</th><th>Profit</th><th>Margin</th>
+      <th>Product</th><th style="text-align:center;">Qty</th><th>Revenue</th><th>Blank Cost</th><th>Print Cost</th><th>Total Cost</th><th>Profit</th><th>Margin</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
