@@ -2570,9 +2570,21 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
   </div>
   <div class="cart-body" id="cartBody"></div>
   <div class="cart-foot">
-    <div class="cart-total-row">
+    <div class="cart-total-row" style="margin-bottom:3px;">
       <span class="cart-total-lbl">Subtotal</span>
-      <span class="cart-total-val" id="cartSubtotal">$0.00</span>
+      <span class="cart-total-val" style="font-size:20px;" id="cartSubtotal">$0.00</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;">Shipping</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--up-silver);" id="cartShipping">—</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;">Tax</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--up-mist);" id="cartTax">—</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--up-border);padding-top:8px;margin-top:6px;margin-bottom:4px;">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;">Total</span>
+      <span class="cart-total-val" id="cartGrandTotal">$0.00</span>
     </div>
     <p class="cart-note">Custom items ship in 7–10 business days after order is placed.</p>
     <button class="btn-checkout" id="checkoutBtn" onclick="openCheckout()" disabled>Proceed to Checkout</button>
@@ -2698,12 +2710,16 @@ function cartTotal(){return cart.reduce((s,i)=>s+(i.price*i.qty),0);}
 function cartQty(){return cart.reduce((s,i)=>s+i.qty,0);}
 function updateCartUI(){
   const qty=cartQty(),total=cartTotal();
+  const t=calcOrderTotals();
   const cc=document.getElementById("cartCount");
   cc.textContent=qty;cc.classList.add("bump");setTimeout(()=>cc.classList.remove("bump"),200);
   const cartBtn=document.getElementById("cartBtn");
   if(cartBtn) cartBtn.setAttribute("aria-label",`View cart, ${qty} item${qty!==1?"s":""}`);
   document.getElementById("cartQtyLabel").textContent=`${qty} item${qty!==1?"s":""}`;
   document.getElementById("cartSubtotal").textContent=`$${total.toFixed(2)}`;
+  document.getElementById("cartShipping").textContent=qty>0?`$${t.ship.toFixed(2)}`:"—";
+  document.getElementById("cartTax").textContent=qty>0?`$${t.tax.toFixed(2)} (est.)`:"—";
+  document.getElementById("cartGrandTotal").textContent=`$${t.grand.toFixed(2)}`;
   document.getElementById("checkoutBtn").disabled=qty===0;
   const body=document.getElementById("cartBody");
   if(!cart.length){body.innerHTML=`<div class="cart-empty-state"><div class="c-empty-icon">🛒</div><div class="c-empty-txt">Your cart is empty</div><button class="btn-save-up" style="margin-top:16px;" onclick="closeCart();document.getElementById('upProductsSection').scrollIntoView({behavior:'smooth'});">Continue Shopping</button></div>`;return;}
@@ -2750,18 +2766,47 @@ document.getElementById("checkoutModal").addEventListener("click",function(e){if
 // ══ SINGLE SOURCE OF TRUTH FOR ORDER PRICING ══
 // Prices come only from admin-entered product data; tax rate is admin-set
 // (localStorage 'upTaxRate', percent) with a 7% default (WV 6% + Huntington 1% municipal).
+// ── STATE TAX RATES ──────────────────────────────────────────────────────────
+// WV: 6% state + 1% Huntington municipal = 7% (WV taxes shipping as part of sale)
+// KY: 6% flat state rate
+// OH: 5.75% base state rate (county surcharge varies; base used at checkout)
+// Other / blank: fall back to admin-configured rate (default 7%)
+const STATE_TAX = {
+  'WV': { rate: 7.0,  label: 'WV Sales Tax (7%)',       taxShipping: true  },
+  'KY': { rate: 6.0,  label: 'KY Sales Tax (6%)',       taxShipping: false },
+  'OH': { rate: 5.75, label: 'OH Sales Tax (5.75%)',    taxShipping: false },
+};
+
+function getStateTaxInfo(stateRaw) {
+  const st = (stateRaw || '').trim().toUpperCase();
+  if (STATE_TAX[st]) return STATE_TAX[st];
+  // Fallback: admin-configured rate, no shipping tax
+  const v = parseFloat(localStorage.getItem('upTaxRate'));
+  const rate = isNaN(v) || v < 0 ? 7.0 : v;
+  return { rate, label: `Sales Tax (${rate}%)`, taxShipping: false };
+}
+
+// Keep getTaxRate() for backward-compat (admin settings panel uses it)
 function getTaxRate() {
   const v = parseFloat(localStorage.getItem('upTaxRate'));
   return isNaN(v) || v < 0 ? 7.0 : v;
 }
-function calcOrderTotals() {
+
+function calcOrderTotals(stateOverride) {
   const sub  = cartTotal();
   const disc = Math.min(sub, (typeof getDiscountAmount === 'function' && typeof appliedDiscount !== 'undefined' && appliedDiscount) ? getDiscountAmount(sub) : 0);
   const ship = getUPShipping();
-  // WV taxes delivery charges as part of the sale, so shipping is in the taxable base
-  const tax  = Math.round((Math.max(0, sub - disc) + ship) * getTaxRate()) / 100;
+  // Determine state: prefer explicit override, then live checkout field, then blank
+  const stateVal = stateOverride !== undefined
+    ? stateOverride
+    : (document.getElementById('c-state')?.value || '');
+  const taxInfo  = getStateTaxInfo(stateVal);
+  const taxBase  = taxInfo.taxShipping
+    ? Math.max(0, sub - disc) + ship   // WV: shipping is taxable
+    : Math.max(0, sub - disc);         // KY/OH: only goods are taxable
+  const tax  = Math.round(taxBase * taxInfo.rate) / 100;
   const grand = Math.round((Math.max(0, sub - disc) + ship + tax) * 100) / 100;
-  return { sub, disc, ship, tax, grand };
+  return { sub, disc, ship, tax, grand, taxInfo };
 }
 
 function renderCheckoutForm(){
@@ -2778,7 +2823,7 @@ function renderCheckoutForm(){
         <div class="form-f full"><label>Phone</label><input id="c-phone" type="tel" placeholder="(304) 555-0100" pattern="[\d\s()+.-]{7,}"><div class="field-error" id="c-phone-error"></div></div>
         <div class="form-f full"><label>Shipping Address *</label><input id="c-addr" type="text" placeholder="123 Main St" required><div class="field-error" id="c-addr-error"></div></div>
         <div class="form-f"><label>City *</label><input id="c-city" type="text" placeholder="Huntington" required><div class="field-error" id="c-city-error"></div></div>
-        <div class="form-f"><label>State</label><input id="c-state" type="text" placeholder="WV"></div>
+        <div class="form-f"><label>State</label><input id="c-state" type="text" placeholder="WV" maxlength="2" oninput="this.value=this.value.toUpperCase();recalcCheckoutTotal()"></div>
         <div class="form-f"><label>ZIP *</label><input id="c-zip" type="text" placeholder="25701" required pattern="\d{5}(-\d{4})?"><div class="field-error" id="c-zip-error"></div></div>
         <div class="form-f full"><label>Order Notes (sizes, colors, etc.)</label><input id="c-notes" type="text" placeholder="e.g. Size L in black, XL in white"></div>
       </div>
@@ -2797,7 +2842,7 @@ function renderCheckoutForm(){
           <span class="os-item-price" id="checkoutShipping">$${t.ship.toFixed(2)}</span>
         </div>
         <div class="os-row">
-          <span class="os-item-name">WV Sales Tax (${getTaxRate()}%)</span>
+          <span class="os-item-name" id="checkoutTaxLabel">${t.taxInfo.label}</span>
           <span class="os-item-price" id="checkoutTax">$${t.tax.toFixed(2)}</span>
         </div>
         <div class="os-row total"><span>Total</span><span id="checkoutGrandTotal">$${t.grand.toFixed(2)}</span></div>
@@ -6200,6 +6245,7 @@ function recalcCheckoutTotal() {
   const discWrap = document.getElementById('checkoutDiscountRowWrap');
   if (discWrap) discWrap.style.display = t.disc > 0 ? 'flex' : 'none';
   set('checkoutShipping', `$${t.ship.toFixed(2)}`);
+  set('checkoutTaxLabel', t.taxInfo.label);
   set('checkoutTax', `$${t.tax.toFixed(2)}`);
   set('checkoutGrandTotal', `$${t.grand.toFixed(2)}`);
 }
@@ -6668,13 +6714,22 @@ function renderPinSettings() {
         </div>
       </div>
     </div>
-    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:36px;max-width:340px;">
+    <div style="background:rgba(21,101,255,.07);border:1px solid var(--up-border);padding:12px 14px;margin-bottom:16px;max-width:420px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-sky);text-transform:uppercase;margin-bottom:8px;">Auto-Calculated States</div>
+      <div style="font-size:13px;color:var(--up-silver);line-height:1.8;">
+        <span style="color:var(--up-white);font-weight:600;">WV</span> — 7% (6% state + 1% Huntington municipal; shipping is taxable)<br>
+        <span style="color:var(--up-white);font-weight:600;">KY</span> — 6% flat state rate<br>
+        <span style="color:var(--up-white);font-weight:600;">OH</span> — 5.75% base state rate
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:6px;max-width:340px;">
       <div class="f" style="flex:1;">
-        <label>Sales Tax Rate (%)</label>
+        <label>Fallback Rate — all other states (%)</label>
         <input id="taxRateInput" type="number" step="0.1" min="0" max="20" value="${taxRate}">
       </div>
       <button class="btn-save-up" onclick="saveTaxRate()">Save</button>
     </div>
+    <p style="font-size:12px;color:var(--up-mist);margin-bottom:36px;">Applied when customer's state is not WV, KY, or OH.</p>
     <div class="cm-section-head">
       <div>
         <div class="cm-section-title" style="color:var(--up-sky);">Admin <span style="color:var(--up-white)">Security</span></div>
