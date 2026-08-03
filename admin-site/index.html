@@ -3361,6 +3361,39 @@ function loadTeams() {
     hiddenStores = new Set(h);
   } catch(e) { hiddenStores = new Set(); }
   loadStoreAccess();
+
+  // Seed built-in stores into teams[] if not already present
+  // This makes them fully editable while preserving their keys
+  const seeds = [
+    {
+      key: 'builtin-rampage',
+      name: 'River City Rampage',
+      subdomain: 'rivercityrampage',
+      color: '#1a6b2f',
+      logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png',
+      desc: 'Baseball & Softball · Batting jackets, tees, dry-fits & more',
+      url: 'team-store-template.html',
+      products: [],
+    },
+    {
+      key: 'builtin-romecoc',
+      name: 'Rome CoC Youth T-Shirts',
+      subdomain: 'romecoc',
+      color: '#7c3aed',
+      logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png',
+      desc: 'Faith-inspired tees · Portions benefit Rome CoC Youth Ministry',
+      url: 'rome-coc-tshirt-store.html',
+      products: [],
+    }
+  ];
+  let seeded = false;
+  seeds.forEach(seed => {
+    if (!teams.find(t => t.key === seed.key)) {
+      teams.unshift(seed); // add at top
+      seeded = true;
+    }
+  });
+  if (seeded) saveTeams();
 }
 function saveTeams() { localStorage.setItem("upTeams", JSON.stringify(teams)); kvSet('teams', teams); }
 function saveHiddenStores() { localStorage.setItem("hiddenStores", JSON.stringify([...hiddenStores])); kvSet('hiddenStores', [...hiddenStores]); }
@@ -3468,16 +3501,13 @@ const TM_PRODUCT_CATALOG = [
 ];
 
 function renderTeamAdmin() {
-  // Built-in stores for visibility management
-  const builtInStores = [
-    { name: 'River City Rampage', key: 'builtin-rampage', color: '#1a6b2f', logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png' },
-    { name: 'Rome CoC Youth T-Shirts', key: 'builtin-romecoc', color: '#7c3aed', logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png' },
-  ];
-  const allStores = [...builtInStores, ...teams.map((t,i) => ({...t, key: t.key||`team-${i}`, isCustom:true, idx:i}))];
+  // All stores now live in teams[] — built-ins are seeded on loadTeams()
+  const allStores = teams.map((t,i) => ({...t, key: t.key||`team-${i}`, isCustom:true, idx:i}));
 
   const rows = allStores.map(t => {
     const isHidden = hiddenStores.has(t.key);
     const subdomain = t.subdomain || slugify(t.name||'');
+    const pCount = t.products?.length || 0;
     return `<tr class="cm-row" style="${isHidden?'opacity:.5':''}">
       <td class="cm-td">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -3487,7 +3517,7 @@ function renderTeamAdmin() {
             ${getStoreState(t.key)==='public'  ? '<span class="vis-badge public">Public</span>'   : ''}
             ${getStoreState(t.key)==='code'    ? '<span class="vis-badge code">Code Access</span>' : ''}
             ${getStoreState(t.key)==='private' ? '<span class="vis-badge private">Private</span>' : ''}</div>
-            <div class="cm-prod-cat">${t.isCustom ? subdomain+'.underpressure.com' : 'Built-in store'}${t.isCustom && t.products?.length ? ` · <span style="color:var(--up-sky);">${t.products.length} product${t.products.length!==1?'s':''}</span>` : ''}</div>
+            <div class="cm-prod-cat">${subdomain}.underpressure.com${pCount ? ` · <span style="color:var(--up-sky);">${pCount} product${pCount!==1?'s':''}</span>` : ''}</div>
           </div>
         </div>
       </td>
@@ -3519,8 +3549,8 @@ function renderTeamAdmin() {
         </div>
       </td>
       <td class="cm-td cm-actions">
-        ${t.isCustom ? `<button class="cm-btn-edit" onclick="openCMTeamEdit(${t.idx})">✏ Edit</button>
-        <button class="cm-btn-del" onclick="cmDeleteTeam(${t.idx})" aria-label="Delete ${t.name} team store">✕</button>` : '<span style="font-size:11px;color:var(--up-mist);">Built-in</span>'}
+        <button class="cm-btn-edit" onclick="openCMTeamEdit(${t.idx})">✏ Edit</button>
+        <button class="cm-btn-del" onclick="cmDeleteTeam(${t.idx})" aria-label="Delete ${t.name} team store">✕</button>
       </td>
     </tr>`;
   }).join("") || `<tr><td colspan="3" class="cm-empty">No stores yet.</td></tr>`;
@@ -3821,6 +3851,10 @@ function saveCMTeam() {
   };
 
   const isNew = cmTeamEditIdx === -1;
+  // Preserve the existing key so visibility/access settings survive edits
+  if (!isNew && teams[cmTeamEditIdx]?.key) {
+    team.key = teams[cmTeamEditIdx].key;
+  }
 
   if (!isNew) teams[cmTeamEditIdx] = team;
   else teams.push(team);
@@ -4195,28 +4229,8 @@ function buildCarousel() {
   const wrap = document.getElementById('teamCarouselWrap');
   if (!track) return;
 
-  // Always include built-in stores + localStorage teams
-  const builtIn = [
-    {
-      name: 'River City Rampage',
-      subdomain: 'rivercityrampage',
-      color: '#1a6b2f',
-      logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png',
-      desc: 'Baseball & Softball · 34 products · Batting jackets, tees, dry-fits & more',
-      url: 'team-store-template.html',
-      key: 'builtin-rampage'
-    },
-    {
-      name: 'Rome CoC Youth T-Shirts',
-      subdomain: 'romecoc',
-      color: '#7c3aed',
-      logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png',
-      desc: 'Faith-inspired tees · 12 designs · Portions benefit Rome CoC Youth Ministry',
-      url: 'rome-coc-tshirt-store.html',
-      key: 'builtin-romecoc'
-    }
-  ];
-  const allTeams = [...builtIn, ...teams.map((t,i) => ({...t, key: t.key || `team-${i}`}))];
+  // All stores now live in teams[] — built-ins are seeded on loadTeams()
+  const allTeams = teams.map((t,i) => ({...t, key: t.key || `team-${i}`}));
   // Filter out hidden stores for public carousel
   const visibleTeams = isAdminMode ? allTeams : allTeams.filter(t => isStoreVisible(t.key));
 
