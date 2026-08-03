@@ -1987,6 +1987,25 @@ nav { position: relative; }
 .cm-fg input,.cm-fg textarea{background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 12px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color .2s;width:100%;}
 .cm-fg input:focus,.cm-fg textarea:focus{border-color:var(--up-blue);}
 .cm-fg textarea{min-height:58px;resize:vertical;}
+/* ── TEAM PRODUCT PICKER ── */
+.tm-products-head{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-bottom:10px;}
+.tm-product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}
+.tm-prod-check{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 6px;border:1px solid var(--up-border);background:var(--up-navy);cursor:pointer;transition:border-color .2s,background .2s;user-select:none;text-align:center;}
+.tm-prod-check:hover{border-color:var(--up-sky);}
+.tm-prod-check.selected{border-color:var(--up-blue);background:rgba(21,101,255,.12);}
+.tm-prod-check input[type=checkbox]{display:none;}
+.tm-prod-check-icon{font-size:20px;line-height:1;}
+.tm-prod-check-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--up-silver);text-transform:uppercase;line-height:1.2;}
+.tm-prod-check.selected .tm-prod-check-label{color:var(--up-sky);}
+.tm-prod-row{display:grid;grid-template-columns:auto 1fr 120px;align-items:start;gap:10px;padding:10px 12px;background:var(--up-navy);border:1px solid var(--up-border);margin-bottom:4px;}
+.tm-prod-row-icon{font-size:22px;padding-top:2px;}
+.tm-prod-row-fields{display:flex;flex-direction:column;gap:6px;}
+.tm-prod-row-name{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:var(--up-white);text-transform:uppercase;}
+.tm-prod-row input[type=text]{background:var(--up-card);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;width:100%;transition:border-color .2s;}
+.tm-prod-row input[type=text]:focus{border-color:var(--up-sky);}
+.tm-prod-row-price{display:flex;flex-direction:column;gap:4px;}
+.tm-prod-row-price label{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;}
+.tm-prod-row-price input{background:var(--up-card);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Bebas Neue',sans-serif;font-size:16px;outline:none;width:100%;}
 .cm-modal-actions{grid-column:1/-1;display:flex;gap:10px;margin-top:6px;}
 .cm-btn-save{background:var(--up-blue);color:#fff;border:none;padding:11px 22px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:background .2s;}
 .cm-btn-save:hover{background:var(--up-blue2);}
@@ -3415,6 +3434,18 @@ function slugify(name) {
 }
 
 // ── CM TEAM ADMIN (renders inside content manager) ──
+// ── Master product catalog — Erin picks from these when building a team store ──
+const TM_PRODUCT_CATALOG = [
+  { type:'tee',        icon:'👕', label:'Short Sleeve Tee',     defaultPrice:'$18–$22' },
+  { type:'longsleeve', icon:'👕', label:'Long Sleeve Tee',      defaultPrice:'$22–$26' },
+  { type:'hoodie',     icon:'🧥', label:'Hoodie',               defaultPrice:'$30–$36' },
+  { type:'crewneck',   icon:'🧥', label:'Crew Neck Sweatshirt', defaultPrice:'$28–$34' },
+  { type:'dryfit',     icon:'⚡', label:'Dry-Fit Performance',  defaultPrice:'$22–$28' },
+  { type:'jacket',     icon:'🧤', label:'Batting Jacket',       defaultPrice:'$38–$48' },
+  { type:'hat',        icon:'🧢', label:'Hat / Cap',            defaultPrice:'$22–$28' },
+  { type:'bag',        icon:'🎒', label:'Bag / Backpack',       defaultPrice:'$28–$36' },
+];
+
 function renderTeamAdmin() {
   // Built-in stores for visibility management
   const builtInStores = [
@@ -3435,7 +3466,7 @@ function renderTeamAdmin() {
             ${getStoreState(t.key)==='public'  ? '<span class="vis-badge public">Public</span>'   : ''}
             ${getStoreState(t.key)==='code'    ? '<span class="vis-badge code">Code Access</span>' : ''}
             ${getStoreState(t.key)==='private' ? '<span class="vis-badge private">Private</span>' : ''}</div>
-            <div class="cm-prod-cat">${t.isCustom ? subdomain+'.underpressure.com' : 'Built-in store'}</div>
+            <div class="cm-prod-cat">${t.isCustom ? subdomain+'.underpressure.com' : 'Built-in store'}${t.isCustom && t.products?.length ? ` · <span style="color:var(--up-sky);">${t.products.length} product${t.products.length!==1?'s':''}</span>` : ''}</div>
           </div>
         </div>
       </td>
@@ -3538,6 +3569,39 @@ function teamFormHTML(t) {
         </div>`).join('')}
       </div>
       <button onclick="addGalRow()" style="background:rgba(21,101,255,.12);border:1px solid rgba(21,101,255,.25);color:var(--up-sky);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;cursor:pointer;margin-top:4px;">+ Add Photo</button>
+    </div>
+    <div class="cm-fg cm-full" style="border-top:1px solid var(--up-border);padding-top:16px;margin-top:4px;">
+      <div class="tm-products-head">🛍 Products offered in this store — select all that apply</div>
+      <div class="tm-product-grid">${TM_PRODUCT_CATALOG.map(p => {
+        const isOn = (t?.products||[]).some(ep => ep.type === p.type);
+        return `<label class="tm-prod-check${isOn?' selected':''}" onclick="tmToggleProduct('${p.type}',this)">
+          <input type="checkbox" ${isOn?'checked':''} data-type="${p.type}">
+          <div class="tm-prod-check-icon">${p.icon}</div>
+          <div class="tm-prod-check-label">${p.label}</div>
+        </label>`;
+      }).join('')}</div>
+      <div id="tm-prod-details" style="margin-top:4px;">${TM_PRODUCT_CATALOG.map(p => {
+        const ep = (t?.products||[]).find(x => x.type === p.type);
+        const isOn = !!ep;
+        return `<div class="tm-prod-row" id="tm-prow-${p.type}" style="display:${isOn?'grid':'none'}">
+          <div class="tm-prod-row-icon">${p.icon}</div>
+          <div class="tm-prod-row-fields">
+            <div class="tm-prod-row-name">${p.label}</div>
+            <input type="text" id="tm-pimg-${p.type}" value="${ep?.img||''}"
+              placeholder="Design image URL (Canva link or direct PNG)…"
+              oninput="tmPreviewDesign('${p.type}',this.value)">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-mist);letter-spacing:1px;">Paste a Canva share link or direct image URL for this garment's design</div>
+            <div id="tm-pimg-prev-${p.type}" style="display:${ep?.img?'block':'none'};margin-top:4px;">
+              <img src="${ep?.img||''}" style="max-height:60px;max-width:180px;object-fit:contain;border:1px solid var(--up-border);" onerror="this.parentElement.style.display='none'">
+            </div>
+          </div>
+          <div class="tm-prod-row-price">
+            <label>Price</label>
+            <input type="text" id="tm-pprice-${p.type}" value="${ep?.price||p.defaultPrice}" placeholder="${p.defaultPrice}">
+          </div>
+        </div>`;
+      }).join('')}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-mist);letter-spacing:1px;margin-top:8px;">Check a product to include it. Upload a design image for each one so customers can see what they're ordering.</div>
     </div>`;
 }
 
@@ -3566,6 +3630,23 @@ function refreshGalRows() {
         style="flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
       <button onclick="removeGalRow(${i})" style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.2);color:var(--hs-red);padding:8px 12px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
     </div>`).join('');
+}
+
+function tmToggleProduct(type, labelEl) {
+  const isNowOn = !labelEl.classList.contains('selected');
+  labelEl.classList.toggle('selected', isNowOn);
+  const cb = labelEl.querySelector('input[type=checkbox]');
+  if (cb) cb.checked = isNowOn;
+  const row = document.getElementById('tm-prow-' + type);
+  if (row) row.style.display = isNowOn ? 'grid' : 'none';
+}
+function tmPreviewDesign(type, url) {
+  const wrap = document.getElementById('tm-pimg-prev-' + type);
+  if (!wrap) return;
+  const img = wrap.querySelector('img');
+  if (!url) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  if (img) { img.src = url; img.onerror = () => { wrap.style.display = 'none'; }; }
 }
 
 var cmTeamEditIdx = -1;
@@ -3652,6 +3733,19 @@ function saveCMTeam() {
   if (!name) { showToast("Team name is required"); return; }
   if (!sub)  { showToast("Subdomain is required"); return; }
 
+  const products = TM_PRODUCT_CATALOG
+    .filter(p => {
+      const cb = document.querySelector(`.tm-prod-check input[data-type="${p.type}"]`);
+      return cb && cb.checked;
+    })
+    .map(p => ({
+      type:  p.type,
+      label: p.label,
+      icon:  p.icon,
+      img:   document.getElementById('tm-pimg-' + p.type)?.value.trim() || '',
+      price: document.getElementById('tm-pprice-' + p.type)?.value.trim() || p.defaultPrice,
+    }));
+
   const team = {
     name,
     subdomain: sub,
@@ -3659,6 +3753,7 @@ function saveCMTeam() {
     logo:  document.getElementById("tm-logo")?.value.trim() || '',
     desc:  document.getElementById("tm-desc")?.value.trim() || '',
     gallery: tmGalleryRows.filter(g => g.img.trim()),
+    products,
   };
 
   const isNew = cmTeamEditIdx === -1;
@@ -3668,7 +3763,10 @@ function saveCMTeam() {
 
   saveTeams(); renderTeamCards(); closeCMModal();
   renderAdminPanel("teams");
-  showToast(isNew ? `"${name}" team store added!` : `"${name}" updated!`);
+  const pCount = products.length;
+  showToast(isNew
+    ? `"${name}" added with ${pCount} product${pCount!==1?'s':''}!`
+    : `"${name}" updated — ${pCount} product${pCount!==1?'s':''}!`);
 
   // Auto-register new team store in the production board
   if (isNew) {
