@@ -4472,13 +4472,16 @@ function saveProductionOrders() {
 
 // Auto-log orders when submitted via cart checkout
 function logProductionOrder(orderData) {
-  // Enrich items with graphicName/graphicImg from saved team store products
+  // Enrich items with graphicName/graphicImg from saved team store products.
+  // Items arriving from team-store-template.html already have graphicImg set —
+  // this enrichment only runs for items that are missing it (e.g. UP Sportswear cart).
   const enrichedItems = (orderData.items || []).map(item => {
-    if (item.graphicName || item.graphicImg) return item; // already set
-    // Look up team store by store name
+    // Already enriched (came from team store template direct write)
+    if (item.graphicImg) return item;
+
+    // Try to match against admin-managed team store products
     const team = teams.find(t => t.name === orderData.store);
     if (team && team.products) {
-      // Match by product label or partial name
       const match = team.products.find(p =>
         item.name && (
           item.name.toLowerCase().includes(p.label.toLowerCase()) ||
@@ -4486,9 +4489,11 @@ function logProductionOrder(orderData) {
           item.name.toLowerCase().includes(p.type.toLowerCase())
         )
       );
-      if (match) return { ...item, graphicName: match.graphicName || '', graphicImg: match.img || '' };
+      if (match) return { ...item, graphicName: match.graphicName || item.name, graphicImg: match.img || '' };
     }
-    return item;
+
+    // Fallback: use item name as graphic name, no image
+    return { ...item, graphicName: item.graphicName || '', graphicImg: '' };
   });
 
   const entry = {
@@ -5742,6 +5747,14 @@ function renderDashboard() {
   const pendingItems = pending.reduce((s,o)=>(o.items||[]).reduce((ss,i)=>ss+(parseInt(i.qty)||1),s),0);
   const urgentDeadlines = deadlines.filter(d=>{ const days=Math.ceil((new Date(d.date)-Date.now())/86400000); return days<=3 && days>=0; });
 
+  // Graphics needed across all pending orders
+  const graphicsNeeded = pending.reduce((s,o) =>
+    s + (o.items||[]).reduce((ss,i) => ss + (parseInt(i.qty)||1) * getGraphicLocations(i.name), 0), 0);
+
+  // Time-of-day greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
   // Recent orders (last 5)
   const recent = [...real].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,5);
   const recentHTML = recent.length ? recent.map(o => {
@@ -5775,11 +5788,11 @@ function renderDashboard() {
 
   return `
     <div class="cm-section-head">
-      <div><div class="cm-section-title" style="color:var(--up-sky);">Good morning, <span style="color:var(--up-white)">Erin</span> 👋</div>
+      <div><div class="cm-section-title" style="color:var(--up-sky);">${greeting}, <span style="color:var(--up-white)">Erin</span> 👋</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
     </div></div>
 
-    <div class="dash-grid">
+    <div class="dash-grid" style="grid-template-columns:repeat(5,1fr);">
       <div class="dash-card" style="border-top-color:#4ade80;">
         <div class="dash-card-icon">📦</div>
         <div class="dash-card-label">Pending Orders</div>
@@ -5791,6 +5804,12 @@ function renderDashboard() {
         <div class="dash-card-label">Today's Orders</div>
         <div class="dash-card-value">${todayOrders.length}</div>
         <div class="dash-card-sub">New orders placed today</div>
+      </div>
+      <div class="dash-card" style="border-top-color:#a78bfa;">
+        <div class="dash-card-icon">🎨</div>
+        <div class="dash-card-label">Graphics Needed</div>
+        <div class="dash-card-value" style="color:#a78bfa;">${graphicsNeeded}</div>
+        <div class="dash-card-sub">Print locations across pending</div>
       </div>
       <div class="dash-card" style="border-top-color:var(--accent);">
         <div class="dash-card-icon">💰</div>
@@ -6858,6 +6877,7 @@ function renderInvoiceAdmin() {
       <div id="adminNavList">
         <div class="admin-nav-item" id="anav-dashboard" onclick="renderAdminPanel('dashboard')">📊 <span class="admin-nav-item-label">Dashboard</span></div>
         <div class="admin-nav-item" id="anav-production" onclick="renderAdminPanel('production')">📦 <span class="admin-nav-item-label">Orders</span></div>
+        <div class="admin-nav-item" id="anav-purchaselist" onclick="renderAdminPanel('purchaselist')">🛒 <span class="admin-nav-item-label">Purchase List</span></div>
         <div class="admin-nav-item" id="anav-teams" onclick="renderAdminPanel('teams')">🏆 <span class="admin-nav-item-label">Team Stores</span></div>
         <div class="admin-nav-item" id="anav-customers" onclick="renderAdminPanel('customers')">👥 <span class="admin-nav-item-label">Customers</span></div>
         <div class="admin-nav-item" id="anav-costanalysis" onclick="renderAdminPanel('costanalysis')">💰 <span class="admin-nav-item-label">Cost Analysis</span></div>
@@ -7127,6 +7147,7 @@ function renderAdminPanel(tab) {
     switch(tab) {
       case 'dashboard':    content.innerHTML = renderDashboard();       break;
       case 'production':   content.innerHTML = renderProductionAdmin(); break;
+      case 'purchaselist': content.innerHTML = renderPurchaseList();    break;
       case 'teams':        content.innerHTML = renderTeamAdmin();       break;
       case 'customers':    content.innerHTML = renderCustomers();       break;
       case 'costanalysis': content.innerHTML = renderCostAnalysis();    break;

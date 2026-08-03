@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>River City Rampage — Team Store</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://www.paypal.com/sdk/js?client-id=AYJIp9dGfV7S6-XHEkihax6fIhB_60UOPZeOaV0iPd9GT1F10ilchavgai5kOvkEZenkerZYO4fb6tXr&currency=USD" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD" data-namespace="paypal_sdk"></script>
 <style>
 /* ═══════════════════════════════
    TEAM TOKENS — swap these per team
@@ -325,92 +325,6 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
   font-size: 10px; color: var(--mist); margin-top: 8px;
   font-weight: 300; line-height: 1.5; font-style: italic;
 }
-
-/* ── COLOR TINT OVERLAY ── */
-.p-img { position: relative; overflow: hidden; }
-.p-img-layers { position: relative; width: 100%; height: 100%; }
-.p-img-base {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  transition: background-color .3s ease;
-}
-.p-img-base img {
-  width: 100%; height: 100%; object-fit: cover;
-  display: block;
-}
-.p-img-graphic {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  pointer-events: none; display: flex;
-  align-items: center; justify-content: center;
-}
-.p-img-graphic img {
-  width: 80%; height: 80%; object-fit: contain;
-  display: block;
-}
-.modal-product-img-wrap { position: relative; display: block; width: 100%; }
-.modal-img-layers { position: relative; width: 100%; height: 200px; overflow: hidden; }
-.modal-img-base {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  transition: background-color .3s ease;
-  overflow: hidden;
-}
-.modal-img-base img {
-  width: 100%; height: 100%; object-fit: cover;
-  display: block;
-}
-.modal-img-graphic {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  pointer-events: none; display: flex;
-  align-items: center; justify-content: center;
-}
-.modal-img-graphic img {
-  width: 70%; height: 70%; object-fit: contain;
-  display: block;
-}
-
-/* ── MULTI-SIZE QTY PICKER ── */
-.multi-size-section { margin-bottom: 16px; }
-.multi-size-label {
-  font-family: 'Barlow Condensed', sans-serif; font-size: 10px;
-  letter-spacing: 2px; color: var(--mist); text-transform: uppercase;
-  margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.multi-size-hint { font-size: 9px; color: var(--mist); font-weight: 300; letter-spacing: 1px; }
-.multi-size-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
-.size-qty-row {
-  background: var(--bg); border: 1px solid var(--border);
-  padding: 8px 10px; display: flex; flex-direction: column; gap: 5px;
-  transition: border-color .2s;
-}
-.size-qty-row.has-qty { border-color: var(--team-primary); background: rgba(var(--team-primary-rgb),.06); }
-.size-qty-name {
-  font-family: 'Barlow Condensed', sans-serif; font-size: 12px;
-  font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-  color: var(--chalk); text-align: center;
-}
-.size-qty-controls { display: flex; align-items: center; justify-content: center; gap: 0; }
-.size-qty-btn {
-  background: var(--surface); border: 1px solid var(--border);
-  color: var(--white); width: 24px; height: 24px; cursor: pointer;
-  font-size: 14px; display: flex; align-items: center; justify-content: center;
-  transition: all .2s; flex-shrink: 0;
-}
-.size-qty-btn:hover { background: var(--team-primary); color: #fff; border-color: var(--team-primary); }
-.size-qty-val {
-  background: var(--bg); border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border); width: 30px; height: 24px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
-}
-.size-qty-val.active { color: var(--team-primary); }
-.multi-size-total {
-  margin-top: 10px; padding: 8px 12px; background: rgba(255,255,255,.04);
-  border: 1px solid var(--border); display: flex; justify-content: space-between;
-  align-items: center; font-family: 'Barlow Condensed', sans-serif;
-  font-size: 12px; letter-spacing: 1px;
-}
-.multi-size-total-label { color: var(--mist); text-transform: uppercase; }
-.multi-size-total-val { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--white); }
 </style>
 </head>
 <body>
@@ -431,8 +345,8 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
     </div>
     <div class="header-right">
       <a href="tel:3046336401" class="btn-call">📞 (304) 633-6401</a>
-      <button class="cart-btn" id="cartBtn" onclick="openCart()" aria-label="View cart, 0 items" aria-haspopup="dialog">
-        🛒 Cart <span class="cart-count" id="cartCount" aria-hidden="true">0</span>
+      <button class="cart-btn" onclick="openCart()">
+        🛒 Cart <span class="cart-count" id="cartCount">0</span>
       </button>
     </div>
   </div>
@@ -500,12 +414,12 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
 </div>
 
 <footer>
-  <a class="ft-logo" href="https://underpressureapparel.com" target="_blank" rel="noopener noreferrer">
+  <a class="ft-logo" href="https://underpressureapparel.com" target="_blank">
     <strong style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--mist);">Under Pressure Custom Apparel</strong>
   </a>
   <div class="ft-links">
     <a href="tel:3046336401">📞 (304) 633-6401</a>
-  <a href="https://underpressureapparel.com" target="_blank" rel="noopener noreferrer">Main Store</a>
+  <a href="https://underpressureapparel.com" target="_blank">Main Store</a>
     
   </div>
   <div class="ft-copy">© 2026 Under Pressure Custom Apparel · Our First Impressions, LLC</div>
@@ -524,7 +438,7 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
     <div class="cart-head-title">YOUR CART</div>
     <div class="cart-head-right">
       <span class="cart-qty-lbl" id="cartQtyLbl">0 items</span>
-      <button class="btn-close-c" onclick="closeCart()" aria-label="Close cart">✕</button>
+      <button class="btn-close-c" onclick="closeCart()">✕</button>
     </div>
   </div>
   <div class="cart-body" id="cartBody"></div>
@@ -550,108 +464,56 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
 // ══════════════════════════════
 // PRODUCT CATALOG
 // ══════════════════════════════
-// ─────────────────────────────────────────────────────────────────
-//  PRODUCT IMAGE BASE URL
-//  Update this if your images move to a different host
-// ─────────────────────────────────────────────────────────────────
-const IMG_BASE = "";  // e.g. "https://yourcdn.com/images/" — leave empty if using full URLs per product
-
-// ─────────────────────────────────────────────────────────────────
-//  SIZE GROUPS  — reuse these in any product entry
-// ─────────────────────────────────────────────────────────────────
-const ADULT_SIZES   = ["XS","S","M","L","XL","2XL","3XL","4XL","5XL"];
-const YOUTH_SIZES   = ["YS","YM","YL","YXL"];
+const JT = "https://www.jotform.com/uploads/erinncarver/form_files/";
+const ADULT_SIZES = ["XS","S","M","L","XL","2XL","3XL","4XL","5XL"];
+const YOUTH_SIZES = ["YS","YM","YL","YXL"];
 const TODDLER_SIZES = ["2T-3T","4T-5T","6T-7T"];
-const ALL_SIZES     = [...ADULT_SIZES, ...YOUTH_SIZES, ...TODDLER_SIZES];
-const JACKET_SIZES  = ["XS","S","M","L","XL","2XL","3XL","YS","YM","YL","YXL"];
+const ALL_SIZES = [...ADULT_SIZES,...YOUTH_SIZES,...TODDLER_SIZES];
+const JACKET_SIZES = ["XS","S","M","L","XL","XXL","XXXL","YS","YM","YL","YXL"];
+const SHIRT_COLORS = ["Green","White","Black","Sport Grey","Pink"];
+const JACKET_COLORS = ["Black","White","Grey"];
 
-// ─────────────────────────────────────────────────────────────────
-//  COLOR PALETTE  — full standard set used across all stores
-//  Add any color here and it will be available to any product
-// ─────────────────────────────────────────────────────────────────
-const ALL_COLORS = [
-  "White",
-  "Light Heather Grey",
-  "Dark Heather Grey",
-  "Black",
-  "Red",
-  "Orange",
-  "Yellow",
-  "Green",
-  "Blue",
-  "Purple",
-  "Pink",
-  "Navy",
-];
-
-// Shorthand groups — use these in product entries for convenience
-const BASIC_COLORS   = ["White","Light Heather Grey","Dark Heather Grey","Black"];
-const FULL_COLORS    = [...ALL_COLORS];
-const JACKET_COLORS  = ["White","Light Heather Grey","Dark Heather Grey","Black","Navy"];
-const SHIRT_COLORS   = [...ALL_COLORS];
-
-// ─────────────────────────────────────────────────────────────────
-//  PRODUCTS
-//
-//  Each product entry:
-//  {
-//    id:      unique number (never reuse),
-//    name:    display name,
-//    cat:     "jackets" | "tees" | "dryfits" | "hoodies" | "hats" | "bags",
-//    price:   number (dollars),
-//    img:     URL to base shirt image (transparent PNG, no graphic),
-//    graphic: URL to graphic/design PNG (transparent background) — optional,
-//             if omitted the base image is shown as-is with no color layer,
-//    colors:  array of color names from ALL_COLORS above,
-//    sizes:   array of sizes — use ALL_SIZES, JACKET_SIZES, or custom array,
-//    badge:   short label shown on card e.g. "Baseball" | "Softball" | "" ,
-//  }
-//
-//  HOW TO ADD A PRODUCT:
-//  1. Create your two images (base shirt PNG + graphic PNG)
-//  2. Upload them to your image host / Cloudflare Images
-//  3. Copy the entry template below, fill in the fields, give it a unique id
-//  4. Drop it into the correct category section
-//  5. Save and deploy — it appears instantly in the store
-//
-//  ENTRY TEMPLATE (copy/paste this):
-//  { id:XX, name:"Product Name", cat:"tees", price:25,
-//    img:"BASE_SHIRT_IMAGE_URL",
-//    graphic:"GRAPHIC_IMAGE_URL",
-//    colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"" },
-// ─────────────────────────────────────────────────────────────────
 const products = [
-
-  // ── BATTING JACKETS ──────────────────────────────────────────
-  // { id:1, name:"Example Batting Jacket", cat:"jackets", price:45,
-  //   img:"BASE_SHIRT_URL", graphic:"GRAPHIC_URL",
-  //   colors:JACKET_COLORS, sizes:JACKET_SIZES, badge:"Baseball" },
-
-  // ── T-SHIRTS ─────────────────────────────────────────────────
-  // { id:10, name:"Example T-Shirt", cat:"tees", price:25,
-  //   img:"BASE_SHIRT_URL", graphic:"GRAPHIC_URL",
-  //   colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"" },
-
-  // ── DRY-FITS ─────────────────────────────────────────────────
-  // { id:20, name:"Example Dry-Fit", cat:"dryfits", price:30,
-  //   img:"BASE_SHIRT_URL", graphic:"GRAPHIC_URL",
-  //   colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"" },
-
-  // ── HOODIES / FLEECE ─────────────────────────────────────────
-  // { id:30, name:"Example Hoodie", cat:"hoodies", price:45,
-  //   img:"BASE_SHIRT_URL", graphic:"GRAPHIC_URL",
-  //   colors:BASIC_COLORS, sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"" },
-
-  // ── HATS ─────────────────────────────────────────────────────
-  // { id:40, name:"Example Snapback", cat:"hats", price:25,
-  //   img:"BASE_SHIRT_URL", graphic:"GRAPHIC_URL",
-  //   colors:BASIC_COLORS, sizes:["One Size"], badge:"" },
-
-  // ── BAGS ─────────────────────────────────────────────────────
-  // { id:50, name:"Example Backpack", cat:"bags", price:35,
-  //   img:"BASE_SHIRT_URL", graphic:"GRAPHIC_URL",
-  //   colors:BASIC_COLORS, sizes:["One Size"], badge:"" },
-
+  // BATTING JACKETS
+  { id:1, name:"Rampage Baseball Batting Jacket", cat:"jackets", price:45, img:`${JT}img_8132_3305d41b0d8a96b340d2521faa586a2d.jpeg`, colors:JACKET_COLORS, sizes:JACKET_SIZES, badge:"Baseball" },
+  { id:2, name:"Rampage Softball Batting Jacket", cat:"jackets", price:45, img:`${JT}img_8134_e3db3556c4c3391acd4c090235d5bef5.jpeg`, colors:JACKET_COLORS, sizes:JACKET_SIZES, badge:"Softball" },
+  { id:3, name:"Softball Gorilla Batting Jacket", cat:"jackets", price:45, img:`${JT}img_8142_00db4ff7ba6f058ccf2d158d535de37e.jpeg`, colors:JACKET_COLORS, sizes:JACKET_SIZES, badge:"Softball" },
+  { id:4, name:"Baseball Gorilla Batting Jacket", cat:"jackets", price:45, img:`${JT}img_8139_9d9ca5e10ea12bc5a19b020474cd56ea.jpeg`, colors:JACKET_COLORS, sizes:JACKET_SIZES, badge:"Baseball" },
+  // T-SHIRTS
+  { id:5, name:"Baseball Soft-Style T-Shirt", cat:"tees", price:25, img:`${JT}img_7841_b01cf855e29efa8e61787c14949de89b.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:6, name:"Softball Soft-Style T-Shirt", cat:"tees", price:25, img:`${JT}img_7847_49e43a7f6d2be7f8f4948d38fa8a8a6b.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:7, name:"Rampage Baseball Logo T-Shirt", cat:"tees", price:25, img:`${JT}img_7859_8396d8d605575e2a211a10e72286bdac.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:8, name:"Rampage Softball Logo T-Shirt", cat:"tees", price:25, img:`${JT}img_7853_ae057537452778f13732cf06899e7476.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:9, name:"RC Baseball Soft-Style T-Shirt", cat:"tees", price:25, img:`${JT}img_7872_fa254ae3384791f6689fafcafed20501.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:10, name:"RC Softball Soft-Style T-Shirt", cat:"tees", price:25, img:`${JT}img_7880_cdc7be5303609ec9b40246714fb04855.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:11, name:"Rampage Baseball Soft-Style T-Shirt", cat:"tees", price:25, img:`${JT}img_7883_9ed11b86fd8eaf9bba65e04786c8282b.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:12, name:"Rampage Softball Soft-Style T-Shirt", cat:"tees", price:25, img:`${JT}img_7892_eb51aca61cfcd6cd2a93b5213c97c898.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:13, name:"RCR White Baseball T-Shirt", cat:"tees", price:25, img:`${JT}img_7896_4894ff21194627c75fb593dc6c748483.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:14, name:"RCR White Softball T-Shirt", cat:"tees", price:25, img:`${JT}img_7900_b8ecfec092b15318cedbe8875b2591fa.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:15, name:"RCR Pink Baseball T-Shirt", cat:"tees", price:25, img:`${JT}img_7907_2974343f9337d14fbfe7311affe049da.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:16, name:"RCR Pink Softball T-Shirt", cat:"tees", price:25, img:`${JT}img_7911_35231beef3e5f2c1544767ddfd1f9493.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:17, name:"RCR Green Baseball T-Shirt", cat:"tees", price:25, img:`${JT}img_7915_466999d10e9be6b1328e1b9f19858fda.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:18, name:"RCR Green Softball T-Shirt", cat:"tees", price:25, img:`${JT}img_7924_754e99cf4bcd9169ff7c8fc5d67a9b0f.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:19, name:"RCR Diamond Baseball T-Shirt", cat:"tees", price:25, img:`${JT}img_7928_250d7dbc13f4c0f8eba859e01cf79dc6.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:20, name:"RCR Diamond Softball T-Shirt", cat:"tees", price:25, img:`${JT}img_7931_cf7007cb436fe38f9b463496e62e8e46.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:21, name:"Greatest Show on Dirt Green T-Shirt", cat:"tees", price:25, img:`${JT}img_7941_5c714b1fc59552724110e652bbd39770.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"" },
+  { id:22, name:"Greatest Show on Dirt Pink T-Shirt", cat:"tees", price:25, img:`${JT}img_7942_6206a8db8d9002d1a177788c945b1afb.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"" },
+  // DRY-FITS
+  { id:23, name:"Baseball Dry-Fit", cat:"dryfits", price:30, img:`${JT}img_7947_1c3c7d33c891890b008e7d0bc31f4aad.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:24, name:"Softball Dry-Fit", cat:"dryfits", price:30, img:`${JT}img_7952_b919ef0a244bc97692f1caafc0c57f62.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  { id:25, name:"Rampage Baseball Dry-Fit", cat:"dryfits", price:30, img:`${JT}img_7962_7ad1fda9709841069e667e1dd1e2f0bd.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Baseball" },
+  { id:26, name:"Rampage Softball Dry-Fit", cat:"dryfits", price:30, img:`${JT}img_7965_c5b5b04ccefbe251c144eedf7bd0fc8a.jpeg`, colors:SHIRT_COLORS, sizes:ALL_SIZES, badge:"Softball" },
+  // HOODIES / FLEECE
+  { id:27, name:"Rampage Baseball Hoodie", cat:"hoodies", price:45, img:`${JT}img_7975_ec2da522a271a537cca19af7e83b646e.jpeg`, colors:["Green","Black","White","Sport Grey"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Baseball" },
+  { id:28, name:"Rampage Softball Hoodie", cat:"hoodies", price:45, img:`${JT}img_7978_f0a2c4ed14e5c83c382683e7491f155a.jpeg`, colors:["Green","Black","White","Sport Grey","Pink"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Softball" },
+  { id:29, name:"Rampage Baseball Crewneck", cat:"hoodies", price:40, img:`${JT}img_7984_4078156e2da97de175298398917ed54c.jpeg`, colors:["Green","Black","White","Sport Grey"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Baseball" },
+  { id:30, name:"Rampage Softball Crewneck", cat:"hoodies", price:40, img:`${JT}img_7987_134393d670db99612967d2b9561d514e.jpeg`, colors:["Green","Black","White","Sport Grey","Pink"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Softball" },
+  // HATS
+  { id:31, name:"Rampage Snapback Cap", cat:"hats", price:25, img:`${JT}img_8094_e4b173e5de7dfc4b1c32d3c40a8004cc.jpeg`, colors:["Green/Black","Black/White","White/Green"], sizes:["One Size"], badge:"" },
+  { id:32, name:"Rampage Trucker Cap", cat:"hats", price:22, img:`${JT}img_8069_56f9fda224d8adad4be667eaef108af5.jpeg`, colors:["Green","Black","White"], sizes:["One Size"], badge:"" },
+  // BAGS
+  { id:33, name:"Rampage Backpack", cat:"bags", price:35, img:`${JT}img_8082_2a9ea51abcbb620da8531b58682843f9.jpeg`, colors:["Black","Green"], sizes:["One Size"], badge:"" },
+  { id:34, name:"Rampage Tote Bag", cat:"bags", price:18, img:`${JT}img_8084_e999be9e837e9ef120f865b0bba7c764.jpeg`, colors:["Black","Green","White"], sizes:["One Size"], badge:"" },
 ];
 
 const INIT = 8;
@@ -665,74 +527,18 @@ function getRampageShipping() {
   return RAMPAGE_SHIPPING[Math.min(qty,20)] || 25;
 }
 
-const COLOR_MAP = {
-  'White':               '#ffffff',
-  'Light Heather Grey':  '#d1d5db',
-  'Dark Heather Grey':   '#6b7280',
-  'Black':               '#111111',
-  'Red':                 '#dc2626',
-  'Orange':              '#f97316',
-  'Yellow':              '#fbbf24',
-  'Green':               '#16a34a',
-  'Blue':                '#1d4ed8',
-  'Purple':              '#7c3aed',
-  'Pink':                '#ec4899',
-  'Navy':                '#1e3a5f',
-  // legacy / combo colors kept for backward compatibility
-  'Sport Grey':          '#9e9e9e',
-  'Grey':                '#9e9e9e',
-  'Light Blue':          '#60a5fa',
-  'Lilac':               '#a78bfa',
-  'Green/Black':         '#16a34a',
-  'Black/White':         '#111111',
-  'White/Green':         '#ffffff',
-  'No Color':            'transparent',
-};
-
-function applyCardColor(cardIdx, color) {
-  const base = document.getElementById('card-base-' + cardIdx);
-  if (!base) return;
-  const hex = COLOR_MAP[color] || 'transparent';
-  base.style.backgroundColor = hex;
-  // If product has graphic layer, hide the base img and show color only
-  const baseImg = base.querySelector('img');
-  if (baseImg && document.getElementById('card-layers-' + cardIdx)?.querySelector('.p-img-graphic img')) {
-    baseImg.style.opacity = '0';
-  }
-}
-
-function applyModalColor(color) {
-  const base = document.getElementById('modal-base');
-  if (!base) return;
-  const hex = COLOR_MAP[color] || 'transparent';
-  base.style.backgroundColor = hex;
-  // If product has graphic layer, hide base img and show color only
-  const baseImg = base.querySelector('img');
-  if (baseImg && document.querySelector('.modal-img-graphic img')) {
-    baseImg.style.opacity = '0';
-  }
-}
-
 function renderProducts(filter) {
   currentFilter = filter;
   const grid = document.getElementById("productGrid");
   const wrap = document.getElementById("showMoreWrap");
   const data = filter === "all" ? products : products.filter(p => p.cat === filter);
-  document.getElementById("productCount").textContent = data.length
-    ? `${data.length} product${data.length !== 1 ? 's' : ''} · Click any item to select size & color`
-    : 'Products coming soon — check back shortly!';
-  if (!data.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--chalk);font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;font-size:14px;opacity:.6;">PRODUCTS COMING SOON</div>'; wrap.style.display="none"; return; }
+  document.getElementById("productCount").textContent = `${data.length} products · Click any item to select size & color`;
   grid.innerHTML = data.map((p, i) => `
     <div class="p-card${i >= INIT ? " hidden" : ""}" style="animation:up .5s ${i*.05}s ease both">
       <div class="p-img">
-        <div class="p-img-layers" id="card-layers-${i}">
-          <div class="p-img-base" id="card-base-${i}" style="background-color:${COLOR_MAP[p.colors[0]]||'transparent'}">
-            <img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.style.opacity='.2'" id="card-img-${i}">
-          </div>
-          ${p.graphic ? `<div class="p-img-graphic"><img src="${p.graphic}" alt="${p.name} graphic" loading="lazy"></div>` : ''}
-        </div>
+        <img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.style.opacity='.2'">
         ${p.badge ? `<div class="p-badge">${p.badge}</div>` : ""}
-        <div class="p-hover"><button class="btn-add" onclick="openPicker(${p.id},${i})">Select Options</button></div>
+        <div class="p-hover"><button class="btn-add" onclick="openPicker(${p.id})">Select Options</button></div>
       </div>
       <div class="p-info">
         <div class="p-cat">${catLabel(p.cat)}</div>
@@ -764,13 +570,11 @@ function showAll() {
 // ══════════════════════════════
 let pickerState = { productId: null, color: null, size: null, qty: 1, playerName: '', playerNumber: '' };
 
-function openPicker(id, cardIdx) {
+function openPicker(id) {
   const p = products.find(x => x.id === id);
-  pickerState = { productId: id, color: p.colors[0], size: p.sizes[0], qty: 1, playerName: '', playerNumber: '', cardIdx: cardIdx };
+  pickerState = { productId: id, color: p.colors[0], size: p.sizes[0], qty: 1, playerName: '', playerNumber: '' };
   renderPicker(p);
   document.getElementById("pickerModal").classList.add("open");
-  // Apply initial tint to modal
-  setTimeout(() => applyModalColor(p.colors[0]), 50);
 }
 function closePickerModal() { document.getElementById("pickerModal").classList.remove("open"); }
 
@@ -778,42 +582,25 @@ function renderPicker(p) {
   document.getElementById("pickerModalInner").innerHTML = `
     <div class="modal-head">
       <h3>${p.name}</h3>
-      <button class="btn-close-m" onclick="closePickerModal()" aria-label="Close product options">✕</button>
+      <button class="btn-close-m" onclick="closePickerModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="modal-product-img-wrap">
-        <div class="modal-img-layers">
-          <div class="modal-img-base" id="modal-base" style="background-color:${COLOR_MAP[p.colors[0]]||'transparent'}">
-            <img src="${p.img}" alt="${p.name}" onerror="this.style.opacity='.2'" style="width:100%;display:block;">
-          </div>
-          ${p.graphic ? `<div class="modal-img-graphic"><img src="${p.graphic}" alt="${p.name} graphic"></div>` : ''}
-        </div>
-      </div>
+      <img src="${p.img}" class="modal-product-img" alt="${p.name}" onerror="this.style.display='none'">
       <div class="modal-price">$${p.price}.00 each</div>
       <div class="modal-section">Select Color</div>
       <div class="option-group" id="colorOpts">
         ${p.colors.map(c=>`<button class="opt-btn${c===pickerState.color?" selected":""}" onclick="selectColor('${c}')">${c}</button>`).join("")}
       </div>
-      <div class="multi-size-section">
-        <div class="multi-size-label">
-          Select Sizes & Quantities
-          <span class="multi-size-hint">Enter qty for each size needed</span>
-        </div>
-        <div class="multi-size-grid" id="sizeQtyGrid">
-          ${p.sizes.map(s => `
-            <div class="size-qty-row" id="sqrow-${s.replace(/\s/g,'_')}">
-              <div class="size-qty-name">${s}</div>
-              <div class="size-qty-controls">
-                <button class="size-qty-btn" onclick="changeSizeQty('${s}',-1)">−</button>
-                <div class="size-qty-val" id="sqval-${s.replace(/\s/g,'_')}">0</div>
-                <button class="size-qty-btn" onclick="changeSizeQty('${s}',1)">+</button>
-              </div>
-            </div>`).join('')}
-        </div>
-        <div class="multi-size-total">
-          <span class="multi-size-total-label">Total Items</span>
-          <span class="multi-size-total-val" id="multiSizeTotal">0</span>
-        </div>
+      <div class="modal-section">Select Size</div>
+      <div class="option-group" id="sizeOpts">
+        ${p.sizes.map(s=>`<button class="opt-btn${s===pickerState.size?" selected":""}" onclick="selectSize('${s}')">${s}</button>`).join("")}
+      </div>
+      <div class="modal-section">Quantity</div>
+      <div class="qty-row">
+        <span class="qty-label">Qty</span>
+        <button class="qty-btn" onclick="pickerQty(-1)">−</button>
+        <div class="qty-val" id="pickerQty">1</div>
+        <button class="qty-btn" onclick="pickerQty(1)">+</button>
       </div>
       <!-- PERSONALIZATION -->
       <div class="personalize-wrap">
@@ -839,8 +626,8 @@ function renderPicker(p) {
         </div>
       </div>
 
-      <button class="btn-add-to-cart" id="multiAddBtn" onclick="addMultiSizeToCart()">Add to Cart — $0.00</button>
-    </div>`;
+      <button class="btn-add-to-cart" onclick="addPickerToCart()">Add to Cart — $\${p.price}.00</button>
+    </div>\`;
 }
 
 function selectColor(c) {
@@ -848,8 +635,6 @@ function selectColor(c) {
   document.querySelectorAll("#colorOpts .opt-btn").forEach(b => {
     b.classList.toggle("selected", b.textContent === c);
   });
-  applyModalColor(c);
-  if (pickerState.cardIdx !== undefined) applyCardColor(pickerState.cardIdx, c);
 }
 function selectSize(s) {
   pickerState.size = s;
@@ -861,58 +646,6 @@ function pickerQty(d) {
   pickerState.qty = Math.max(1, pickerState.qty + d);
   document.getElementById("pickerQty").textContent = pickerState.qty;
 }
-// sizeQtys: { size: qty }
-let sizeQtys = {};
-
-function changeSizeQty(size, delta) {
-  if (!sizeQtys[size]) sizeQtys[size] = 0;
-  sizeQtys[size] = Math.max(0, sizeQtys[size] + delta);
-  const key = size.replace(/\s/g,'_');
-  const valEl = document.getElementById('sqval-' + key);
-  const rowEl = document.getElementById('sqrow-' + key);
-  if (valEl) { valEl.textContent = sizeQtys[size]; valEl.className = 'size-qty-val' + (sizeQtys[size] > 0 ? ' active' : ''); }
-  if (rowEl) rowEl.classList.toggle('has-qty', sizeQtys[size] > 0);
-  updateMultiSizeTotal();
-}
-
-function updateMultiSizeTotal() {
-  const total = Object.values(sizeQtys).reduce((s,v) => s+v, 0);
-  const totalEl = document.getElementById('multiSizeTotal');
-  if (totalEl) totalEl.textContent = total;
-  const p = products.find(x => x.id === pickerState.productId);
-  const btn = document.getElementById('multiAddBtn');
-  if (btn && p) btn.textContent = total > 0 ? `Add to Cart — $${(p.price * total).toFixed(2)}` : 'Add to Cart — $0.00';
-}
-
-function addMultiSizeToCart() {
-  const p = products.find(x => x.id === pickerState.productId);
-  const pName = document.getElementById('p-name')?.value.trim() || '';
-  const pNum  = document.getElementById('p-number')?.value.trim() || '';
-  const entries = Object.entries(sizeQtys).filter(([,q]) => q > 0);
-  if (!entries.length) { showToast('Please select at least one size and quantity'); return; }
-
-  entries.forEach(([size, qty]) => {
-    const key = `${p.id}-${pickerState.color}-${size}-${pName}-${pNum}`;
-    const ex = cart.find(i => i.key === key);
-    if (ex) ex.qty += qty;
-    else cart.push({ key, id: p.id, name: p.name, color: pickerState.color, size, qty, price: p.price, img: p.img, playerName: pName, playerNumber: pNum, salePrice: p.price });
-  });
-
-  updateCartUI();
-  closePickerModal();
-  const totalQty = entries.reduce((s,[,q]) => s+q, 0);
-  const sizeList = entries.map(([s,q]) => `${s}×${q}`).join(', ');
-  showToast(`${p.name} (${pickerState.color}) added — ${sizeList}`);
-  sizeQtys = {};
-}
-
-// Reset sizeQtys when picker opens
-const _origOpenPicker = openPicker;
-openPicker = function(id, cardIdx) {
-  sizeQtys = {};
-  _origOpenPicker(id, cardIdx);
-};
-
 function togglePersonalize() {
   const fields = document.getElementById('personalizeFields');
   const chevron = document.getElementById('personalizeChevron');
@@ -958,8 +691,6 @@ function updateCartUI() {
   const qty = cartQty(), total = cartTotal();
   const cc = document.getElementById("cartCount");
   cc.textContent = qty; cc.classList.add("bump"); setTimeout(() => cc.classList.remove("bump"), 200);
-  const cartBtn = document.getElementById("cartBtn");
-  if (cartBtn) cartBtn.setAttribute("aria-label", `View cart, ${qty} item${qty !== 1 ? "s" : ""}`);
   document.getElementById("cartQtyLbl").textContent = `${qty} item${qty !== 1 ? "s" : ""}`;
   document.getElementById("cartTotal").textContent = `$${total.toFixed(2)}`;
   document.getElementById("checkoutBtn").disabled = qty === 0;
@@ -981,7 +712,7 @@ function updateCartUI() {
             <div class="ci-qty-val">${item.qty}</div>
             <button class="ci-qty-btn" onclick="changeQty(${i},1)">+</button>
           </div>
-          <button class="ci-remove" onclick="removeFromCart(${i})" aria-label="Remove ${item.name} from cart">✕</button>
+          <button class="ci-remove" onclick="removeFromCart(${i})">✕</button>
         </div>
       </div>
     </div>`).join("");
@@ -1003,7 +734,7 @@ function renderCheckoutForm() {
   const total = cartTotal();
   const rows = cart.map(i => `<div class="os-row"><span class="os-name">${i.name} · ${i.color} · ${i.size} × ${i.qty}</span><span class="os-price">$${(i.price*i.qty).toFixed(2)}</span></div>`).join("");
   document.getElementById("checkoutContent").innerHTML = `
-    <div class="modal-head"><h3>CHECKOUT</h3><button class="btn-close-m" onclick="closeCheckout()" aria-label="Close checkout">✕</button></div>
+    <div class="modal-head"><h3>CHECKOUT</h3><button class="btn-close-m" onclick="closeCheckout()">✕</button></div>
     <div class="modal-body" style="padding:20px 24px;">
       <div class="cm-sec">Your Information</div>
       <div class="form-grid">
@@ -1064,14 +795,51 @@ function renderPayPal(total) {
       }],
       payer:{name:{given_name:customerInfo.first,surname:customerInfo.last},email_address:customerInfo.email}
     }),
-    onApprove:(d,a) => a.order.capture().then(details => { cart=[]; updateCartUI(); showOrderSuccess(details); }),
+    onApprove:(d,a) => a.order.capture().then(details => {
+      logToProduction(details);
+      cart=[]; updateCartUI(); showOrderSuccess(details);
+    }),
     onError:() => showToast("Payment error — please try again or call (304) 633-6401")
   }).render("#paypal-container");
 }
 
+function logToProduction(paypalDetails) {
+  try {
+    const existing = JSON.parse(localStorage.getItem('productionOrders') || '[]');
+    const entry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      store: 'River City Rampage',
+      customer: `${customerInfo.first} ${customerInfo.last}`,
+      phone: customerInfo.phone || '',
+      email: customerInfo.email || '',
+      paypalOrderId: paypalDetails?.id || '',
+      items: cart.map(i => {
+        const product = products.find(p => p.id === i.id);
+        return {
+          name:         i.name,
+          color:        i.color,
+          size:         i.size,
+          qty:          i.qty,
+          salePrice:    i.price,
+          playerName:   i.playerName || '',
+          playerNumber: i.playerNumber || '',
+          graphicImg:   product?.img || '',
+          graphicName:  i.name, // product name serves as graphic name for Rampage
+        };
+      }),
+      completed: false,
+    };
+    existing.unshift(entry);
+    localStorage.setItem('productionOrders', JSON.stringify(existing));
+  } catch(e) {
+    console.error('Failed to log production order:', e);
+  }
+}
+
 function showOrderSuccess(details) {
   document.getElementById("checkoutContent").innerHTML = `
-    <div class="modal-head"><h3>ORDER CONFIRMED</h3><button class="btn-close-m" onclick="closeCheckout()" aria-label="Close">✕</button></div>
+    <div class="modal-head"><h3>ORDER CONFIRMED</h3><button class="btn-close-m" onclick="closeCheckout()">✕</button></div>
     <div class="success-screen">
       <div class="suc-icon">🎉</div>
       <div class="suc-title">WELCOME TO THE JUNGLE!</div>
