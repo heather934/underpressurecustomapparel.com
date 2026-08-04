@@ -3512,6 +3512,26 @@ function slugify(name) {
 
 // ── CM TEAM ADMIN (renders inside content manager) ──
 // ── Master product catalog — Erin picks from these when building a team store ──
+const COLOR_HEX_MAP = {
+  'White':'#f0f2f5',  'Off White':'#e8e4d8', 'Natural':'#e8dcc8',
+  'Black':'#1a1a1a',  'Charcoal':'#374151',  'Dark Heather':'#4a4a4a',
+  'Navy':'#0f1f4b',   'Royal Blue':'#2563eb','Blue':'#1565ff',
+  'Light Blue':'#93c5fd','Columbia Blue':'#9dc3d4',
+  'Red':'#c8102e',    'Cardinal':'#9f1239',  'Maroon':'#881337',
+  'Heather Red':'#b91c1c',
+  'Sport Grey':'#8e9197','Grey':'#8e9197',   'Silver':'#c0c8d4',
+  'Green':'#16a34a',  'Forest':'#166534',    'Kelly Green':'#22a856',
+  'Gold':'#d97706',   'Yellow':'#fbbf24',
+  'Purple':'#7c3aed', 'Lilac':'#a78bfa',
+  'Pink':'#f472b6',   'Hot Pink':'#ec4899',  'Coral':'#fb7185',
+  'Orange':'#ea580c', 'Brown':'#78350f',
+  'Heather Navy':'#1e3a5f',
+};
+function getColorHex(name) { return COLOR_HEX_MAP[name] || '#888'; }
+
+// Default colors shown when no list is specified
+const DEFAULT_PRODUCT_COLORS = ['White','Black','Navy','Sport Grey','Red'];
+
 const TM_PRODUCT_CATALOG = [
   // ── Tops ──────────────────────────────────────────
   { type:'tee',         icon:'👕', label:'Short Sleeve Tee',      category:'tops',    defaultPrice:'$18–$22' },
@@ -5480,25 +5500,7 @@ function renderPurchaseList() {
 // ══════════════════════════════════════════════════════════════════
 
 // Dot colors for the swatch strip — purely cosmetic
-const COLOR_HEX_MAP = {
-  'White':'#f0f2f5',  'Off White':'#e8e4d8', 'Natural':'#e8dcc8',
-  'Black':'#1a1a1a',  'Charcoal':'#374151',  'Dark Heather':'#4a4a4a',
-  'Navy':'#0f1f4b',   'Royal Blue':'#2563eb','Blue':'#1565ff',
-  'Light Blue':'#93c5fd','Columbia Blue':'#9dc3d4',
-  'Red':'#c8102e',    'Cardinal':'#9f1239',  'Maroon':'#881337',
-  'Heather Red':'#b91c1c',
-  'Sport Grey':'#8e9197','Grey':'#8e9197',   'Silver':'#c0c8d4',
-  'Green':'#16a34a',  'Forest':'#166534',    'Kelly Green':'#22a856',
-  'Gold':'#d97706',   'Yellow':'#fbbf24',
-  'Purple':'#7c3aed', 'Lilac':'#a78bfa',
-  'Pink':'#f472b6',   'Hot Pink':'#ec4899',  'Coral':'#fb7185',
-  'Orange':'#ea580c', 'Brown':'#78350f',
-  'Heather Navy':'#1e3a5f',
-};
-function getColorHex(name) { return COLOR_HEX_MAP[name] || '#888'; }
 
-// Default colors shown when no list is specified
-const DEFAULT_PRODUCT_COLORS = ['White','Black','Navy','Sport Grey','Red'];
 
 // ── Core tint function ────────────────────────────────────────────
 // Changes the color layer behind the transparent PNG.
