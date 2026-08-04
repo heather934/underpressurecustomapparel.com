@@ -1986,8 +1986,31 @@ nav { position: relative; }
 .vis-code-save{background:var(--up-blue);color:#fff;border:none;padding:6px 12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;}
 
 /* Team store add/edit modal */
-.cm-modal-box{background:var(--up-card);border:1px solid var(--up-border);border-top:3px solid var(--up-blue);width:100%;max-width:600px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .3s;}
+.cm-modal-box{background:var(--up-card);border:1px solid var(--up-border);border-top:3px solid var(--up-blue);width:100%;max-width:900px;max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform .3s;}
 .modal-bg.open .cm-modal-box{transform:translateY(0);}
+.tm-section-head{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-bottom:10px;margin-top:4px;display:flex;align-items:center;justify-content:space-between;}
+.tm-designs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:10px;}
+.tm-design-card{background:var(--up-navy);border:1px solid var(--up-border);padding:8px;display:flex;flex-direction:column;gap:6px;position:relative;}
+.tm-design-card img{width:100%;aspect-ratio:1;object-fit:contain;background:var(--up-black);}
+.tm-design-card-name{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--up-silver);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tm-design-card-del{position:absolute;top:4px;right:4px;background:rgba(200,16,46,.7);border:none;color:#fff;width:20px;height:20px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;line-height:1;}
+.tm-design-add-row{display:flex;gap:6px;align-items:stretch;margin-bottom:6px;}
+.tm-design-name-input{flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;}
+.tm-design-name-input:focus{border-color:var(--up-sky);}
+.tm-design-upload-status{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;margin-top:4px;min-height:16px;}
+.tm-design-upload-status.ok{color:#4ade80;}
+.tm-design-upload-status.err{color:var(--hs-red);}
+.tm-design-upload-status.loading{color:var(--up-sky);}
+.tm-color-picker-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.tm-color-dot{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.tm-color-dot.selected{border-color:#fff;box-shadow:0 0 0 2px var(--up-blue);}
+.tm-sizes-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.tm-size-chip{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border:1px solid var(--up-border);color:var(--up-mist);cursor:pointer;background:var(--up-navy);transition:all .15s;user-select:none;}
+.tm-size-chip.selected{border-color:var(--up-blue);color:var(--up-sky);background:rgba(21,101,255,.12);}
+.tm-design-select{background:var(--up-card);border:1px solid rgba(167,139,250,.4);color:var(--up-white);padding:7px 10px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;outline:none;width:100%;cursor:pointer;}
+.tm-design-select:focus{border-color:var(--up-sky);}
+.tm-gal-upload-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+.tm-gal-upload-status{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);}
 .cm-modal-head{padding:22px 26px 18px;border-bottom:1px solid var(--up-border);display:flex;align-items:center;justify-content:space-between;}
 .cm-modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--up-white);}
 .cm-close-sm{background:none;border:1px solid var(--up-border);color:var(--up-mist);width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
@@ -3575,6 +3598,15 @@ function renderTeamAdmin() {
 
 function teamFormHTML(t) {
   const subdomain = t ? (t.subdomain || slugify(t.name)) : '';
+  // Build designs HTML for the library section
+  const existingDesigns = t?.designs || [];
+  const designsHTML = existingDesigns.map((d,i) => `
+    <div class="tm-design-card" id="tmdc-${i}">
+      <button class="tm-design-card-del" onclick="tmRemoveDesign(${i})" title="Remove design">✕</button>
+      <img src="${d.url}" alt="${d.name}" onerror="this.style.opacity='.3'">
+      <div class="tm-design-card-name" title="${d.name}">${d.name}</div>
+    </div>`).join('');
+
   return `
     <div class="cm-fg cm-full"><label>Team Name *</label><input id="tm-name" value="${t?.name||''}" placeholder="e.g. Fairland Little League" oninput="autoSubdomain()"></div>
     <div class="cm-fg cm-full">
@@ -3599,17 +3631,13 @@ function teamFormHTML(t) {
       <div class="img-field-wrap">
         <div class="img-input-row">
           <input id="tm-logo" value="${t?.logo||''}" placeholder="Paste image URL or Canva share link..." oninput="previewImg('tm')">
-          <button class="btn-canva" onclick="importCanva('tm')" id="tm-canva-btn">
-            🎨 Import from Canva
-          </button>
+          <button class="btn-canva" onclick="importCanva('tm')" id="tm-canva-btn">🎨 Import from Canva</button>
           <label class="btn-upload-file" title="Upload from your device">
             📁 Upload
             <input id="tm-file-input" type="file" accept="image/*" onchange="handleImgFileChange('tm',this)">
           </label>
         </div>
-        <div class="canva-hint">
-          Paste a URL, import from Canva, or upload a PNG/JPG from your device.
-        </div>
+        <div class="canva-hint">Paste a URL, import from Canva, or upload a PNG/JPG from your device.</div>
         <div class="canva-status" id="tm-canva-status"></div>
         <div class="img-preview-wrap" id="tm-img-preview" style="${t?.logo ? 'display:block' : 'display:none'}">
           <img id="tm-img-preview-img" src="${t?.logo||''}" alt="Logo Preview" onerror="this.parentElement.style.display='none'">
@@ -3618,21 +3646,38 @@ function teamFormHTML(t) {
       </div>
     </div>
     <div class="cm-fg cm-full"><label>Description (shown on card)</label><textarea id="tm-desc" placeholder="Custom team apparel for the whole squad...">${t?.desc||''}</textarea></div>
-    <div class="cm-fg cm-full">
-      <label style="margin-bottom:10px;display:block;">📸 Gallery Photos <span style="font-weight:300;color:var(--up-mist);font-size:11px;letter-spacing:0;">(shown under this team's card on the storefront)</span></label>
-      <div id="tm-gallery-rows">${(t?.gallery||[]).map((g,i)=>`
-        <div class="tm-gallery-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-          <input value="${g.img||''}" placeholder="Image URL..." oninput="updateGalRow(${i},'img',this.value)"
-            style="flex:2;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
-          <input value="${g.caption||''}" placeholder="Caption (optional)" oninput="updateGalRow(${i},'caption',this.value)"
-            style="flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
-          <button onclick="removeGalRow(${i})" style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.2);color:var(--hs-red);padding:8px 12px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
-        </div>`).join('')}
-      </div>
-      <button onclick="addGalRow()" style="background:rgba(21,101,255,.12);border:1px solid rgba(21,101,255,.25);color:var(--up-sky);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;cursor:pointer;margin-top:4px;">+ Add Photo</button>
-    </div>
+
+    <!-- ══ DESIGNS LIBRARY ══ -->
     <div class="cm-fg cm-full" style="border-top:1px solid var(--up-border);padding-top:16px;margin-top:4px;">
-      <div class="tm-products-head">🛍 Products offered in this store — select all that apply</div>
+      <div class="tm-section-head">
+        <span>🎨 Designs Library — upload all graphics for this team store</span>
+        <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">Each design will appear as an option on every enabled product</span>
+      </div>
+      <!-- Add new design row -->
+      <div class="tm-design-add-row">
+        <input class="tm-design-name-input" id="tm-dnew-name" placeholder="Design name (e.g. Rampage Script 2026)" maxlength="60">
+        <input id="tm-dnew-url" placeholder="Paste image URL…" style="flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;" oninput="tmPreviewNewDesign(this.value)">
+        <label class="btn-upload-file" title="Upload from device">
+          📁 Upload
+          <input type="file" accept="image/*" onchange="tmUploadDesignFile(this)">
+        </label>
+        <button class="btn-save-up" onclick="tmAddDesign()" style="padding:7px 14px;font-size:11px;white-space:nowrap;">+ Add Design</button>
+      </div>
+      <div class="tm-design-upload-status" id="tm-dnew-status"></div>
+      <div id="tm-dnew-preview" style="display:none;margin-bottom:8px;">
+        <img id="tm-dnew-preview-img" src="" alt="preview" style="max-height:60px;max-width:160px;object-fit:contain;border:1px solid var(--up-border);">
+      </div>
+      <!-- Existing designs grid -->
+      <div class="tm-designs-grid" id="tm-designs-grid">
+        ${designsHTML || '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;grid-column:1/-1;">No designs added yet. Upload your first design above.</div>'}
+      </div>
+    </div>
+
+    <!-- ══ PRODUCTS ══ -->
+    <div class="cm-fg cm-full" style="border-top:1px solid var(--up-border);padding-top:16px;margin-top:4px;">
+      <div class="tm-section-head">
+        <span>🛍 Products — select what this store offers</span>
+      </div>
       <div class="tm-product-grid">${TM_PRODUCT_CATALOG.map(p => {
         const isOn = (t?.products||[]).some(ep => ep.type === p.type);
         return `<label class="tm-prod-check${isOn?' selected':''}" onclick="tmToggleProduct('${p.type}',this)">
@@ -3644,27 +3689,41 @@ function teamFormHTML(t) {
       <div id="tm-prod-details" style="margin-top:4px;">${TM_PRODUCT_CATALOG.map(p => {
         const ep = (t?.products||[]).find(x => x.type === p.type);
         const isOn = !!ep;
+        const existingColors = ep?.colors || [];
+        const existingSizes = ep?.sizes || ['S','M','L','XL','2XL'];
+        const ALL_SIZES = ['YXS','YS','YM','YL','YXL','XS','S','M','L','XL','2XL','3XL','4XL'];
+        const existingDesigns = t?.designs || [];
+        const designOptions = existingDesigns.length
+          ? existingDesigns.map(d => `<option value="${d.id}" ${ep?.designId===d.id?'selected':''}>${d.name}</option>`).join('')
+          : '<option value="">— Add designs in the library above —</option>';
+        const colorDots = Object.keys(COLOR_HEX_MAP).map(c =>
+          `<div class="tm-color-dot${existingColors.includes(c)?' selected':''}"
+            style="background:${COLOR_HEX_MAP[c]};${c==='White'||c==='Off White'||c==='Natural'?'border:1px solid #555;':''}"
+            title="${c}" data-color="${c}" data-prod="${p.type}"
+            onclick="tmToggleColor('${p.type}','${c}',this)"></div>`
+        ).join('');
+        const sizeChips = ALL_SIZES.map(s =>
+          `<span class="tm-size-chip${existingSizes.includes(s)?' selected':''}"
+            data-size="${s}" data-prod="${p.type}"
+            onclick="tmToggleSize('${p.type}','${s}',this)">${s}</span>`
+        ).join('');
         return `<div class="tm-prod-row" id="tm-prow-${p.type}" style="display:${isOn?'grid':'none'}">
           <div class="tm-prod-row-icon">${p.icon}</div>
           <div class="tm-prod-row-fields">
             <div class="tm-prod-row-name">${p.label}</div>
-            <input type="text" id="tm-pgname-${p.type}" value="${ep?.graphicName||''}"
-              placeholder="Graphic name (e.g. Rampage Front Chest 2026)"
-              style="border-color:rgba(167,139,250,.4);">
-            <div style="display:flex;gap:0;align-items:stretch;">
-              <input type="text" id="tm-pimg-${p.type}" value="${ep?.img||''}"
-                placeholder="Design image URL (Canva link or direct PNG)…"
-                oninput="tmPreviewDesign('${p.type}',this.value)"
-                style="flex:1;background:var(--up-card);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;transition:border-color .2s;">
-              <label class="btn-upload-file" style="border-left:none;padding:7px 10px;" title="Upload design from device">
-                📁
-                <input type="file" accept="image/*" onchange="(function(f){const r=new FileReader();r.onload=(e)=>{const inp=document.getElementById('tm-pimg-${p.type}');if(inp){inp.value=e.target.result;tmPreviewDesign('${p.type}',e.target.result);}};r.readAsDataURL(f.files[0]);f.value=''})(this)">
-              </label>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;margin-bottom:2px;">Assign Design</div>
+            <select class="tm-design-select" id="tm-pdesign-${p.type}" onchange="tmUpdateDesignPreview('${p.type}',this.value)">
+              <option value="">— Choose a design —</option>
+              ${designOptions}
+            </select>
+            <div id="tm-pdesign-prev-${p.type}" style="display:${ep?.designId?'block':'none'};margin-top:4px;">
+              <img src="${ep?.designId ? (t?.designs?.find(d=>d.id===ep.designId)?.url||'') : ''}"
+                style="max-height:50px;max-width:140px;object-fit:contain;border:1px solid var(--up-border);" onerror="this.parentElement.style.display='none'">
             </div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-mist);letter-spacing:1px;">Graphic name is shown on the print sheet sent to your DTF printer</div>
-            <div id="tm-pimg-prev-${p.type}" style="display:${ep?.img?'block':'none'};margin-top:4px;">
-              <img src="${ep?.img||''}" style="max-height:60px;max-width:180px;object-fit:contain;border:1px solid var(--up-border);" onerror="this.parentElement.style.display='none'">
-            </div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;margin-bottom:2px;margin-top:4px;">Available Colors</div>
+            <div class="tm-color-picker-wrap" id="tm-pcolors-${p.type}">${colorDots}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;margin-bottom:2px;margin-top:6px;">Available Sizes</div>
+            <div class="tm-sizes-wrap" id="tm-psizes-${p.type}">${sizeChips}</div>
           </div>
           <div class="tm-prod-row-price">
             <label>Price</label>
@@ -3672,7 +3731,33 @@ function teamFormHTML(t) {
           </div>
         </div>`;
       }).join('')}</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-mist);letter-spacing:1px;margin-top:8px;">Check a product to include it. Upload a design image for each one so customers can see what they're ordering.</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-mist);letter-spacing:1px;margin-top:8px;">Check a product, assign a design, pick colors and sizes, and set a price.</div>
+    </div>
+
+    <!-- ══ GALLERY ══ -->
+    <div class="cm-fg cm-full" style="border-top:1px solid var(--up-border);padding-top:16px;margin-top:4px;">
+      <div class="tm-section-head">
+        <span>📸 Gallery Photos <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">(finished order photos shown on the storefront)</span></span>
+      </div>
+      <div class="tm-gal-upload-row">
+        <input id="tm-gnew-caption" placeholder="Caption (optional)" style="flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;">
+        <input id="tm-gnew-url" placeholder="Paste image URL…" style="flex:2;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;">
+        <label class="btn-upload-file" title="Upload from device">
+          📁 Upload
+          <input type="file" accept="image/*" onchange="tmUploadGalleryFile(this)">
+        </label>
+        <button class="btn-save-up" onclick="tmAddGalleryPhoto()" style="padding:7px 14px;font-size:11px;white-space:nowrap;">+ Add Photo</button>
+      </div>
+      <div class="tm-gal-upload-status" id="tm-gnew-status"></div>
+      <div id="tm-gallery-rows">${(t?.gallery||[]).map((g,i)=>`
+        <div class="tm-gallery-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+          <img src="${g.img}" style="width:48px;height:48px;object-fit:cover;border:1px solid var(--up-border);flex-shrink:0;" onerror="this.style.display='none'">
+          <input value="${g.caption||''}" placeholder="Caption (optional)" oninput="updateGalRow(${i},'caption',this.value)"
+            style="flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
+          <div style="font-size:10px;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;flex:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.img}</div>
+          <button onclick="removeGalRow(${i})" style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.2);color:var(--hs-red);padding:8px 12px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
+        </div>`).join('')}
+      </div>
     </div>`;
 }
 
@@ -3695,12 +3780,166 @@ function refreshGalRows() {
   if (!wrap) return;
   wrap.innerHTML = tmGalleryRows.map((g,i)=>`
     <div class="tm-gallery-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-      <input value="${g.img||''}" placeholder="Image URL..." oninput="updateGalRow(${i},'img',this.value)"
-        style="flex:2;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
+      <img src="${g.img}" style="width:48px;height:48px;object-fit:cover;border:1px solid var(--up-border);flex-shrink:0;" onerror="this.style.display='none'">
       <input value="${g.caption||''}" placeholder="Caption (optional)" oninput="updateGalRow(${i},'caption',this.value)"
         style="flex:1;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;">
+      <div style="font-size:10px;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;flex:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.img}</div>
       <button onclick="removeGalRow(${i})" style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.2);color:var(--hs-red);padding:8px 12px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
     </div>`).join('');
+}
+
+// ── Add gallery photo (URL or post-upload) ──
+function tmAddGalleryPhoto() {
+  const url     = document.getElementById('tm-gnew-url')?.value.trim();
+  const caption = document.getElementById('tm-gnew-caption')?.value.trim() || '';
+  if (!url) { showToast('Paste a URL or upload a photo first'); return; }
+  tmGalleryRows.push({ img: url, caption });
+  refreshGalRows();
+  document.getElementById('tm-gnew-url').value = '';
+  document.getElementById('tm-gnew-caption').value = '';
+  document.getElementById('tm-gnew-status').textContent = '';
+}
+
+// ── Upload gallery photo to Cloudflare Images ──
+async function tmUploadGalleryFile(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('tm-gnew-status');
+  statusEl.textContent = 'Uploading…';
+  statusEl.className = 'tm-gal-upload-status loading';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('filename', file.name);
+    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
+    document.getElementById('tm-gnew-url').value = data.url;
+    statusEl.textContent = `✓ Uploaded: ${file.name}`;
+    statusEl.className = 'tm-gal-upload-status ok';
+  } catch(e) {
+    statusEl.textContent = `⚠ ${e.message}`;
+    statusEl.className = 'tm-gal-upload-status err';
+  }
+  fileInput.value = '';
+}
+
+// ── Designs library state (lives in the open form session) ──
+let tmDesigns = []; // { id, name, url }
+
+function initDesigns(existing) {
+  tmDesigns = existing ? existing.map(d => ({...d})) : [];
+}
+
+function renderDesignsGrid() {
+  const grid = document.getElementById('tm-designs-grid');
+  if (!grid) return;
+  if (!tmDesigns.length) {
+    grid.innerHTML = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;grid-column:1/-1;">No designs added yet. Upload your first design above.</div>';
+    return;
+  }
+  grid.innerHTML = tmDesigns.map((d,i) => `
+    <div class="tm-design-card">
+      <button class="tm-design-card-del" onclick="tmRemoveDesign(${i})" title="Remove design">✕</button>
+      <img src="${d.url}" alt="${d.name}" onerror="this.style.opacity='.3'">
+      <div class="tm-design-card-name" title="${d.name}">${d.name}</div>
+    </div>`).join('');
+  // Refresh all product design dropdowns
+  refreshDesignDropdowns();
+}
+
+function refreshDesignDropdowns() {
+  TM_PRODUCT_CATALOG.forEach(p => {
+    const sel = document.getElementById('tm-pdesign-' + p.type);
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Choose a design —</option>' +
+      tmDesigns.map(d => `<option value="${d.id}" ${d.id===current?'selected':''}>${d.name}</option>`).join('');
+  });
+}
+
+function tmRemoveDesign(i) {
+  const removed = tmDesigns[i];
+  tmDesigns.splice(i, 1);
+  renderDesignsGrid();
+  // Clear any product assignments pointing to removed design
+  TM_PRODUCT_CATALOG.forEach(p => {
+    const sel = document.getElementById('tm-pdesign-' + p.type);
+    if (sel && sel.value === removed?.id) { sel.value = ''; tmUpdateDesignPreview(p.type, ''); }
+  });
+}
+
+function tmPreviewNewDesign(url) {
+  const wrap = document.getElementById('tm-dnew-preview');
+  const img  = document.getElementById('tm-dnew-preview-img');
+  if (!wrap || !img) return;
+  if (url) { img.src = url; wrap.style.display = 'block'; }
+  else wrap.style.display = 'none';
+}
+
+async function tmUploadDesignFile(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('tm-dnew-status');
+  statusEl.textContent = 'Uploading to Cloudflare Images…';
+  statusEl.className = 'tm-design-upload-status loading';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('filename', file.name);
+    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
+    document.getElementById('tm-dnew-url').value = data.url;
+    tmPreviewNewDesign(data.url);
+    statusEl.textContent = `✓ "${file.name}" ready — enter a name and click Add Design`;
+    statusEl.className = 'tm-design-upload-status ok';
+  } catch(e) {
+    statusEl.textContent = `⚠ ${e.message}`;
+    statusEl.className = 'tm-design-upload-status err';
+  }
+  fileInput.value = '';
+}
+
+function tmAddDesign() {
+  const nameInput = document.getElementById('tm-dnew-name');
+  const urlInput  = document.getElementById('tm-dnew-url');
+  const statusEl  = document.getElementById('tm-dnew-status');
+  const name = nameInput?.value.trim();
+  const url  = urlInput?.value.trim();
+  if (!name) { showToast('Enter a design name first'); return; }
+  if (!url)  { showToast('Upload or paste a design image URL first'); return; }
+  tmDesigns.push({ id: 'design-' + Date.now(), name, url });
+  renderDesignsGrid();
+  nameInput.value = '';
+  urlInput.value  = '';
+  document.getElementById('tm-dnew-preview').style.display = 'none';
+  statusEl.textContent = `✓ "${name}" added to the library`;
+  statusEl.className   = 'tm-design-upload-status ok';
+}
+
+// ── Color toggle per product ──
+function tmToggleColor(prodType, colorName, dotEl) {
+  dotEl.classList.toggle('selected');
+}
+
+// ── Size toggle per product ──
+function tmToggleSize(prodType, size, chipEl) {
+  chipEl.classList.toggle('selected');
+}
+
+// ── Design assign preview ──
+function tmUpdateDesignPreview(prodType, designId) {
+  const wrap = document.getElementById('tm-pdesign-prev-' + prodType);
+  if (!wrap) return;
+  const design = tmDesigns.find(d => d.id === designId);
+  if (design) {
+    wrap.style.display = 'block';
+    const img = wrap.querySelector('img');
+    if (img) img.src = design.url;
+  } else {
+    wrap.style.display = 'none';
+  }
 }
 
 function tmToggleProduct(type, labelEl) {
@@ -3711,16 +3950,16 @@ function tmToggleProduct(type, labelEl) {
   const row = document.getElementById('tm-prow-' + type);
   if (row) row.style.display = isNowOn ? 'grid' : 'none';
 }
+
 function tmPreviewDesign(type, url) {
   const wrap = document.getElementById('tm-pimg-prev-' + type);
   if (!wrap) return;
   const img = wrap.querySelector('img');
-  if (!url) { wrap.style.display = 'none'; return; }
-  wrap.style.display = 'block';
-  if (img) { img.src = url; img.onerror = () => { wrap.style.display = 'none'; }; }
+  if (url) { if(img) img.src = url; wrap.style.display = 'block'; }
+  else wrap.style.display = 'none';
 }
 
-var cmTeamEditIdx = -1;
+let cmTeamEditIdx = -1;
 function openCMTeamAdd() {
   cmTeamEditIdx = -1;
   document.getElementById("cmModalInner").innerHTML = `
@@ -3738,6 +3977,7 @@ function openCMTeamAdd() {
   a11yOpenTrap(document.getElementById("cmModal"));
   syncColorPicker();
   initGalRows([]);
+  initDesigns([]);
 }
 
 function openCMTeamEdit(idx) {
@@ -3758,6 +3998,7 @@ function openCMTeamEdit(idx) {
   a11yOpenTrap(document.getElementById("cmModal"));
   syncColorPicker();
   initGalRows(teams[idx]?.gallery || []);
+  initDesigns(teams[idx]?.designs || []);
 }
 
 function closeCMModal() {
@@ -3830,31 +4071,44 @@ function saveCMTeam() {
       const cb = document.querySelector(`.tm-prod-check input[data-type="${p.type}"]`);
       return cb && cb.checked;
     })
-    .map(p => ({
-      type:       p.type,
-      label:      p.label,
-      icon:       p.icon,
-      graphicName: document.getElementById('tm-pgname-' + p.type)?.value.trim() || '',
-      img:        document.getElementById('tm-pimg-' + p.type)?.value.trim() || '',
-      price:      document.getElementById('tm-pprice-' + p.type)?.value.trim() || p.defaultPrice,
-    }));
+    .map(p => {
+      // Collect selected colors
+      const colorDots = document.querySelectorAll(`.tm-color-dot[data-prod="${p.type}"].selected`);
+      const colors = Array.from(colorDots).map(d => d.dataset.color);
+      // Collect selected sizes
+      const sizeChips = document.querySelectorAll(`.tm-size-chip[data-prod="${p.type}"].selected`);
+      const sizes = Array.from(sizeChips).map(s => s.dataset.size);
+      // Collect assigned design
+      const designSel = document.getElementById('tm-pdesign-' + p.type);
+      const designId  = designSel?.value || '';
+      const design    = tmDesigns.find(d => d.id === designId) || null;
+      return {
+        type:     p.type,
+        label:    p.label,
+        icon:     p.icon,
+        designId: designId,
+        designName: design?.name || '',
+        designUrl:  design?.url  || '',
+        colors:   colors.length ? colors : Object.keys(COLOR_HEX_MAP).slice(0,5),
+        sizes:    sizes.length  ? sizes  : ['S','M','L','XL','2XL'],
+        price:    document.getElementById('tm-pprice-' + p.type)?.value.trim() || p.defaultPrice,
+      };
+    });
 
   const team = {
     name,
     subdomain: sub,
-    color: document.getElementById("tm-color")?.value || '#1565ff',
+    color:  document.getElementById("tm-color")?.value || '#1565ff',
     color2: document.getElementById("tm-color2-hex")?.value.trim() || '',
-    logo:  document.getElementById("tm-logo")?.value.trim() || '',
-    desc:  document.getElementById("tm-desc")?.value.trim() || '',
+    logo:   document.getElementById("tm-logo")?.value.trim() || '',
+    desc:   document.getElementById("tm-desc")?.value.trim() || '',
+    designs: tmDesigns,
     gallery: tmGalleryRows.filter(g => g.img.trim()),
     products,
   };
 
   const isNew = cmTeamEditIdx === -1;
-  // Preserve the existing key so visibility/access settings survive edits
-  if (!isNew && teams[cmTeamEditIdx]?.key) {
-    team.key = teams[cmTeamEditIdx].key;
-  }
+  if (!isNew && teams[cmTeamEditIdx]?.key) team.key = teams[cmTeamEditIdx].key;
 
   if (!isNew) teams[cmTeamEditIdx] = team;
   else teams.push(team);
@@ -3866,10 +4120,7 @@ function saveCMTeam() {
     ? `"${name}" added with ${pCount} product${pCount!==1?'s':''}!`
     : `"${name}" updated — ${pCount} product${pCount!==1?'s':''}!`);
 
-  // Auto-register new team store in the production board
-  if (isNew) {
-    registerTeamInProduction(team);
-  }
+  if (isNew) { registerTeamInProduction(team); }
 }
 
 function registerTeamInProduction(team) {
