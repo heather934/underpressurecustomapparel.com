@@ -3513,14 +3513,27 @@ function slugify(name) {
 // ── CM TEAM ADMIN (renders inside content manager) ──
 // ── Master product catalog — Erin picks from these when building a team store ──
 const TM_PRODUCT_CATALOG = [
-  { type:'tee',        icon:'👕', label:'Short Sleeve Tee',     defaultPrice:'$18–$22' },
-  { type:'longsleeve', icon:'👕', label:'Long Sleeve Tee',      defaultPrice:'$22–$26' },
-  { type:'hoodie',     icon:'🧥', label:'Hoodie',               defaultPrice:'$30–$36' },
-  { type:'crewneck',   icon:'🧥', label:'Crew Neck Sweatshirt', defaultPrice:'$28–$34' },
-  { type:'dryfit',     icon:'⚡', label:'Dry-Fit Performance',  defaultPrice:'$22–$28' },
-  { type:'jacket',     icon:'🧤', label:'Batting Jacket',       defaultPrice:'$38–$48' },
-  { type:'hat',        icon:'🧢', label:'Hat / Cap',            defaultPrice:'$22–$28' },
-  { type:'bag',        icon:'🎒', label:'Bag / Backpack',       defaultPrice:'$28–$36' },
+  // ── Tops ──────────────────────────────────────────
+  { type:'tee',         icon:'👕', label:'Short Sleeve Tee',      category:'tops',    defaultPrice:'$18–$22' },
+  { type:'vneckt',      icon:'👕', label:'V-Neck T-Shirt',        category:'tops',    defaultPrice:'$18–$22' },
+  { type:'longsleeve',  icon:'👕', label:'Long Sleeve Tee',       category:'tops',    defaultPrice:'$22–$26' },
+  { type:'jersey',      icon:'🏃', label:'Jersey',                category:'tops',    defaultPrice:'$24–$30', placeholder:true },
+  { type:'jacket',      icon:'🧤', label:'Batting Jacket',        category:'tops',    defaultPrice:'$38–$48', placeholder:true },
+  // ── Fleece ────────────────────────────────────────
+  { type:'hoodie',      icon:'🧥', label:'Hoodie',                category:'fleece',  defaultPrice:'$30–$36' },
+  { type:'crewneck',    icon:'🧥', label:'Crew Neck Sweatshirt',  category:'fleece',  defaultPrice:'$28–$34' },
+  // ── Tanks ─────────────────────────────────────────
+  { type:'racerback',   icon:'👙', label:'Racerback Tank',        category:'tanks',   defaultPrice:'$18–$24' },
+  { type:'festival',    icon:'👙', label:'Festival Tank',         category:'tanks',   defaultPrice:'$18–$24' },
+  { type:'relaxed',     icon:'👙', label:'Relaxed Jersey Tank',   category:'tanks',   defaultPrice:'$18–$24' },
+  // ── Bottoms ───────────────────────────────────────
+  { type:'joggers',     icon:'👖', label:'Joggers',               category:'bottoms', defaultPrice:'$28–$36' },
+  { type:'sweatpants',  icon:'👖', label:'Sweatpants',            category:'bottoms', defaultPrice:'$28–$36' },
+  { type:'mensshorts',  icon:'🩳', label:"Men's Shorts",          category:'bottoms', defaultPrice:'$22–$28' },
+  { type:'womensshorts',icon:'🩳', label:"Women's Shorts",        category:'bottoms', defaultPrice:'$22–$28' },
+  // ── Extras ────────────────────────────────────────
+  { type:'hat',         icon:'🧢', label:'Hat / Cap',             category:'extras',  defaultPrice:'$22–$28', placeholder:true },
+  { type:'bag',         icon:'🎒', label:'Bag / Backpack',        category:'extras',  defaultPrice:'$28–$36', placeholder:true },
 ];
 
 function renderTeamAdmin() {
