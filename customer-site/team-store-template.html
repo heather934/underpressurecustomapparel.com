@@ -344,7 +344,7 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
       Powered by Under Pressure Custom Apparel
     </div>
     <div class="header-right">
-      <a href="tel:3046336401" class="btn-call">📞 (304) 633-6401</a>
+      <a href="mailto:erin@underpressurecustomapparel.com" class="btn-call">✉️ Contact Us</a>
       <button class="cart-btn" onclick="openCart()">
         🛒 Cart <span class="cart-count" id="cartCount">0</span>
       </button>
@@ -362,7 +362,7 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
       <p class="hero-sub">Official custom gear for every Rampage player, coach, and fan. Batting jackets, tees, dry-fits, hoodies, hats and more — all sizes from toddler to 5XL.</p>
       <div class="hero-btns">
         <a href="#products" class="btn-primary">Shop All Products</a>
-        <a href="tel:3046336401" class="btn-outline">📞 Call to Order</a>
+        <a href="mailto:erin@underpressurecustomapparel.com" class="btn-outline">✉️ Contact Us</a>
       </div>
     </div>
     <div class="hero-stats">
@@ -409,8 +409,8 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
 
 <!-- CTA -->
 <div class="cta-band">
-  <div><h2>QUESTIONS? CALL US.</h2><p>Under Pressure Custom Apparel is here to help with sizing, colors, and bulk orders.</p></div>
-  <a href="tel:3046336401" class="btn-dark">📞 (304) 633-6401</a>
+  <div><h2>QUESTIONS? EMAIL US.</h2><p>Under Pressure Custom Apparel is here to help with sizing, colors, and bulk orders.</p></div>
+  <a href="mailto:erin@underpressurecustomapparel.com" class="btn-dark">✉️ erin@underpressurecustomapparel.com</a>
 </div>
 
 <footer>
@@ -418,7 +418,7 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
     <strong style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--mist);">Under Pressure Custom Apparel</strong>
   </a>
   <div class="ft-links">
-    <a href="tel:3046336401">📞 (304) 633-6401</a>
+    <a href="mailto:erin@underpressurecustomapparel.com">✉️ erin@underpressurecustomapparel.com</a>
   <a href="https://underpressureapparel.com" target="_blank">Main Store</a>
     
   </div>
@@ -799,7 +799,7 @@ function renderPayPal(total) {
       logToProduction(details);
       cart=[]; updateCartUI(); showOrderSuccess(details);
     }),
-    onError:() => showToast("Payment error — please try again or call (304) 633-6401")
+    onError:() => showToast("Payment error — please try again or email erin@underpressurecustomapparel.com")
   }).render("#paypal-container");
 }
 
@@ -843,7 +843,7 @@ function showOrderSuccess(details) {
     <div class="success-screen">
       <div class="suc-icon">🎉</div>
       <div class="suc-title">WELCOME TO THE JUNGLE!</div>
-      <div class="suc-text">Thank you, ${customerInfo.first}! Your order ID is <strong>${details.id||"N/A"}</strong>.<br><br>Your custom Rampage gear will be ready in 7–10 business days.<br>Confirmation sent to <strong>${customerInfo.email}</strong>.<br><br>Questions? Call <strong>(304) 633-6401</strong></div>
+      <div class="suc-text">Thank you, ${customerInfo.first}! Your order ID is <strong>${details.id||"N/A"}</strong>.<br><br>Your custom Rampage gear will be ready in 7–10 business days.<br>Confirmation sent to <strong>${customerInfo.email}</strong>.<br><br>Questions? Email <strong>erin@underpressurecustomapparel.com</strong></div>
       <button class="btn-suc" onclick="closeCheckout()">Continue Shopping</button>
     </div>`;
 }
