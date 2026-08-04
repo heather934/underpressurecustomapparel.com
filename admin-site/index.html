@@ -3713,7 +3713,7 @@ function teamFormHTML(t) {
       </div>
       <div class="tm-product-grid">${TM_PRODUCT_CATALOG.map(p => {
         const isOn = (t?.products||[]).some(ep => ep.type === p.type);
-        return `<label class="tm-prod-check${isOn?' selected':''}" onclick="tmToggleProduct('${p.type}',this)">
+        return `<label class="tm-prod-check${isOn?' selected':''}" onclick="event.preventDefault();tmToggleProduct('${p.type}',this)">
           <input type="checkbox" ${isOn?'checked':''} data-type="${p.type}">
           <div class="tm-prod-check-icon">${p.icon}</div>
           <div class="tm-prod-check-label">${p.label}</div>
