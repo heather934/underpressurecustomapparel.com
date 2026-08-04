@@ -2011,6 +2011,46 @@ nav { position: relative; }
 .tm-design-select:focus{border-color:var(--up-sky);}
 .tm-gal-upload-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
 .tm-gal-upload-status{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);}
+
+/* ── PRODUCT INSTANCE BUILDER ── */
+.tm-inst-builder{background:var(--up-navy);border:1px solid var(--up-border);padding:16px;margin-bottom:8px;}
+.tm-inst-builder-head{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-sky);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.tm-inst-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.tm-inst-field{display:flex;flex-direction:column;gap:4px;}
+.tm-inst-field.full{grid-column:1/-1;}
+.tm-inst-field label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;}
+.tm-inst-field input,.tm-inst-field select{background:var(--up-card);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;width:100%;transition:border-color .2s;}
+.tm-inst-field input:focus,.tm-inst-field select:focus{border-color:var(--up-sky);}
+.tm-inst-field select{cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;}
+
+/* ── DRAG POSITIONER ── */
+.tm-positioner-wrap{grid-column:1/-1;display:flex;gap:16px;align-items:flex-start;}
+.tm-positioner{position:relative;width:220px;height:220px;flex-shrink:0;background:#f0f0f0;overflow:hidden;cursor:crosshair;border:1px solid var(--up-border);}
+.tm-positioner-mockup{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;}
+.tm-positioner-tint{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;mask-size:contain;mask-repeat:no-repeat;mask-position:center;-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;}
+.tm-positioner-design{position:absolute;cursor:grab;user-select:none;transform:translate(-50%,-50%);}
+.tm-positioner-design:active{cursor:grabbing;}
+.tm-positioner-design img{width:100%;height:auto;display:block;pointer-events:none;}
+.tm-positioner-controls{flex:1;display:flex;flex-direction:column;gap:10px;}
+.tm-positioner-hint{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:var(--up-mist);line-height:1.5;}
+.tm-size-slider-row{display:flex;flex-direction:column;gap:4px;}
+.tm-size-slider-row label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;}
+.tm-size-slider-row input[type=range]{width:100%;accent-color:var(--accent);}
+.tm-placement-toggle{display:flex;gap:4px;}
+.tm-placement-btn{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:6px 14px;border:1px solid var(--up-border);background:var(--up-card);color:var(--up-mist);cursor:pointer;transition:all .15s;}
+.tm-placement-btn.active{background:rgba(21,101,255,.15);border-color:var(--up-blue);color:var(--up-sky);}
+
+/* ── INSTANCE LIST ── */
+.tm-inst-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.tm-inst-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--up-navy);border:1px solid var(--up-border);}
+.tm-inst-card-thumb{width:40px;height:40px;object-fit:contain;background:#f0f0f0;flex-shrink:0;}
+.tm-inst-card-info{flex:1;min-width:0;}
+.tm-inst-card-name{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:var(--up-white);text-transform:uppercase;}
+.tm-inst-card-meta{font-size:11px;color:var(--up-mist);margin-top:2px;}
+.tm-inst-card-del{background:none;border:1px solid rgba(200,16,46,.3);color:var(--hs-red);width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.tm-inst-card-del:hover{background:rgba(200,16,46,.1);}
+.tm-add-inst-btn{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:rgba(21,101,255,.1);border:1px solid rgba(21,101,255,.25);color:var(--up-sky);padding:10px 16px;cursor:pointer;width:100%;transition:all .2s;}
+.tm-add-inst-btn:hover{background:rgba(21,101,255,.2);border-color:var(--up-blue);}
 .cm-modal-head{padding:22px 26px 18px;border-bottom:1px solid var(--up-border);display:flex;align-items:center;justify-content:space-between;}
 .cm-modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--up-white);}
 .cm-close-sm{background:none;border:1px solid var(--up-border);color:var(--up-mist);width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
@@ -3709,62 +3749,104 @@ function teamFormHTML(t) {
     <!-- ══ PRODUCTS ══ -->
     <div class="cm-fg cm-full" style="border-top:1px solid var(--up-border);padding-top:16px;margin-top:4px;">
       <div class="tm-section-head">
-        <span>🛍 Products — select what this store offers</span>
+        <span>🛍 Products — build what this store offers</span>
+        <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">Add as many products as needed — same type with different designs is fine</span>
       </div>
-      <div class="tm-product-grid">${TM_PRODUCT_CATALOG.map(p => {
-        const isOn = (t?.products||[]).some(ep => ep.type === p.type);
-        return `<label class="tm-prod-check${isOn?' selected':''}" onclick="event.preventDefault();tmToggleProduct('${p.type}',this)">
-          <input type="checkbox" ${isOn?'checked':''} data-type="${p.type}">
-          <div class="tm-prod-check-icon">${p.icon}</div>
-          <div class="tm-prod-check-label">${p.label}</div>
-        </label>`;
-      }).join('')}</div>
-      <div id="tm-prod-details" style="margin-top:4px;">${TM_PRODUCT_CATALOG.map(p => {
-        const ep = (t?.products||[]).find(x => x.type === p.type);
-        const isOn = !!ep;
-        const existingColors = ep?.colors || [];
-        const existingSizes = ep?.sizes || ['S','M','L','XL','2XL'];
-        const ALL_SIZES = ['YXS','YS','YM','YL','YXL','XS','S','M','L','XL','2XL','3XL','4XL'];
-        const existingDesigns = t?.designs || [];
-        const designOptions = existingDesigns.length
-          ? existingDesigns.map(d => `<option value="${d.id}" ${ep?.designId===d.id?'selected':''}>${d.name}</option>`).join('')
-          : '<option value="">— Add designs in the library above —</option>';
-        const colorDots = Object.keys(COLOR_HEX_MAP).map(c =>
-          `<div class="tm-color-dot${existingColors.includes(c)?' selected':''}"
-            style="background:${COLOR_HEX_MAP[c]};${c==='White'||c==='Off White'||c==='Natural'?'border:1px solid #555;':''}"
-            title="${c}" data-color="${c}" data-prod="${p.type}"
-            onclick="tmToggleColor('${p.type}','${c}',this)"></div>`
-        ).join('');
-        const sizeChips = ALL_SIZES.map(s =>
-          `<span class="tm-size-chip${existingSizes.includes(s)?' selected':''}"
-            data-size="${s}" data-prod="${p.type}"
-            onclick="tmToggleSize('${p.type}','${s}',this)">${s}</span>`
-        ).join('');
-        return `<div class="tm-prod-row" id="tm-prow-${p.type}" style="display:${isOn?'grid':'none'}">
-          <div class="tm-prod-row-icon">${p.icon}</div>
-          <div class="tm-prod-row-fields">
-            <div class="tm-prod-row-name">${p.label}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;margin-bottom:2px;">Assign Design</div>
-            <select class="tm-design-select" id="tm-pdesign-${p.type}" onchange="tmUpdateDesignPreview('${p.type}',this.value)">
-              <option value="">— Choose a design —</option>
-              ${designOptions}
+
+      <!-- Existing product instances -->
+      <div class="tm-inst-list" id="tm-inst-list"></div>
+
+      <!-- Add new instance form -->
+      <div class="tm-inst-builder" id="tm-inst-builder">
+        <div class="tm-inst-builder-head">
+          <span>➕ Add a Product</span>
+          <span id="tm-inst-builder-count" style="color:var(--up-mist);"></span>
+        </div>
+        <div class="tm-inst-grid">
+          <div class="tm-inst-field full">
+            <label>Product Name (shown to customer)</label>
+            <input id="tm-inew-name" placeholder="e.g. Rampage Script Tee" maxlength="60">
+          </div>
+          <div class="tm-inst-field">
+            <label>Product Type</label>
+            <select id="tm-inew-type" onchange="tmInstTypeChanged()">
+              <option value="">— Choose type —</option>
+              ${TM_PRODUCT_CATALOG.map(p => `<option value="${p.type}">${p.icon} ${p.label}</option>`).join('')}
             </select>
-            <div id="tm-pdesign-prev-${p.type}" style="display:${ep?.designId?'block':'none'};margin-top:4px;">
-              <img src="${ep?.designId ? (t?.designs?.find(d=>d.id===ep.designId)?.url||'') : ''}"
-                style="max-height:50px;max-width:140px;object-fit:contain;border:1px solid var(--up-border);" onerror="this.parentElement.style.display='none'">
-            </div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;margin-bottom:2px;margin-top:4px;">Available Colors</div>
-            <div class="tm-color-picker-wrap" id="tm-pcolors-${p.type}">${colorDots}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;margin-bottom:2px;margin-top:6px;">Available Sizes</div>
-            <div class="tm-sizes-wrap" id="tm-psizes-${p.type}">${sizeChips}</div>
           </div>
-          <div class="tm-prod-row-price">
+          <div class="tm-inst-field">
             <label>Price</label>
-            <input type="text" id="tm-pprice-${p.type}" value="${ep?.price||p.defaultPrice}" placeholder="${p.defaultPrice}">
+            <input id="tm-inew-price" placeholder="e.g. $25">
           </div>
-        </div>`;
-      }).join('')}</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-mist);letter-spacing:1px;margin-top:8px;">Check a product, assign a design, pick colors and sizes, and set a price.</div>
+          <div class="tm-inst-field">
+            <label>Design</label>
+            <select id="tm-inew-design" onchange="tmInstDesignChanged()">
+              <option value="">— Choose design —</option>
+              ${(t?.designs||[]).map(d => `<option value="${d.id}" data-url="${d.url}">${d.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="tm-inst-field">
+            <label>Design Placement</label>
+            <div class="tm-placement-toggle" id="tm-inew-placement-toggle">
+              <button class="tm-placement-btn active" data-view="front" onclick="tmInstSetPlacement('front',this)">Front</button>
+              <button class="tm-placement-btn" data-view="back" onclick="tmInstSetPlacement('back',this)">Back</button>
+              <button class="tm-placement-btn" data-view="side" onclick="tmInstSetPlacement('side',this)">Side</button>
+            </div>
+          </div>
+
+          <!-- DRAG POSITIONER -->
+          <div class="tm-positioner-wrap" id="tm-positioner-wrap" style="display:none;">
+            <div class="tm-positioner" id="tm-positioner">
+              <img class="tm-positioner-mockup" id="tm-pos-mockup" src="" alt="mockup">
+              <div class="tm-positioner-tint" id="tm-pos-tint"></div>
+              <div class="tm-positioner-design" id="tm-pos-design" style="left:50%;top:40%;width:35%;">
+                <img id="tm-pos-design-img" src="" alt="design">
+              </div>
+            </div>
+            <div class="tm-positioner-controls">
+              <div class="tm-positioner-hint">
+                🖱 <strong>Drag</strong> the design to position it<br>
+                ↔ <strong>Resize</strong> with the slider below<br>
+                The customer sees exactly this
+              </div>
+              <div class="tm-size-slider-row">
+                <label>Design Size — <span id="tm-pos-size-label">35%</span></label>
+                <input type="range" id="tm-pos-size-slider" min="5" max="80" value="35"
+                  oninput="tmInstResizeDesign(this.value)">
+              </div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:var(--up-mist);">
+                Position: <span id="tm-pos-coords" style="color:var(--up-sky);">left 50%, top 40%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLORS -->
+          <div class="tm-inst-field full" id="tm-inew-colors-wrap" style="display:none;">
+            <label>Available Colors</label>
+            <div class="tm-color-picker-wrap" id="tm-inew-colors">
+              ${Object.keys(COLOR_HEX_MAP).map(c =>
+                `<div class="tm-color-dot"
+                  style="background:${COLOR_HEX_MAP[c]};${c==='White'||c==='Off White'||c==='Natural'?'border:1px solid #555;':''}"
+                  title="${c}" data-color="${c}"
+                  onclick="this.classList.toggle('selected')"></div>`
+              ).join('')}
+            </div>
+          </div>
+
+          <!-- SIZES -->
+          <div class="tm-inst-field full" id="tm-inew-sizes-wrap" style="display:none;">
+            <label>Available Sizes</label>
+            <div class="tm-sizes-wrap" id="tm-inew-sizes">
+              ${['YXS','YS','YM','YL','YXL','XS','S','M','L','XL','2XL','3XL','4XL'].map(s =>
+                `<span class="tm-size-chip${['S','M','L','XL','2XL'].includes(s)?' selected':''}"
+                  data-size="${s}" onclick="this.classList.toggle('selected')">${s}</span>`
+              ).join('')}
+            </div>
+          </div>
+
+        </div>
+        <button class="tm-add-inst-btn" onclick="tmAddProductInstance()">+ Add This Product to Store</button>
+      </div>
     </div>
 
     <!-- ══ GALLERY ══ -->
@@ -3975,6 +4057,270 @@ function tmUpdateDesignPreview(prodType, designId) {
   }
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  PRODUCT INSTANCE BUILDER
+// ══════════════════════════════════════════════════════════════════
+
+// Mockup URLs mirrored from customer site
+const MOCKUP_VIEWS = {
+  tee:         { front:'/products/crew-neck-t-front.png',      back:'/products/crew-neck-t-back.png' },
+  vneckt:      { front:'/products/vneck-t-front.png',          back:'/products/vneck-t-back.png' },
+  longsleeve:  { front:'/products/crew-neck-ls-front.png',     back:'/products/crew-neck-ls-back.png' },
+  hoodie:      { front:'/products/hoodie-front.png',           back:'/products/hoodie-back.png' },
+  crewneck:    { front:'/products/crew-neck-sw-front.png',     back:'/products/crew-neck-sw-back.png' },
+  racerback:   { front:'/products/racerback-front.png',        back:'/products/racerback-back.png' },
+  festival:    { front:'/products/festival-front.png',         back:'/products/festival-back.png' },
+  relaxed:     { front:'/products/relaxed-jersey-front.png',   back:'/products/relaxed-jersey-back.png' },
+  joggers:     { front:'/products/joggers-front.png',          side:'/products/joggers-side.png' },
+  sweatpants:  { front:'/products/sweatpants-front.png',       side:'/products/sweatpants-side.png' },
+  mensshorts:  { front:'/products/mens-shorts-front.png',      side:'/products/mens-shorts-side.png' },
+  womensshorts:{ front:'/products/womens-shorts.png' },
+};
+const CUSTOMER_ORIGIN = 'https://underpressurecustomapparel.com';
+
+let tmProductInstances = []; // saved instances
+let tmInstPlacement = 'front';
+let tmInstDesignLeft = 50;
+let tmInstDesignTop  = 40;
+let tmInstDesignWidth = 35;
+
+function initProductInstances(existing) {
+  tmProductInstances = existing ? existing.map(p => ({...p})) : [];
+  renderInstList();
+}
+
+function renderInstList() {
+  const list = document.getElementById('tm-inst-list');
+  if (!list) return;
+  if (!tmProductInstances.length) {
+    list.innerHTML = '<div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;padding:8px 0;">No products added yet.</div>';
+    return;
+  }
+  list.innerHTML = tmProductInstances.map((inst, i) => {
+    const mockupSrc = inst.type && MOCKUP_VIEWS[inst.type]
+      ? CUSTOMER_ORIGIN + (MOCKUP_VIEWS[inst.type][inst.placement] || MOCKUP_VIEWS[inst.type].front || Object.values(MOCKUP_VIEWS[inst.type])[0])
+      : '';
+    return `<div class="tm-inst-card">
+      ${mockupSrc ? `<img class="tm-inst-card-thumb" src="${mockupSrc}" alt="${inst.label}" onerror="this.style.display='none'">` : `<div style="width:40px;height:40px;background:var(--up-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">${TM_PRODUCT_CATALOG.find(p=>p.type===inst.type)?.icon||'👕'}</div>`}
+      <div class="tm-inst-card-info">
+        <div class="tm-inst-card-name">${inst.label||inst.type}</div>
+        <div class="tm-inst-card-meta">${inst.designName||'No design'} · ${inst.placement||'front'} · ${(inst.colors||[]).length} colors · ${inst.price||''}</div>
+      </div>
+      <button class="tm-inst-card-del" onclick="tmRemoveInstance(${i})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+  const countEl = document.getElementById('tm-inst-builder-count');
+  if (countEl) countEl.textContent = `${tmProductInstances.length} product${tmProductInstances.length!==1?'s':''} added`;
+}
+
+function tmRemoveInstance(i) {
+  tmProductInstances.splice(i, 1);
+  renderInstList();
+}
+
+function tmInstTypeChanged() {
+  const type = document.getElementById('tm-inew-type')?.value;
+  const cat = TM_PRODUCT_CATALOG.find(p => p.type === type);
+  // Set default price
+  const priceEl = document.getElementById('tm-inew-price');
+  if (priceEl && !priceEl.value && cat) priceEl.value = cat.defaultPrice;
+  // Show colors/sizes
+  const colWrap = document.getElementById('tm-inew-colors-wrap');
+  const sizWrap = document.getElementById('tm-inew-sizes-wrap');
+  if (colWrap) colWrap.style.display = type ? '' : 'none';
+  if (sizWrap) sizWrap.style.display = type ? '' : 'none';
+  // Update placement buttons — remove Side if no side view
+  const views = type ? MOCKUP_VIEWS[type] : {};
+  const hasSide = views && views.side;
+  const hasBack = views && views.back;
+  const toggle = document.getElementById('tm-inew-placement-toggle');
+  if (toggle) {
+    toggle.querySelectorAll('.tm-placement-btn').forEach(btn => {
+      const v = btn.dataset.view;
+      if (v === 'side') btn.style.display = hasSide ? '' : 'none';
+      if (v === 'back') btn.style.display = hasBack ? '' : 'none';
+    });
+  }
+  // Reset placement to front
+  tmInstSetPlacement('front', document.querySelector('.tm-placement-btn[data-view="front"]'));
+  updatePositioner();
+}
+
+function tmInstDesignChanged() {
+  updatePositioner();
+}
+
+function tmInstSetPlacement(view, btn) {
+  tmInstPlacement = view;
+  document.querySelectorAll('.tm-placement-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  updatePositioner();
+}
+
+function updatePositioner() {
+  const type      = document.getElementById('tm-inew-type')?.value;
+  const designSel = document.getElementById('tm-inew-design');
+  const designOpt = designSel?.options[designSel.selectedIndex];
+  const designUrl = designOpt?.dataset?.url || '';
+  const wrap      = document.getElementById('tm-positioner-wrap');
+  if (!wrap) return;
+
+  if (!type || !designUrl) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+
+  const views  = MOCKUP_VIEWS[type] || {};
+  const src    = views[tmInstPlacement] || views.front || Object.values(views)[0] || '';
+  const fullSrc = src ? CUSTOMER_ORIGIN + src : '';
+
+  const mockup = document.getElementById('tm-pos-mockup');
+  const tint   = document.getElementById('tm-pos-tint');
+  const dimg   = document.getElementById('tm-pos-design-img');
+
+  if (mockup) mockup.src = fullSrc;
+  if (tint && fullSrc) {
+    tint.style.maskImage = `url('${fullSrc}')`;
+    tint.style.webkitMaskImage = `url('${fullSrc}')`;
+    tint.style.backgroundColor = '#1a1a1a';
+  }
+  if (dimg) dimg.src = designUrl;
+
+  // Reset position to center
+  const dEl = document.getElementById('tm-pos-design');
+  if (dEl) {
+    dEl.style.left  = tmInstDesignLeft + '%';
+    dEl.style.top   = tmInstDesignTop + '%';
+    dEl.style.width = tmInstDesignWidth + '%';
+  }
+  updatePosCoords();
+  initDragPositioner();
+}
+
+function tmInstResizeDesign(val) {
+  tmInstDesignWidth = parseFloat(val);
+  const dEl = document.getElementById('tm-pos-design');
+  if (dEl) dEl.style.width = val + '%';
+  const lbl = document.getElementById('tm-pos-size-label');
+  if (lbl) lbl.textContent = val + '%';
+  updatePosCoords();
+}
+
+function updatePosCoords() {
+  const el = document.getElementById('tm-pos-coords');
+  if (el) el.textContent = `left ${tmInstDesignLeft.toFixed(0)}%, top ${tmInstDesignTop.toFixed(0)}%`;
+}
+
+function initDragPositioner() {
+  const positioner = document.getElementById('tm-positioner');
+  const design     = document.getElementById('tm-pos-design');
+  if (!positioner || !design) return;
+
+  // Remove old listeners by cloning
+  const newDesign = design.cloneNode(true);
+  design.parentNode.replaceChild(newDesign, design);
+
+  let dragging = false, startX, startY, startLeft, startTop;
+
+  newDesign.addEventListener('mousedown', e => {
+    e.preventDefault();
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    startLeft = tmInstDesignLeft; startTop = tmInstDesignTop;
+  });
+  // Touch support
+  newDesign.addEventListener('touchstart', e => {
+    dragging = true;
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    startLeft = tmInstDesignLeft; startTop = tmInstDesignTop;
+  }, {passive:true});
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const rect = positioner.getBoundingClientRect();
+    const dx = ((e.clientX - startX) / rect.width)  * 100;
+    const dy = ((e.clientY - startY) / rect.height) * 100;
+    tmInstDesignLeft = Math.max(0, Math.min(100, startLeft + dx));
+    tmInstDesignTop  = Math.max(0, Math.min(100, startTop  + dy));
+    newDesign.style.left = tmInstDesignLeft + '%';
+    newDesign.style.top  = tmInstDesignTop  + '%';
+    updatePosCoords();
+  });
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    const rect = positioner.getBoundingClientRect();
+    const dx = ((t.clientX - startX) / rect.width)  * 100;
+    const dy = ((t.clientY - startY) / rect.height) * 100;
+    tmInstDesignLeft = Math.max(0, Math.min(100, startLeft + dx));
+    tmInstDesignTop  = Math.max(0, Math.min(100, startTop  + dy));
+    newDesign.style.left = tmInstDesignLeft + '%';
+    newDesign.style.top  = tmInstDesignTop  + '%';
+    updatePosCoords();
+  }, {passive:true});
+  document.addEventListener('mouseup',  () => { dragging = false; });
+  document.addEventListener('touchend', () => { dragging = false; });
+}
+
+function tmAddProductInstance() {
+  const nameEl   = document.getElementById('tm-inew-name');
+  const typeEl   = document.getElementById('tm-inew-type');
+  const priceEl  = document.getElementById('tm-inew-price');
+  const designEl = document.getElementById('tm-inew-design');
+
+  const name  = nameEl?.value.trim();
+  const type  = typeEl?.value;
+  const price = priceEl?.value.trim();
+  const designOpt = designEl?.options[designEl.selectedIndex];
+  const designId  = designEl?.value || '';
+  const design    = tmDesigns.find(d => d.id === designId) || null;
+
+  if (!name)  { showToast('Enter a product name'); return; }
+  if (!type)  { showToast('Choose a product type'); return; }
+
+  // Collect colors
+  const colors = Array.from(document.querySelectorAll('#tm-inew-colors .tm-color-dot.selected')).map(d => d.dataset.color);
+  // Collect sizes
+  const sizes  = Array.from(document.querySelectorAll('#tm-inew-sizes .tm-size-chip.selected')).map(s => s.dataset.size);
+
+  const cat = TM_PRODUCT_CATALOG.find(p => p.type === type);
+
+  tmProductInstances.push({
+    instanceId:    'inst-' + Date.now(),
+    type,
+    label:         name,
+    icon:          cat?.icon || '👕',
+    price:         price || cat?.defaultPrice || '$25',
+    designId,
+    designName:    design?.name || '',
+    designUrl:     design?.url  || '',
+    placement:     tmInstPlacement,
+    graphicLeft:   tmInstDesignLeft.toFixed(1) + '%',
+    graphicTop:    tmInstDesignTop.toFixed(1)  + '%',
+    graphicWidth:  tmInstDesignWidth.toFixed(1) + '%',
+    colors:        colors.length ? colors : ['Black','Navy','White','Sport Grey','Red'],
+    sizes:         sizes.length  ? sizes  : ['S','M','L','XL','2XL'],
+  });
+
+  renderInstList();
+
+  // Reset form
+  if (nameEl)   nameEl.value   = '';
+  if (priceEl)  priceEl.value  = '';
+  if (typeEl)   { typeEl.value = ''; tmInstTypeChanged(); }
+  if (designEl) designEl.value = '';
+  tmInstDesignLeft = 50; tmInstDesignTop = 40; tmInstDesignWidth = 35;
+  document.getElementById('tm-pos-size-slider') && (document.getElementById('tm-pos-size-slider').value = 35);
+  document.getElementById('tm-positioner-wrap') && (document.getElementById('tm-positioner-wrap').style.display = 'none');
+  document.getElementById('tm-inew-colors-wrap') && (document.getElementById('tm-inew-colors-wrap').style.display = 'none');
+  document.getElementById('tm-inew-sizes-wrap')  && (document.getElementById('tm-inew-sizes-wrap').style.display  = 'none');
+  // Reset all color dots and size chips to default
+  document.querySelectorAll('#tm-inew-colors .tm-color-dot').forEach(d => d.classList.remove('selected'));
+  document.querySelectorAll('#tm-inew-sizes .tm-size-chip').forEach(s => {
+    s.classList.toggle('selected', ['S','M','L','XL','2XL'].includes(s.dataset.size));
+  });
+  showToast(`"${name}" added!`);
+}
+
 function tmToggleProduct(type, labelEl) {
   const isNowOn = !labelEl.classList.contains('selected');
   labelEl.classList.toggle('selected', isNowOn);
@@ -4011,6 +4357,7 @@ function openCMTeamAdd() {
   syncColorPicker();
   initGalRows([]);
   initDesigns([]);
+  initProductInstances([]);
 }
 
 function openCMTeamEdit(idx) {
@@ -4032,6 +4379,7 @@ function openCMTeamEdit(idx) {
   syncColorPicker();
   initGalRows(teams[idx]?.gallery || []);
   initDesigns(teams[idx]?.designs || []);
+  initProductInstances(teams[idx]?.products || []);
 }
 
 function closeCMModal() {
@@ -4099,34 +4447,8 @@ function saveCMTeam() {
   if (!name) { showToast("Team name is required"); return; }
   if (!sub)  { showToast("Subdomain is required"); return; }
 
-  const products = TM_PRODUCT_CATALOG
-    .filter(p => {
-      const cb = document.querySelector(`.tm-prod-check input[data-type="${p.type}"]`);
-      return cb && cb.checked;
-    })
-    .map(p => {
-      // Collect selected colors
-      const colorDots = document.querySelectorAll(`.tm-color-dot[data-prod="${p.type}"].selected`);
-      const colors = Array.from(colorDots).map(d => d.dataset.color);
-      // Collect selected sizes
-      const sizeChips = document.querySelectorAll(`.tm-size-chip[data-prod="${p.type}"].selected`);
-      const sizes = Array.from(sizeChips).map(s => s.dataset.size);
-      // Collect assigned design
-      const designSel = document.getElementById('tm-pdesign-' + p.type);
-      const designId  = designSel?.value || '';
-      const design    = tmDesigns.find(d => d.id === designId) || null;
-      return {
-        type:     p.type,
-        label:    p.label,
-        icon:     p.icon,
-        designId: designId,
-        designName: design?.name || '',
-        designUrl:  design?.url  || '',
-        colors:   colors.length ? colors : Object.keys(COLOR_HEX_MAP).slice(0,5),
-        sizes:    sizes.length  ? sizes  : ['S','M','L','XL','2XL'],
-        price:    document.getElementById('tm-pprice-' + p.type)?.value.trim() || p.defaultPrice,
-      };
-    });
+  // Products come from the instance list managed by tmProductInstances
+  const products = tmProductInstances;
 
   const team = {
     name,

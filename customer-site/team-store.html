@@ -922,23 +922,23 @@ const PRODUCT_CATALOG = {
   tee:        { label: 'Short Sleeve Tee',      category: 'tops',    icon: '👕',
                 views: [{ key:'front', label:'Front', src:'/products/crew-neck-t-front.png' },
                          { key:'back',  label:'Back',  src:'/products/crew-neck-t-back.png'  }],
-                graphicView:'front', graphicTop:'38%', graphicLeft:'50%', graphicWidth:'38%' },
+                graphicView:'front', graphicTop:'43%', graphicLeft:'54%', graphicWidth:'36%' },
   vneckt:     { label: 'V-Neck T-Shirt',        category: 'tops',    icon: '👕',
                 views: [{ key:'front', label:'Front', src:'/products/vneck-t-front.png' },
                          { key:'back',  label:'Back',  src:'/products/vneck-t-back.png'  }],
-                graphicView:'front', graphicTop:'38%', graphicLeft:'50%', graphicWidth:'38%' },
+                graphicView:'front', graphicTop:'43%', graphicLeft:'54%', graphicWidth:'36%' },
   longsleeve: { label: 'Long Sleeve Tee',       category: 'tops',    icon: '👕',
                 views: [{ key:'front', label:'Front', src:'/products/crew-neck-ls-front.png' },
                          { key:'back',  label:'Back',  src:'/products/crew-neck-ls-back.png'  }],
-                graphicView:'front', graphicTop:'38%', graphicLeft:'50%', graphicWidth:'38%' },
+                graphicView:'front', graphicTop:'43%', graphicLeft:'54%', graphicWidth:'36%' },
   hoodie:     { label: 'Hoodie',                category: 'fleece',  icon: '🧥',
                 views: [{ key:'front', label:'Front', src:'/products/hoodie-front.png' },
                          { key:'back',  label:'Back',  src:'/products/hoodie-back.png'  }],
-                graphicView:'front', graphicTop:'42%', graphicLeft:'50%', graphicWidth:'36%' },
+                graphicView:'front', graphicTop:'45%', graphicLeft:'54%', graphicWidth:'34%' },
   crewneck:   { label: 'Crew Neck Sweatshirt',  category: 'fleece',  icon: '🧥',
                 views: [{ key:'front', label:'Front', src:'/products/crew-neck-sw-front.png' },
                          { key:'back',  label:'Back',  src:'/products/crew-neck-sw-back.png'  }],
-                graphicView:'front', graphicTop:'40%', graphicLeft:'50%', graphicWidth:'38%' },
+                graphicView:'front', graphicTop:'44%', graphicLeft:'54%', graphicWidth:'36%' },
   racerback:  { label: 'Racerback Tank',        category: 'tanks',   icon: '👙',
                 views: [{ key:'front', label:'Front', src:'/products/racerback-front.png' },
                          { key:'back',  label:'Back',  src:'/products/racerback-back.png'  }],
@@ -1158,9 +1158,12 @@ function renderCard(product) {
   const firstColor = colors[0];
   const colorHex   = getColorHex(firstColor);
 
+  // Determine placement view early so cardStates can use it
+  const placementView = product.placement || meta.graphicView || 'front';
+
   // Init card state
   if (!cardStates[cardId]) {
-    cardStates[cardId] = { color: firstColor, view: 'front', qty: 1, size: '' };
+    cardStates[cardId] = { color: firstColor, view: placementView, qty: 1, size: '' };
   }
   const state = cardStates[cardId];
 
@@ -1180,9 +1183,13 @@ function renderCard(product) {
   // Design overlay
   const designUrl   = product.designUrl || '';
   const designName  = product.designName || '';
-  const showDesign  = hasMockup && designUrl && state.view === meta.graphicView;
+  // Use Erin's custom position if saved, otherwise fall back to catalog defaults
+  const gLeft  = product.graphicLeft  || meta.graphicLeft  || '50%';
+  const gTop   = product.graphicTop   || meta.graphicTop   || '40%';
+  const gWidth = product.graphicWidth || meta.graphicWidth || '35%';
+  const showDesign  = hasMockup && designUrl && state.view === placementView;
   const designStyle = showDesign
-    ? `top:${meta.graphicTop};left:${meta.graphicLeft};width:${meta.graphicWidth};`
+    ? `top:${gTop};left:${gLeft};width:${gWidth};`
     : 'display:none;';
 
   // Swatch dots
@@ -1203,7 +1210,7 @@ function renderCard(product) {
   ).join('');
 
   return `
-    <div class="ts-card" id="tscard-${cardId}">
+    <div class="ts-card" id="tscard-${cardId}" data-placement="${placementView}">
       <!-- PREVIEWER -->
       <div class="ts-card-previewer">
         ${hasViews ? `
@@ -1307,10 +1314,11 @@ function setCardView(cardId, prodType, designId, viewKey, toggleEl) {
     tint.style.webkitMaskImage = `url('${view.src}')`;
   }
 
-  // Show/hide design overlay
+  // Show/hide design overlay based on saved placement
+  const placementView = cardEl?.dataset?.placement || meta.graphicView || 'front';
   const design = document.getElementById('tsdesign-' + cardId);
   if (design) {
-    design.style.display = (viewKey === meta.graphicView) ? '' : 'none';
+    design.style.display = (viewKey === placementView) ? '' : 'none';
   }
 
   // Update toggle buttons
