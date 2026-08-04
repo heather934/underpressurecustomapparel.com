@@ -3317,7 +3317,7 @@ function renderTeamCards() {
       .map(t => ({
         name: t.name,
         subdomain: t.subdomain || slugify(t.name),
-        url: `https://${t.subdomain || slugify(t.name)}.underpressure.com`,
+        url: `/team-store?team=${t.subdomain || slugify(t.name)}`,
         color: t.color || '#1565ff',
         logo: t.logo || '',
         desc: t.desc || 'Custom team apparel — powered by Under Pressure',
@@ -4044,7 +4044,7 @@ function buildCarousel() {
     return `<div class="carousel-slide ${colClass}">
       ${slideTeams.map(t => {
         const color = t.color || '#1565ff';
-        const url = t.url || `https://${t.subdomain || slugify(t.name)}.underpressure.com`;
+        const url = t.url || `/team-store?team=${t.subdomain || slugify(t.name)}`;
         const stateForCard = getStoreState(t.key);
         const cardHref = stateForCard === 'code'
           ? `javascript:openCodeGate('${url}','${t.key}')`
