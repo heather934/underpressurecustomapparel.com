@@ -1,6 +1,25 @@
-/             /store.html    200
-/admin        /admin.html    200
-/admin/       /admin.html    200
-/rampage      /team-store-template.html    200
-/rome         /rome-coc-tshirt-store.html  200
+# Under Pressure Custom Apparel — Cloudflare Pages _redirects
+# Place this file in customer-site/ (repo root for this Pages project)
 
+# ── Main store ────────────────────────────────────────────────────────
+/store          /store.html     200
+/admin          /admin.html     200
+
+# ── Team stores — dynamic renderer ───────────────────────────────────
+# Each team subdomain routes to team-store.html with ?team= query param.
+# Add a new line here whenever Erin creates a new team store in the admin.
+# The subdomain value must match exactly what's in the admin's Subdomain field.
+
+/rampage        /team-store.html?team=rampage   200
+/rome           /team-store.html?team=rome       200
+
+# ── Catch-all for any other team store URLs ───────────────────────────
+# This handles future teams automatically — the page reads the path
+# and uses it as the team ID if no ?team= param is present.
+# Remove this if you prefer explicit routes only.
+# /*/             /team-store.html               200
+
+# ── Legacy team store files (keep until migrated) ─────────────────────
+# rome-coc-tshirt-store.html is still hand-built. Once Erin rebuilds
+# Rome CoC as a proper team store in the admin, replace the /rome route
+# above to point to team-store.html and delete the legacy file.
