@@ -2159,7 +2159,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
               <span class="dropdown-item-badge" style="background:var(--up-blue);color:#fff;">Hub</span>
             </a>
 
-            <a class="dropdown-item" href="team-store-template.html" target="_blank"
+            <a class="dropdown-item" href="/rampage" target="_blank"
               data-search="river city rampage baseball softball batting jacket tee dry fit hoodie hat bag" rel="noopener noreferrer">
               <div class="dropdown-item-icon" style="background:rgba(26,107,47,.15);">⚾</div>
               <div class="dropdown-item-text">
@@ -2169,7 +2169,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
               <span class="dropdown-item-badge" style="background:#1a6b2f;color:#fff;">Store</span>
             </a>
 
-            <a class="dropdown-item" href="rome-coc-tshirt-store.html" target="_blank"
+            <a class="dropdown-item" href="/rome" target="_blank"
               data-search="rome church of christ coc youth ministries faith t-shirt tee christian camp" rel="noopener noreferrer">
               <div class="dropdown-item-icon" style="background:rgba(124,58,237,.15);">✝️</div>
               <div class="dropdown-item-text">
@@ -2391,7 +2391,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
         <div class="up-sw-title" style="background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Rome CoC <span style="-webkit-text-fill-color:#a78bfa">Youth</span> T-Shirt Shop</div>
         <div class="up-sw-sub" style="color:#6060a0;">Faith-inspired graphic tees · Portions benefit Rome Church of Christ Youth Ministries</div>
       </div>
-      <a href="rome-coc-tshirt-store.html" class="btn-up-outline" style="border-color:#7c3aed;color:#a78bfa;font-size:12px;padding:10px 20px;text-decoration:none;display:inline-block;">Visit Full Store →</a>
+      <a href="/rome" class="btn-up-outline" style="border-color:#7c3aed;color:#a78bfa;font-size:12px;padding:10px 20px;text-decoration:none;display:inline-block;">Visit Full Store →</a>
     </div>
 
     <!-- Charity callout -->
@@ -2404,7 +2404,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;" id="romeMiniGrid"></div>
 
     <div style="text-align:center;padding:24px 0 0;">
-      <a href="rome-coc-tshirt-store.html" style="background:#7c3aed;color:#fff;border:none;padding:13px 36px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;display:inline-block;transition:filter .2s;">Shop All 12 Designs →</a>
+      <a href="/rome" style="background:#7c3aed;color:#fff;border:none;padding:13px 36px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;display:inline-block;transition:filter .2s;">Shop All 12 Designs →</a>
     </div>
   </div>
 
@@ -3232,7 +3232,7 @@ function loadTeams() {
       color: '#1a6b2f',
       logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png',
       desc: 'Baseball & Softball · Batting jackets, tees, dry-fits & more',
-      url: 'team-store-template.html',
+      url: '/rampage',
       products: [],
     },
     {
@@ -3242,7 +3242,7 @@ function loadTeams() {
       color: '#7c3aed',
       logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png',
       desc: 'Faith-inspired tees · Portions benefit Rome CoC Youth Ministry',
-      url: 'rome-coc-tshirt-store.html',
+      url: '/rome',
       products: [],
     }
   ];
@@ -3670,6 +3670,18 @@ function teamFormHTML(t) {
           <button onclick="removeGalRow(${i})" style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.2);color:var(--hs-red);padding:8px 12px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
         </div>`).join('')}
       </div>
+    </div>
+
+    <!-- FEATURED -->
+    <div class="cm-fg cm-full" style="border-top:1px solid var(--up-border);padding-top:16px;margin-top:4px;">
+      <div class="tm-section-head"><span>&#11088; Homepage Feature</span></div>
+      <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 14px;background:rgba(21,101,255,.06);border:1px solid rgba(21,101,255,.2);">
+        <input type="checkbox" id="tm-featured-store" ${t?.featured ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--up-blue);cursor:pointer;flex-shrink:0;">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:var(--up-white);">Feature this store on the homepage</div>
+          <div style="font-size:12px;color:var(--up-mist);font-weight:300;margin-top:2px;">This store will appear in a Featured section at the top of the customer homepage</div>
+        </div>
+      </label>
     </div>`;
 }
 
@@ -3897,12 +3909,14 @@ function renderInstList() {
     const mockupSrc = inst.type && MOCKUP_VIEWS[inst.type]
       ? CUSTOMER_ORIGIN + (MOCKUP_VIEWS[inst.type][inst.placement] || MOCKUP_VIEWS[inst.type].front || Object.values(MOCKUP_VIEWS[inst.type])[0])
       : '';
-    return `<div class="tm-inst-card">
+    return `<div class="tm-inst-card" style="${inst.featured ? 'border-color:rgba(255,200,0,.4);background:rgba(255,200,0,.04);' : ''}">
       ${mockupSrc ? `<img class="tm-inst-card-thumb" src="${mockupSrc}" alt="${inst.label}" onerror="this.style.display='none'">` : `<div style="width:40px;height:40px;background:var(--up-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">${TM_PRODUCT_CATALOG.find(p=>p.type===inst.type)?.icon||'👕'}</div>`}
       <div class="tm-inst-card-info">
-        <div class="tm-inst-card-name">${inst.label||inst.type}</div>
+        <div class="tm-inst-card-name">${inst.featured ? '&#11088; ' : ''}${inst.label||inst.type}</div>
         <div class="tm-inst-card-meta">${inst.designName||'No design'} · ${inst.placement||'front'} · ${(inst.colors||[]).length} colors · ${inst.price||''}</div>
       </div>
+      <button onclick="tmToggleFeaturedProduct(${i})" title="${inst.featured ? 'Remove from homepage feature' : 'Feature on homepage'}"
+        style="background:${inst.featured ? 'rgba(255,200,0,.15)' : 'transparent'};border:1px solid ${inst.featured ? 'rgba(255,200,0,.4)' : 'var(--up-border)'};color:${inst.featured ? '#ffc800' : 'var(--up-mist)'};padding:5px 9px;cursor:pointer;font-size:14px;transition:all .2s;flex-shrink:0;" title="Feature on homepage">&#11088;</button>
       <button class="tm-inst-card-del" onclick="tmRemoveInstance(${i})" title="Remove">✕</button>
     </div>`;
   }).join('');
@@ -3912,6 +3926,10 @@ function renderInstList() {
 
 function tmRemoveInstance(i) {
   tmProductInstances.splice(i, 1);
+  renderInstList();
+}
+function tmToggleFeaturedProduct(i) {
+  tmProductInstances[i].featured = !tmProductInstances[i].featured;
   renderInstList();
 }
 
@@ -4257,6 +4275,7 @@ function saveCMTeam() {
     designs: tmDesigns,
     gallery: tmGalleryRows.filter(g => g.img.trim()),
     products,
+    featured: document.getElementById("tm-featured-store")?.checked || false,
   };
 
   const isNew = cmTeamEditIdx === -1;
@@ -4323,7 +4342,7 @@ function registerTeamInProduction(team) {
   const grid=document.getElementById("romeMiniGrid");
   if(!grid)return;
   grid.innerHTML=rocProducts.map((p,i)=>`
-    <a href="rome-coc-tshirt-store.html" style="background:#111122;display:block;position:relative;overflow:hidden;text-decoration:none;animation:slideUp .5s ${i*.06}s ease both;opacity:0;animation-fill-mode:forwards;">
+    <a href="/rome" style="background:#111122;display:block;position:relative;overflow:hidden;text-decoration:none;animation:slideUp .5s ${i*.06}s ease both;opacity:0;animation-fill-mode:forwards;">
       <div style="aspect-ratio:1;overflow:hidden;">
         <img src="${p.img}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
       </div>
@@ -4937,8 +4956,8 @@ function loadProductionOrders() {
 
 function ensureBuiltInStoresRegistered() {
   const builtIns = [
-    { name: 'River City Rampage',      url: 'team-store-template.html' },
-    { name: 'Rome CoC Youth T-Shirts', url: 'rome-coc-tshirt-store.html' },
+    { name: 'River City Rampage',      url: '/rampage' },
+    { name: 'Rome CoC Youth T-Shirts', url: '/rome' },
   ];
   var changed = false;
   builtIns.forEach(store => {
@@ -4966,7 +4985,7 @@ function saveProductionOrders() {
 // Auto-log orders when submitted via cart checkout
 function logProductionOrder(orderData) {
   // Enrich items with graphicName/graphicImg from saved team store products.
-  // Items arriving from team-store-template.html already have graphicImg set —
+  // Items arriving from /rampage already have graphicImg set —
   // this enrichment only runs for items that are missing it (e.g. UP Sportswear cart).
   const enrichedItems = (orderData.items || []).map(item => {
     // Already enriched (came from team store template direct write)
@@ -7383,7 +7402,7 @@ function buildSearchIndex() {
     index.push({
       name, price: 'From $18', store: 'River City Rampage',
       storeColor: '#1a6b2f', img: '', category: 'Team Apparel',
-      action: () => { window.open('team-store-template.html','_blank'); }
+      action: () => { window.open('/rampage','_blank'); }
     });
   });
 
@@ -7397,7 +7416,7 @@ function buildSearchIndex() {
     index.push({
       name, price: '$25.00', store: 'Rome CoC Youth T-Shirts',
       storeColor: '#7c3aed', img: '', category: 'Faith T-Shirts',
-      action: () => { window.open('rome-coc-tshirt-store.html','_blank'); }
+      action: () => { window.open('/rome','_blank'); }
     });
   });
 
