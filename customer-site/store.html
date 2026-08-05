@@ -2147,7 +2147,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
               <span class="dropdown-item-badge" style="background:var(--up-blue);color:#fff;">Hub</span>
             </a>
 
-            <a class="dropdown-item" href="team-store-template.html" target="_blank"
+            <a class="dropdown-item" href="/rampage" target="_blank"
               data-search="river city rampage baseball softball batting jacket tee dry fit hoodie hat bag" rel="noopener noreferrer">
               <div class="dropdown-item-icon" style="background:rgba(26,107,47,.15);">⚾</div>
               <div class="dropdown-item-text">
@@ -2157,7 +2157,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
               <span class="dropdown-item-badge" style="background:#1a6b2f;color:#fff;">Store</span>
             </a>
 
-            <a class="dropdown-item" href="rome-coc-tshirt-store.html" target="_blank"
+            <a class="dropdown-item" href="/rome" target="_blank"
               data-search="rome church of christ coc youth ministries faith t-shirt tee christian camp" rel="noopener noreferrer">
               <div class="dropdown-item-icon" style="background:rgba(124,58,237,.15);">✝️</div>
               <div class="dropdown-item-text">
@@ -2528,7 +2528,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
         <div class="up-sw-title" style="background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Rome CoC <span style="-webkit-text-fill-color:#a78bfa">Youth</span> T-Shirt Shop</div>
         <div class="up-sw-sub" style="color:#6060a0;">Faith-inspired graphic tees · Portions benefit Rome Church of Christ Youth Ministries</div>
       </div>
-      <a href="rome-coc-tshirt-store.html" class="btn-up-outline" style="border-color:#7c3aed;color:#a78bfa;font-size:12px;padding:10px 20px;text-decoration:none;display:inline-block;">Visit Full Store →</a>
+      <a href="/rome" class="btn-up-outline" style="border-color:#7c3aed;color:#a78bfa;font-size:12px;padding:10px 20px;text-decoration:none;display:inline-block;">Visit Full Store →</a>
     </div>
 
     <!-- Charity callout -->
@@ -2541,7 +2541,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;" id="romeMiniGrid"></div>
 
     <div style="text-align:center;padding:24px 0 0;">
-      <a href="rome-coc-tshirt-store.html" style="background:#7c3aed;color:#fff;border:none;padding:13px 36px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;display:inline-block;transition:filter .2s;">Shop All 12 Designs →</a>
+      <a href="/rome" style="background:#7c3aed;color:#fff;border:none;padding:13px 36px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;display:inline-block;transition:filter .2s;">Shop All 12 Designs →</a>
     </div>
   </div>
 
@@ -3373,7 +3373,7 @@ function renderTeamCards() {
     {
       name: 'River City Rampage',
       subdomain: 'rivercityrampage',
-      url: 'team-store-template.html',
+      url: '/rampage',
       color: '#1a6b2f',
       logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png',
       desc: 'Custom baseball & softball apparel for the Rampage family',
@@ -3382,7 +3382,7 @@ function renderTeamCards() {
     {
       name: 'Rome CoC Youth T-Shirts',
       subdomain: 'romecoc',
-      url: 'rome-coc-tshirt-store.html',
+      url: '/rome',
       color: '#7c3aed',
       logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png',
       desc: 'Faith-inspired graphic tees — portions benefit Rome Church of Christ Youth Ministries',
@@ -3726,7 +3726,7 @@ function cmDeleteTeam(idx) {
   const grid=document.getElementById("romeMiniGrid");
   if(!grid)return;
   grid.innerHTML=rocProducts.map((p,i)=>`
-    <a href="rome-coc-tshirt-store.html" style="background:#111122;display:block;position:relative;overflow:hidden;text-decoration:none;animation:slideUp .5s ${i*.06}s ease both;opacity:0;animation-fill-mode:forwards;">
+    <a href="/rome" style="background:#111122;display:block;position:relative;overflow:hidden;text-decoration:none;animation:slideUp .5s ${i*.06}s ease both;opacity:0;animation-fill-mode:forwards;">
       <div style="aspect-ratio:1;overflow:hidden;">
         <img src="${p.img}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
       </div>
@@ -4091,7 +4091,7 @@ function buildCarousel() {
       color: '#1a6b2f',
       logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png',
       desc: 'Baseball & Softball · 34 products · Batting jackets, tees, dry-fits & more',
-      url: 'team-store-template.html',
+      url: '/rampage',
       key: 'builtin-rampage'
     },
     {
@@ -4100,7 +4100,7 @@ function buildCarousel() {
       color: '#7c3aed',
       logo: 'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png',
       desc: 'Faith-inspired tees · 12 designs · Portions benefit Rome CoC Youth Ministry',
-      url: 'rome-coc-tshirt-store.html',
+      url: '/rome',
       key: 'builtin-romecoc'
     }
   ];
@@ -4357,8 +4357,8 @@ function loadProductionOrders() {
 
 function ensureBuiltInStoresRegistered() {
   const builtIns = [
-    { name: 'River City Rampage',      url: 'team-store-template.html' },
-    { name: 'Rome CoC Youth T-Shirts', url: 'rome-coc-tshirt-store.html' },
+    { name: 'River City Rampage',      url: '/rampage' },
+    { name: 'Rome CoC Youth T-Shirts', url: '/rome' },
   ];
   let changed = false;
   builtIns.forEach(store => {
@@ -6556,7 +6556,7 @@ function buildSearchIndex() {
     index.push({
       name, price: 'From $18', store: 'River City Rampage',
       storeColor: '#1a6b2f', img: '', category: 'Team Apparel',
-      action: () => { window.open('team-store-template.html','_blank'); }
+      action: () => { window.open('/rampage','_blank'); }
     });
   });
 
@@ -6570,7 +6570,7 @@ function buildSearchIndex() {
     index.push({
       name, price: '$25.00', store: 'Rome CoC Youth T-Shirts',
       storeColor: '#7c3aed', img: '', category: 'Faith T-Shirts',
-      action: () => { window.open('rome-coc-tshirt-store.html','_blank'); }
+      action: () => { window.open('/rome','_blank'); }
     });
   });
 
