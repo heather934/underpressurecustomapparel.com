@@ -22,6 +22,13 @@
   const EMAILJS_PUBLIC_KEY  = localStorage.getItem('upEmailjsKey')      || "OKEA4c6QDAWLOfpja";
   const EMAILJS_SERVICE_ID  = localStorage.getItem('upEmailjsService')  || "service_nd1nxhg";
   const EMAILJS_TEMPLATE_ID = localStorage.getItem('upEmailjsTemplate') || "template_wrlckh4";
+  // Per-flow templates — each falls back to the default template above if not yet set
+  const EMAILJS_DESIGN_TEMPLATE_ID = localStorage.getItem('upEmailjsDesignTemplate') || EMAILJS_TEMPLATE_ID;
+  const EMAILJS_QUOTE_TEMPLATE_ID  = localStorage.getItem('upEmailjsQuoteTemplate')  || EMAILJS_TEMPLATE_ID;
+  const EMAILJS_QUOTE_ERIN_TEMPLATE_ID  = localStorage.getItem('upEmailjsQuoteErinTemplate')  || '';
+  const EMAILJS_ORDER_CONFIRM_TEMPLATE_ID = localStorage.getItem('upEmailjsOrderConfirmTemplate') || '';
+  const EMAILJS_NEW_ORDER_TEMPLATE_ID     = localStorage.getItem('upEmailjsNewOrderTemplate')     || '';
+  const EMAILJS_ORDER_READY_TEMPLATE_ID   = localStorage.getItem('upEmailjsOrderReadyTemplate')   || '';
 
   if (EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
     emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
@@ -307,9 +314,6 @@ nav{display:flex;gap:6px;align-items:center;}
 .btn-add-first{background:var(--up-blue);color:#fff;border:none;padding:10px 22px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:background .2s;}
 .btn-add-first:hover{background:var(--up-blue2);}
 
-/* ════════════════════════════
-   HUNTINGTON STEEL PAGE
-════════════════════════════ */
 /* ════════════════════════════
    CART DRAWER
 ════════════════════════════ */
@@ -2201,9 +2205,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
     </nav>
     <div class="nav-right">
       <button class="btn-manage" onclick="openAdmin()" style="display:none" id="manageBtn">⚙ Manage</button>
-      <button class="hs-order-btn" id="hsOrderBtn" onclick="openHsModal()" style="display:none">
-        📋 HS Order <span class="hs-item-count" id="hsItemCount">0</span>
-      </button>
       <button class="cart-btn" onclick="toggleSearch()" title="Search products" aria-label="Search products" aria-expanded="false" aria-controls="searchBarSection" style="margin-right:2px;">
         🔍 Search
       </button>
@@ -2693,9 +2694,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
   <div class="modal-box"><div id="checkoutContent"></div></div>
 </div>
 
-<!-- ══ HS ORDER FORM MODAL (content is rendered dynamically by renderHsModal) ══ -->
-<div class="hs-modal-bg" id="hsMsgModal"></div>
-
 <!-- ══ REVIEW MODAL ══ -->
 <div class="modal-bg" id="reviewModal">
   <div class="review-form-modal-box">
@@ -2831,53 +2829,8 @@ function showPage(p){
   // Only activate tab-up trigger (hs tab removed)
   const tab = document.getElementById("tab-"+p);
   if(tab) tab.classList.add("active");
-  // show/hide relevant header buttons
-  document.getElementById("hsOrderBtn").style.display = p==="hs" ? "inline-flex" : "none";
   window.scrollTo({top:0,behavior:"smooth"});
 }
-
-// ══════════════════════════════
-// HS PRODUCTS
-// ══════════════════════════════
-const BASE="https://embroid-em.printavo.com/merch/huntingtonsteel";
-const hsProducts=[
-  {name:"Men's Lightweight Windbreaker Full-Zip",brand:"Independent Trading Co.",cat:"outerwear",price:"$33–$36",icon:"🧥",badge:"",url:`${BASE}/products/independent-trading-co-men-s-lightweight-windbreaker-full-zip-jacket-exp54lwz`},
-  {name:"Carhartt Quilted-Flannel-Lined Duck Active Jac",brand:"Carhartt",cat:"outerwear",price:"$125–$130",icon:"🧥",badge:"Premium",url:`${BASE}/products/carhartt-carhartt-quilted-flanne-lined-duck-active-jac-ct106677-01ee8335-38b3-4416-aff2-a3cef778326a`},
-  {name:"Men's Vintage Diamond Quilted Vest",brand:"Weatherproof",cat:"outerwear",price:"$45–$48",icon:"🦺",badge:"",url:`${BASE}/products/weatherproof-men-s-vintage-diamond-quilted-vest-207359`},
-  {name:"Nike Tech Sport Dri-FIT Polo",brand:"Nike",cat:"polos",price:"$46–$50",icon:"👔",badge:"Nike",url:`${BASE}/products/nike-nike-tech-sport-dri-fit-polo-266998-39b33743-9f04-4975-934b-6ce8cd85d372`},
-  {name:"Nike Dri-FIT Micro Pique 2.0 Polo",brand:"Nike",cat:"polos",price:"$42–$46",icon:"👔",badge:"Nike",url:`${BASE}/products/nike-nike-dri-fit-micro-pique-2-0-polo-nkdc1963-54e388bc-af08-4854-ad11-35b5efe6f760`},
-  {name:"Nike Huntington Steel Polo (3 Colors)",brand:"Nike",cat:"polos",price:"$38–$40",icon:"👔",badge:"Nike",url:BASE},
-  {name:"Eddie Bauer Smooth Mid Layer Fleece 1/2-Zip",brand:"Eddie Bauer",cat:"fleece",price:"$41–$45",icon:"🧶",badge:"",url:`${BASE}/products/eddie-bauer-eddie-bauer-smooth-mid-layer-fleece-1-2-zip-eb2360-0bccfdcb-fb7a-4914-9dab-799cda875abe`},
-  {name:"Eddie Bauer Flannel",brand:"Eddie Bauer",cat:"fleece",price:"$44–$46",icon:"🧶",badge:"",url:BASE},
-  {name:"OGIO Nexus 1/4-Zip Pullover",brand:"OGIO",cat:"fleece",price:"$44–$48",icon:"🧶",badge:"",url:`${BASE}/products/ogio-ogio-nexus-1-4-zip-pullover-oe335-cc89a45b-a57e-4b4e-9746-49a319c90a6b`},
-  {name:"OGIO Code Stretch Long Sleeve Button-Up",brand:"OGIO",cat:"fleece",price:"$44–$48",icon:"👕",badge:"",url:`${BASE}/products/ogio-ogio-code-stretch-long-sleeve-button-up-og145-7d92453c-02f3-4d6a-97e5-18141f54aa2e`},
-  {name:"BELLA+CANVAS 10oz Heavyweight Hoodie",brand:"BELLA+CANVAS",cat:"fleece",price:"$30–$34",icon:"🧥",badge:"",url:`${BASE}/products/bella-canvas-unisex-10-oz-heavyweight-hoodie-sweatshirt-4719-39b92d4b-43b7-442b-9c32-30d02a97e5e5`},
-  {name:"BELLA+CANVAS Sponge Fleece Crewneck",brand:"BELLA+CANVAS",cat:"fleece",price:"$33–$35",icon:"🧥",badge:"",url:`${BASE}/products/bella-canvas-unisex-sponge-fleece-classic-crewneck-sweatshirt-3911`},
-  {name:"BELLA+CANVAS Sponge Fleece Full-Zip Hoodie",brand:"BELLA+CANVAS",cat:"fleece",price:"$31–$34",icon:"🧥",badge:"",url:`${BASE}/products/bella-canvas-unisex-sponge-fleece-full-zip-hoodie-sweatshirt-3739`},
-  {name:"District Perfect Blend CVC Tee",brand:"District",cat:"tees",price:"$18–$22",icon:"👕",badge:"",url:`${BASE}/products/district-district-perfect-blend-cvc-tee-dm108-73919c1c-f5e0-474f-b2d1-1093100fa2ec`},
-  {name:"BELLA+CANVAS Unisex Jersey Long Sleeve Tee",brand:"BELLA+CANVAS",cat:"tees",price:"$18–$22",icon:"👕",badge:"",url:`${BASE}/products/bella-canvas-unisex-jersey-long-sleeve-tee-3501-9a0df329-d96c-4b31-aa63-4bb01332bb1d`},
-  {name:"Carhartt Short Sleeve T-Shirt",brand:"Carhartt",cat:"tees",price:"$24–$28",icon:"👕",badge:"",url:`${BASE}/products/carhartt-carhartt-short-sleeve-t-shirt-ct106020-f6c5862e-0280-44b5-a2d2-a225b8131e80`},
-  {name:"Carhartt Workwear Pocket Long Sleeve Tee",brand:"Carhartt",cat:"tees",price:"$31–$35",icon:"👕",badge:"",url:`${BASE}/products/carhartt-carhartt-workwear-pocket-long-sleeve-t-shirt-ctk126-82e942e3-09e2-4ed5-94ec-b11b54f7eea2`},
-  {name:"DREAM TEAM Patriotic Performance Tee",brand:"Gildan",cat:"tees",price:"$17–$20",icon:"👕",badge:"New",url:`${BASE}/products/dream-team-patriotic-gildan-unisex-performance-t-shirt-42000-812428`},
-  {name:"DREAM TEAM Green Performance Tee",brand:"Gildan",cat:"tees",price:"$17–$20",icon:"👕",badge:"New",url:`${BASE}/products/dream-team-green-gildan-unisex-performance-t-shirt-42000-813061`},
-  {name:"DREAM TEAM Pink Performance Tee",brand:"Gildan",cat:"tees",price:"$17–$20",icon:"👕",badge:"New",url:`${BASE}/products/dream-team-pink-gildan-unisex-performance-t-shirt-42000-813062`},
-  {name:"OGIO Sprint 24-Pack Cooler",brand:"OGIO",cat:"bags",price:"$47",icon:"🎒",badge:"",url:`${BASE}/products/ogio-ogio-sprint-24-pack-cooler-96002-1131ed4a-5966-4692-8bb4-1fcf7d3af0c9`},
-  {name:"OGIO Excelsior Pack",brand:"OGIO",cat:"bags",price:"$59",icon:"🎒",badge:"",url:`${BASE}/products/ogio-ogio-excelsior-pack-411069-410e6ddd-05a9-4e96-bac9-96e43ecfa2f1`},
-  {name:"Port Authority Gym Bag",brand:"Port Authority",cat:"bags",price:"$26",icon:"👜",badge:"",url:`${BASE}/products/port-authority-port-authority-gym-bag-bg970-dc0291d7-33f0-439d-b8bb-2f87896fc4fa`},
-  {name:"Liberty Bags Super Feature Tote",brand:"Liberty Bags",cat:"bags",price:"$21",icon:"🛍️",badge:"",url:`${BASE}/products/liberty-bags-super-feature-tote-8811`},
-  {name:"Nike Stretch-to-Fit Mesh Back Cap",brand:"Nike",cat:"headwear",price:"$29",icon:"🧢",badge:"Nike",url:`${BASE}/products/nike-nike-stretch-to-fit-mesh-back-cap-nkfb6448-f56f331e-a652-4539-b83b-f0f2aec4eeea`},
-  {name:"YP Classics Retro Trucker Cap",brand:"YP Classics",cat:"headwear",price:"$13",icon:"🧢",badge:"",url:`${BASE}/products/yp-classics-retro-trucker-cap-6606-14d49ae4-3877-450a-9e1d-36c4d9a4e94c`},
-  {name:"Harriton Women's Full-Zip Fleece",brand:"Harriton",cat:"womens",price:"$34–$37",icon:"🧥",badge:"",url:`${BASE}/products/harriton-women-s-full-zip-fleece-m990w-5ab66ef5-e3a2-47f4-a517-fe6d5bd2e2e8`},
-  {name:"LAT Women's Weekend Fleece Crewneck",brand:"LAT",cat:"womens",price:"$35–$37",icon:"🧥",badge:"",url:`${BASE}/products/lat-women-s-weekend-fleece-crewneck-sweatshirt-3525-c3f17bb3-41ef-4351-ab30-1b01ed6bdfd7`},
-  {name:"Infinity Her Women's Washed Mesh-Back Cap",brand:"Infinity Her",cat:"womens",price:"$14",icon:"🧢",badge:"",url:`${BASE}/products/infinity-her-women-s-washed-mesh-back-cap-tess-1c7ca66b-f1e7-421e-9898-ecbd2a9553e8`},
-  {name:"Women's California Wave Wash Crewneck",brand:"Independent Trading Co.",cat:"womens",price:"$25–$27",icon:"🧥",badge:"",url:`${BASE}/products/independent-trading-co-women-s-california-wave-wash-crewneck-sweatshirt-prm2500`},
-  {name:"BELLA+CANVAS Women's Relaxed V-Neck Tee",brand:"BELLA+CANVAS",cat:"womens",price:"$15–$18",icon:"👕",badge:"",url:`${BASE}/products/bella-canvas-women-s-relaxed-jersey-v-neck-tee-6405-b69f39ce-f7e9-4d1d-bf83-6d2471120959`},
-  {name:"BELLA+CANVAS Women's Flowy Muscle Tee",brand:"BELLA+CANVAS",cat:"womens",price:"$15–$17",icon:"👕",badge:"",url:`${BASE}/products/bella-canvas-women-s-flowy-rolled-cuffs-muscle-tee-8804-ee4d808a-0ac0-48bf-bc3d-8d25b75ce94a`},
-  {name:"Boxercraft Women's Pom Pom Long Sleeve Tee",brand:"Boxercraft",cat:"womens",price:"$32–$34",icon:"👕",badge:"",url:`${BASE}/products/boxercraft-women-s-pom-pom-long-sleeve-jersey-t-shirt-bw3514-3f6c9cce-1e26-4fd6-a10d-c3d97b995504`},
-];
-const INIT=8;
-function filterHS(cat,el){document.querySelectorAll("#hsFilters .chip").forEach(c=>c.classList.remove("on"));if(el)el.classList.add("on");renderHS(cat);}
-function showAllHS(){document.querySelectorAll("#hsGrid .p-card.hidden").forEach(c=>c.classList.remove("hidden"));document.getElementById("hsMore").style.display="none";}
 
 // ══════════════════════════════
 // CART
@@ -3062,13 +3015,15 @@ function renderPayPal(){
     onApprove:(d,a)=>{
       showProcessingOverlay('Processing your order...');
       return a.order.capture().then(details=>{
+        const orderItems = cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}));
         logProductionOrder({
           store: 'UP Sportswear',
           customer: `${customerInfo.first} ${customerInfo.last}`,
           phone: customerInfo.phone||'',
           email: customerInfo.email||'',
-          items: cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}))
+          items: orderItems
         });
+        sendOrderEmails(details, orderItems);
         cart=[];updateCartUI();
         hideProcessingOverlay();
         showOrderSuccess(details);
@@ -3081,6 +3036,37 @@ function renderPayPal(){
     onError:()=>{ hideProcessingOverlay(); showToast("Payment error — please try again"); }
   }).render("#paypal-container");
 }
+
+// Sends the customer-facing order confirmation and the internal "new order" notice to Erin.
+// Both are optional/independent — checkout has already succeeded by the time this runs,
+// so a missing template or a failed send here only logs a warning and never blocks the
+// customer's order success screen.
+function sendOrderEmails(details, orderItems) {
+  if (typeof emailjs === 'undefined' || EMAILJS_SERVICE_ID === 'YOUR_EMAILJS_SERVICE_ID') return;
+
+  const t = calcOrderTotals();
+  const itemsSummary = orderItems.map(i => `${i.name} × ${i.qty}${i.size?` (Size: ${i.size})`:''}${i.color?` (Color: ${i.color})`:''}`).join('\n');
+  const sharedParams = {
+    order_id:     details.id || 'N/A',
+    customer_name: `${customerInfo.first} ${customerInfo.last}`,
+    customer_email: customerInfo.email || '',
+    customer_phone: customerInfo.phone || '',
+    shipping_address: `${customerInfo.addr}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip}`,
+    order_items:  itemsSummary,
+    order_total:  `$${t.grand.toFixed(2)}`,
+    submitted_at: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+  };
+
+  if (EMAILJS_ORDER_CONFIRM_TEMPLATE_ID) {
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_CONFIRM_TEMPLATE_ID, { ...sharedParams, to_email: customerInfo.email, reply_to: 'erin@underpressurecustomapparel.com' })
+      .catch(err => console.error('Order confirmation email failed:', err));
+  }
+  if (EMAILJS_NEW_ORDER_TEMPLATE_ID) {
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_TEMPLATE_ID, { ...sharedParams, to_email: 'erin@underpressurecustomapparel.com', reply_to: customerInfo.email })
+      .catch(err => console.error('New order notification email failed:', err));
+  }
+}
+
 function showProcessingOverlay(message){
   const box = document.querySelector("#checkoutModal .modal-box");
   if (!box) return;
@@ -3220,195 +3206,6 @@ function saveEdit(){
   saveUP();renderUP(upFilter);closeEditModal();showToast("Product updated!");
 }
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
-// ══════════════════════════════
-// HS ORDER LIST + EMAIL
-// ══════════════════════════════
-var hsOrder = [];
-
-function addToHsOrder(name, price) {
-  const ex = hsOrder.find(i => i.name === name);
-  if (ex) { ex.qty++; }
-  else { hsOrder.push({ name, price, qty: 1, size: "", color: "", notes: "" }); }
-  updateHsOrderBtn();
-  showToast(`"${name}" added to order list!`);
-}
-
-function hsQty(idx, delta) {
-  const item = hsOrder[idx];
-  if (!item) return;
-  item.qty = Math.max(1, item.qty + delta);
-  updateHsOrderBtn();
-  renderHsModal();
-}
-
-function hsRemove(idx) {
-  hsOrder.splice(idx, 1);
-  updateHsOrderBtn();
-  renderHsModal();
-}
-document.getElementById('hsMsgModal')?.addEventListener('click', function(e) {
-  if (e.target === this) closeHsModal();
-});
-
-function updateHsOrderBtn() {
-  const qty = hsOrder.reduce((s, i) => s + i.qty, 0);
-  const el = document.getElementById("hsItemCount");
-  el.textContent = qty;
-  el.classList.add("bump");
-  setTimeout(() => el.classList.remove("bump"), 200);
-}
-
-function openHsModal() {
-  renderHsModal();
-  document.getElementById("hsMsgModal").classList.add("open");
-  a11yOpenTrap(document.getElementById("hsMsgModal"));
-}
-function closeHsModal() {
-  document.getElementById("hsMsgModal").classList.remove("open");
-  a11yCloseTrap();
-}
-
-function renderHsModal() {
-  const orderRows = hsOrder.length === 0
-    ? `<div style="color:#555;font-size:13px;padding:12px 0;font-style:italic;">No items added yet — browse products and click "+ Add to Order"</div>`
-    : hsOrder.map((item, i) => `
-        <div class="hs-cart-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding:10px 0;">
-          <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-            <span class="hs-cart-item-name">${item.name}</span>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <button class="qty-btn" style="background:#161618;border-color:#2a2a2e;" onclick="hsQty(${i},-1)">−</button>
-              <span class="qty-val" style="background:#0a0a0c;border-color:#2a2a2e;">${item.qty}</span>
-              <button class="qty-btn" style="background:#161618;border-color:#2a2a2e;" onclick="hsQty(${i},1)">+</button>
-              <button class="ci-remove" onclick="hsRemove(${i})" aria-label="Remove item from HS order">✕</button>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;">
-            <input type="text" placeholder="Size (e.g. L, XL, 2XL)" value="${item.size}"
-              onchange="hsOrder[${i}].size=this.value"
-              style="background:#0a0a0c;border:1px solid #2a2a2e;color:#f0f0f2;padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;">
-            <input type="text" placeholder="Color (e.g. Black, Grey)" value="${item.color}"
-              onchange="hsOrder[${i}].color=this.value"
-              style="background:#0a0a0c;border:1px solid #2a2a2e;color:#f0f0f2;padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;">
-          </div>
-        </div>`).join("");
-
-  document.getElementById("hsMsgModal").innerHTML = `
-    <div class="hs-modal-box">
-      <div class="hs-modal-head">
-        <h3>HS <span>ORDER</span> FORM</h3>
-        <button class="btn-close-hs" onclick="closeHsModal()" aria-label="Close HS order form">✕</button>
-      </div>
-      <div class="hs-modal-body" id="hsFormWrap">
-
-        <div class="hs-form-sec">Your Order</div>
-        <div style="margin-bottom:18px;">${orderRows}</div>
-
-        <div class="hs-form-sec">Your Information</div>
-        <div class="hs-form-grid">
-          <div class="hs-field"><label>First Name *</label><input id="hs-first" type="text" placeholder="Jane" required><div class="field-error" id="hs-first-error"></div></div>
-          <div class="hs-field"><label>Last Name *</label><input id="hs-last" type="text" placeholder="Smith" required><div class="field-error" id="hs-last-error"></div></div>
-          <div class="hs-field full"><label>Email *</label><input id="hs-email" type="email" placeholder="jane@example.com" required pattern="[^\s@]+@[^\s@]+\.[^\s@]+"><div class="field-error" id="hs-email-error"></div></div>
-          <div class="hs-field full"><label>Phone</label><input id="hs-phone" type="tel" placeholder="(304) 555-0100" pattern="[\d\s()+.-]{7,}"><div class="field-error" id="hs-phone-error"></div></div>
-          <div class="hs-field full"><label>Shipping Address *</label><input id="hs-addr" type="text" placeholder="123 Main St, Huntington, WV 25701" required><div class="field-error" id="hs-addr-error"></div></div>
-          <div class="hs-field full"><label>Additional Notes</label>
-            <textarea id="hs-notes" placeholder="Any special requests, additional size/color info, etc..."></textarea>
-          </div>
-        </div>
-
-        <div class="hs-submit-row">
-          <button class="btn-hs-submit" id="hsSubmitBtn" onclick="submitHsOrder()" ${hsOrder.length===0?'disabled':''}>
-            <span class="spinner" id="hsSpinner" style="display:none;"></span>
-            <span id="hsSubmitLabel">🔩 Submit Order to Huntington Steel</span>
-          </button>
-        </div>
-      </div>
-      <div class="hs-success-screen" id="hsSuccessScreen" style="display:none;">
-        <div class="hs-suc-icon">✅</div>
-        <div class="hs-suc-title">ORDER RECEIVED!</div>
-        <div class="hs-suc-text" id="hsSuccessText"></div>
-        <button class="btn-hs-suc" onclick="closeHsModal()">Continue Shopping</button>
-      </div>
-    </div>`;
-}
-
-function submitHsOrder() {
-  if (!hsOrder.length) { showToast('Add at least one item to your order first'); return; }
-  const v = id => document.getElementById(id)?.value.trim();
-  clearFieldErrors(['hs-first','hs-last','hs-email','hs-phone','hs-addr']);
-  var firstError = null;
-  const markError = (id, msg) => { showFieldError(id, msg); if (!firstError) firstError = id; };
-
-  if (!v('hs-first')) markError('hs-first', 'First name is required');
-  if (!v('hs-last')) markError('hs-last', 'Last name is required');
-  if (!v('hs-email')) markError('hs-email', 'Email is required');
-  else if (!EMAIL_PATTERN.test(v('hs-email'))) markError('hs-email', 'Enter a valid email address');
-  if (v('hs-phone') && !PHONE_PATTERN.test(v('hs-phone'))) markError('hs-phone', 'Enter a valid phone number');
-  if (!v('hs-addr')) markError('hs-addr', 'Shipping address is required');
-
-  if (firstError) { document.getElementById(firstError)?.focus(); return; }
-
-  const btn = document.getElementById('hsSubmitBtn');
-  const spinner = document.getElementById('hsSpinner');
-  const label = document.getElementById('hsSubmitLabel');
-  btn.disabled = true;
-  spinner.style.display = 'inline-block';
-  label.textContent = 'Sending...';
-
-  const firstName = v('hs-first'), email = v('hs-email');
-  const orderSummary = hsOrder.map(i => `${i.name} × ${i.qty}${i.size?` (Size: ${i.size})`:''}${i.color?` (Color: ${i.color})`:''}`).join('\n');
-
-  const templateParams = {
-    to_email:     'erin@underpressurecustomapparel.com',
-    from_name:    `${firstName} ${v('hs-last')}`,
-    from_email:   email,
-    phone:        v('hs-phone'),
-    shipping_address: v('hs-addr'),
-    notes:        v('hs-notes') || 'None',
-    order_summary: orderSummary,
-    submitted_at: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
-    reply_to:     email,
-  };
-
-  const finish = () => {
-    logProductionOrder({
-      store: 'Huntington Steel',
-      customer: `${firstName} ${v('hs-last')}`,
-      phone: v('hs-phone') || '',
-      email: email,
-      items: hsOrder.map(i => ({ name: i.name, qty: i.qty, size: i.size, color: i.color })),
-    });
-    showHsSuccess(firstName, email);
-    hsOrder = [];
-    btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🔩 Submit Order to Huntington Steel';
-  };
-
-  if (typeof emailjs === 'undefined' || EMAILJS_SERVICE_ID === 'YOUR_EMAILJS_SERVICE_ID') {
-    setTimeout(finish, 900);
-    return;
-  }
-
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-    .then(finish)
-    .catch(err => {
-      console.error('EmailJS error:', err);
-      showToast('Submission failed — please try again or call (304) 633-6401');
-      btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🔩 Submit Order to Huntington Steel';
-    });
-}
-
-function showHsSuccess(firstName, email) {
-  document.getElementById('hsFormWrap').style.display = 'none';
-  const success = document.getElementById('hsSuccessScreen');
-  success.style.display = 'block';
-  document.getElementById('hsSuccessText').innerHTML =
-    `Thank you, <strong>${firstName}</strong>!<br><br>` +
-    `Your order has been sent directly to the Huntington Steel team at<br>` +
-    `<strong style="color:#c8102e;">erin@underpressurecustomapparel.com</strong><br><br>` +
-    `They will follow up at <strong>${email}</strong> to confirm and process your order.<br>` +
-    `Questions? Call <strong>(304) 633-6401</strong>.`;
-}
-
-
 // ══════════════════════════════════════════════════════
 //  TEAM STORES SYSTEM
 // ══════════════════════════════════════════════════════
@@ -4666,7 +4463,7 @@ async function submitDesign() {
     return;
   }
 
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_DESIGN_TEMPLATE_ID, templateParams)
     .then(() => {
       showDesignSuccess(v('d-first'), v('d-email'), fileNames);
     })
@@ -4793,13 +4590,20 @@ function submitQuote() {
     return;
   }
 
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_QUOTE_TEMPLATE_ID, templateParams)
     .then(() => showQuoteSuccess(name, email, players, coaches))
     .catch(() => {
       showToast('Submission failed — please try again or call (304) 633-6401');
       btn.disabled = false;
       btn.textContent = '📋 Request My Team Quote';
     });
+
+  // Optional second copy to Erin with additional quote detail — independent of the
+  // send above, so a failure here never blocks the customer's success screen.
+  if (EMAILJS_QUOTE_ERIN_TEMPLATE_ID) {
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_QUOTE_ERIN_TEMPLATE_ID, templateParams)
+      .catch(err => console.error('Quote details (Erin copy) email failed:', err));
+  }
 }
 
 function showQuoteSuccess(name, email, players, coaches) {
@@ -5245,6 +5049,46 @@ function toggleProductionComplete(id) {
   }
 }
 
+// Sends the "Your Order Is Ready" email to the customer on file for this order.
+// Independent of the completion checkbox — Erin chooses when to notify, rather than
+// this firing automatically (and possibly un-firing) every time the checkbox is toggled.
+function markOrderReady(id) {
+  const o = productionOrders.find(p => p.id === id);
+  if (!o) return;
+  if (!o.email) { showToast('This order has no email on file — nothing to send.'); return; }
+
+  if (o.readyNotified && !confirm(`This order was already marked ready. Send the "order is ready" email to ${o.email} again?`)) return;
+
+  if (typeof emailjs === 'undefined' || EMAILJS_SERVICE_ID === 'YOUR_EMAILJS_SERVICE_ID' || !EMAILJS_ORDER_READY_TEMPLATE_ID) {
+    showToast('Set an "Order Ready" template in Admin → Integrations before sending this.');
+    return;
+  }
+
+  const itemsSummary = (o.items||[]).map(i => `${i.name} × ${i.qty||1}${i.size?` (Size: ${i.size})`:''}${i.color?` (Color: ${i.color})`:''}`).join('\n');
+  const templateParams = {
+    to_email:      o.email,
+    customer_name: o.customer || '',
+    order_id:      String(o.id),
+    order_items:   itemsSummary,
+    store:         o.store || '',
+    submitted_at:  new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+    reply_to:      'erin@underpressurecustomapparel.com',
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_READY_TEMPLATE_ID, templateParams)
+    .then(() => {
+      o.readyNotified = true;
+      o.readyNotifiedAt = new Date().toISOString();
+      saveProductionOrders();
+      showToast(`"Order Ready" email sent to ${o.email}`);
+      renderAdminPanel('production');
+    })
+    .catch(err => {
+      console.error('Order ready email failed:', err);
+      showToast('Failed to send — check your EmailJS settings in Integrations and try again.');
+    });
+}
+
 function reorderOrder(id) {
   loadProductionOrders();
   loadOrderNotes();
@@ -5351,7 +5195,7 @@ function renderProductionAdmin() {
         if (o._storeRegistration) {
           const storeColor = o.store === 'River City Rampage' ? '#1a6b2f'
             : o.store === 'Rome CoC Youth T-Shirts' ? '#7c3aed'
-            : o.store === 'Huntington Steel' ? '#c8102e' : 'var(--up-blue)';
+            : 'var(--up-blue)';
           return [`<tr style="background:rgba(255,255,255,.02);">
             <td colspan="10" style="padding:8px 12px;border-bottom:1px solid var(--up-border);">
               <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${o.store}</span>
@@ -5363,7 +5207,7 @@ function renderProductionAdmin() {
         }
         const storeColor = o.store === 'River City Rampage' ? '#1a6b2f'
           : o.store === 'Rome CoC Youth T-Shirts' ? '#7c3aed'
-          : o.store === 'Huntington Steel' ? '#c8102e' : 'var(--up-blue)';
+          : 'var(--up-blue)';
         return (o.items||[]).map((item, itemIdx) => {
           const locs = getGraphicLocations(item.name);
           const qty = item.qty || 1;
@@ -5408,6 +5252,7 @@ function renderProductionAdmin() {
               <td class="prod-td" rowspan="${o.items.length}" style="vertical-align:middle;text-align:center;min-width:120px;">
                 <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
                   <button class="btn-reorder" onclick="reorderOrder(${o.id})" title="Duplicate as new order">↺ Reorder</button>
+                  ${o.email ? `<button class="btn-add-note" onclick="markOrderReady(${o.id})" title="${o.readyNotified?'Already notified — click to resend':'Email the customer that their order is ready'}">${o.readyNotified?'✓ Ready (Sent)':'📦 Mark Ready'}</button>` : ''}
                   <button class="btn-add-note" onclick="showNoteInput(${o.id})">${"${orderNotes[o.id]?'✏ Edit Note':'+ Note'}"}</button>
                   <button class="cm-btn-del" onclick="deleteProductionOrder(${o.id})" title="Remove" aria-label="Remove order from production board" style="padding:3px 8px;">✕</button>
                 </div>
@@ -5635,7 +5480,7 @@ function renderPurchaseList() {
 
     const storeColor = storeName === 'River City Rampage' ? '#1a6b2f'
       : storeName === 'Rome CoC Youth T-Shirts' ? '#7c3aed'
-      : storeName === 'Huntington Steel' ? '#c8102e' : 'var(--up-blue)';
+      : 'var(--up-blue)';
 
     const purchaseStatuses = JSON.parse(localStorage.getItem('purchaseStatuses') || '{}');
 
@@ -6290,7 +6135,7 @@ function buildStoreView(orders) {
     const totalCost = d.blankCost + d.printCost;
     const profit = d.revenue - totalCost;
     const margin = d.revenue > 0 ? profit/d.revenue*100 : 0;
-    const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
+    const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     const hasCost = totalCost > 0;
     return `<tr class="cost-row">
       <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;">${store}</span></td>
@@ -6334,7 +6179,7 @@ function buildOrderView(orders) {
     const profit = rev - totalCost;
     const margin = rev > 0 ? profit/rev*100 : 0;
     const hasCost = totalCost > 0;
-    const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':o.store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
+    const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     return `<tr class="cost-row">
       <td class="cost-td">
         <div class="cost-name">${o.customer}</div>
@@ -6472,7 +6317,7 @@ function renderDashboard() {
   const recent = [...real].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,5);
   const recentHTML = recent.length ? recent.map(o => {
     const rev = (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
-    const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':o.store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
+    const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     const ago = timeAgo(new Date(o.timestamp));
     return `<div class="dash-recent-item">
       <div class="dash-recent-dot" style="background:${sc};"></div>
@@ -7032,7 +6877,6 @@ function renderDeadlines() {
             <option value="">General</option>
             <option>River City Rampage</option>
             <option>Rome CoC Youth T-Shirts</option>
-            <option>Huntington Steel</option>
             <option>UP Sportswear</option>
           </select>
         </div>
@@ -7103,7 +6947,6 @@ function loadReviews() {
       { id:3, name:'Pastor David Webb', rating:5, text:"Our youth group loved the Rome CoC shirts! The designs are so creative and fun. A portion going to our ministry made it even more special. Thank you Erin!", store:'Rome CoC Youth', date:'2026-05-08' },
       { id:4, name:'Lisa Monroe', rating:4, text:"Great experience from start to finish. The Be Salty Stay Lit design is hilarious and the quality is excellent. Will definitely be ordering more for our next camp!", store:'Rome CoC Youth', date:'2026-04-25' },
       { id:5, name:'James Carter', rating:5, text:"Under Pressure did our whole team order and everything was flawless. Professional, fast, and the final product was even better than we expected.", store:'UP Sportswear', date:'2026-05-10' },
-      { id:6, name:'Amanda Torres', rating:5, text:"Erin is absolutely the best to work with. She answered every question patiently and made sure our designs were perfect. Our Huntington Steel gear looks amazing.", store:'Huntington Steel', date:'2026-04-30' },
     ];
     localStorage.setItem('upReviews', JSON.stringify(reviews));
   }
@@ -7138,7 +6981,7 @@ function renderReviews() {
   grid.innerHTML = shown.map(r => {
     const storeColor = r.store && r.store.includes('Rampage') ? '#1a6b2f'
       : r.store && r.store.includes('Rome') ? '#7c3aed'
-      : r.store && r.store.includes('Huntington') ? '#c8102e' : 'var(--up-blue)';
+      : 'var(--up-blue)';
     const date = new Date(r.date).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
     return `<div class="review-card" style="border-top-color:${storeColor}">
       <div class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
@@ -7435,7 +7278,6 @@ function renderDiscountAdmin() {
             <option value="all">All Stores</option>
             <option value="River City Rampage">River City Rampage</option>
             <option value="Rome CoC Youth T-Shirts">Rome CoC Youth T-Shirts</option>
-            <option value="Huntington Steel">Huntington Steel</option>
             <option value="UP Sportswear">UP Sportswear</option>
           </select>
         </div>
@@ -7718,10 +7560,220 @@ document.addEventListener('click', function(e) {
 //  TEAM GALLERY (photos live on team records, not standalone)
 // ══════════════════════════════════════════════════════
 
+// ══════════════════════════════════════════════════════
+//  INTEGRATIONS  (PayPal, EmailJS, Cloudflare Images)
+//  All values are stored in localStorage on this browser/
+//  device only. They are read by the checkout, quote, and
+//  design-upload flows at page load.
+// ══════════════════════════════════════════════════════
+function maskSecret(val) {
+  if (!val) return '';
+  if (val.length <= 8) return '•'.repeat(val.length);
+  return val.slice(0, 4) + '•'.repeat(Math.max(val.length - 8, 4)) + val.slice(-4);
+}
 
+function renderIntegrations() {
+  const paypalId      = localStorage.getItem('upPaypalClientId')  || '';
+  const emailjsKey     = localStorage.getItem('upEmailjsKey')     || '';
+  const emailjsService = localStorage.getItem('upEmailjsService') || '';
+  const emailjsTemplate= localStorage.getItem('upEmailjsTemplate')|| '';
+  const emailjsDesignTemplate = localStorage.getItem('upEmailjsDesignTemplate') || '';
+  const emailjsQuoteTemplate  = localStorage.getItem('upEmailjsQuoteTemplate')  || '';
+  const emailjsQuoteErinTemplate     = localStorage.getItem('upEmailjsQuoteErinTemplate')     || '';
+  const emailjsOrderConfirmTemplate  = localStorage.getItem('upEmailjsOrderConfirmTemplate')  || '';
+  const emailjsNewOrderTemplate      = localStorage.getItem('upEmailjsNewOrderTemplate')      || '';
+  const emailjsOrderReadyTemplate    = localStorage.getItem('upEmailjsOrderReadyTemplate')    || '';
+  const cfAccountId    = localStorage.getItem('upCfAccountId')    || '';
+  const cfImagesToken  = localStorage.getItem('upCfImagesToken')  || '';
 
+  const paypalConfigured  = !!paypalId && paypalId !== 'YOUR_PAYPAL_CLIENT_ID';
+  const emailjsConfigured = !!emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY';
+  const cfConfigured      = !!cfAccountId && !!cfImagesToken;
 
+  const statusBadge = (ok) => `<span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;padding:3px 9px;border-radius:20px;text-transform:uppercase;
+    background:${ok ? 'rgba(74,222,128,.12)' : 'rgba(200,16,46,.12)'};color:${ok ? '#4ade80' : 'var(--hs-red)'};border:1px solid ${ok ? '#4ade80' : 'var(--hs-red)'};">
+    ${ok ? '● Connected' : '○ Not Configured'}</span>`;
 
+  return `
+    <div class="cm-section-head">
+      <div>
+        <div class="cm-section-title" style="color:var(--accent);">Integrations</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">
+          API keys and connected services for this store
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYPAL -->
+    <div class="disc-add-form" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">💳 PayPal Checkout</div>
+        ${statusBadge(paypalConfigured)}
+      </div>
+      <div class="df" style="margin-bottom:12px;">
+        <label>Client ID</label>
+        <input id="intPaypalId" type="text" placeholder="Paste your PayPal Client ID from developer.paypal.com"
+          value="${paypalId === 'YOUR_PAYPAL_CLIENT_ID' ? '' : paypalId.replace(/"/g,'&quot;')}"
+          style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+      </div>
+      <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);margin-bottom:12px;">
+        Get this from <a href="https://developer.paypal.com" target="_blank" rel="noopener noreferrer" style="color:#1565ff;">developer.paypal.com</a> → Apps & Credentials. This is a public/publishable ID — safe to store in the browser.
+      </div>
+      <button class="btn-save-up" style="background:var(--accent);color:#000;" onclick="saveIntegration('upPaypalClientId','intPaypalId')">💾 Save PayPal ID</button>
+    </div>
+
+    <!-- EMAILJS -->
+    <div class="disc-add-form" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">✉️ EmailJS</div>
+        ${statusBadge(emailjsConfigured)}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="df">
+          <label>Public Key</label>
+          <input id="intEmailjsKey" type="text" placeholder="e.g. OKEA4c6QDAWLOfpja" value="${emailjsKey.replace(/"/g,'&quot;')}"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+        </div>
+        <div class="df">
+          <label>Service ID</label>
+          <input id="intEmailjsService" type="text" placeholder="e.g. service_nd1nxhg" value="${emailjsService.replace(/"/g,'&quot;')}"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+        </div>
+      </div>
+      <div class="df" style="margin-bottom:12px;">
+        <label>Default Template ID (used if a flow-specific template below is blank)</label>
+        <input id="intEmailjsTemplate" type="text" placeholder="e.g. template_wrlckh4" value="${emailjsTemplate.replace(/"/g,'&quot;')}"
+          style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="df">
+          <label>Submit a Player Template</label>
+          <input id="intEmailjsDesignTemplate" type="text" placeholder="Leave blank to use the default template" value="${emailjsDesignTemplate.replace(/"/g,'&quot;')}"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+        </div>
+        <div class="df">
+          <label>Request a Quote Template</label>
+          <input id="intEmailjsQuoteTemplate" type="text" placeholder="Leave blank to use the default template" value="${emailjsQuoteTemplate.replace(/"/g,'&quot;')}"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+        </div>
+      </div>
+      <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);margin-bottom:12px;">
+        Find these in your <a href="https://dashboard.emailjs.com" target="_blank" rel="noopener noreferrer" style="color:#1565ff;">EmailJS dashboard</a> under Account → General and Email Templates. Each form (Submit a Player, Request a Quote) can use its own template with different fields/wording — leave a field blank to fall back to the Default Template above.
+      </div>
+
+      <div style="border-top:1px solid var(--up-border);margin:16px 0;padding-top:14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-bottom:10px;">Order &amp; Quote Notifications</div>
+        <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);margin-bottom:12px;">
+          These don't have a default fallback — if a field below is blank, that email is simply not sent (rather than risk sending the wrong template).
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="df">
+            <label>Order Confirmation (to customer)</label>
+            <input id="intEmailjsOrderConfirmTemplate" type="text" placeholder="e.g. template_u9xkwsk" value="${emailjsOrderConfirmTemplate.replace(/"/g,'&quot;')}"
+              style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+          </div>
+          <div class="df">
+            <label>New Order Made (to Erin)</label>
+            <input id="intEmailjsNewOrderTemplate" type="text" placeholder="e.g. template_9ux0z6q" value="${emailjsNewOrderTemplate.replace(/"/g,'&quot;')}"
+              style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="df">
+            <label>Quote Details (2nd copy to Erin)</label>
+            <input id="intEmailjsQuoteErinTemplate" type="text" placeholder="e.g. template_jr7ydxn" value="${emailjsQuoteErinTemplate.replace(/"/g,'&quot;')}"
+              style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+          </div>
+          <div class="df">
+            <label>Order Ready (to customer)</label>
+            <input id="intEmailjsOrderReadyTemplate" type="text" placeholder="e.g. template_gcwkegk" value="${emailjsOrderReadyTemplate.replace(/"/g,'&quot;')}"
+              style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+          </div>
+        </div>
+        <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);margin-bottom:12px;">
+          Order Confirmation and New Order Made send automatically right after a successful checkout. Quote Details sends automatically alongside the Request a Quote email. Order Ready sends only when you click "📦 Mark Ready" on an order in the Production Board.
+        </div>
+      </div>
+
+      <button class="btn-save-up" style="background:var(--accent);color:#000;" onclick="saveEmailjsIntegration()">💾 Save EmailJS Settings</button>
+    </div>
+
+    <!-- CLOUDFLARE IMAGES -->
+    <div class="disc-add-form">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">☁️ Cloudflare Images</div>
+        ${statusBadge(cfConfigured)}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="df">
+          <label>Account ID</label>
+          <input id="intCfAccountId" type="text" placeholder="Cloudflare Account ID" value="${cfAccountId.replace(/"/g,'&quot;')}"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+        </div>
+        <div class="df">
+          <label>Images API Token</label>
+          <input id="intCfImagesToken" type="password" placeholder="${cfImagesToken ? maskSecret(cfImagesToken) : 'Paste Images API token'}"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+        </div>
+      </div>
+      <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);margin-bottom:12px;">
+        ⚠️ This token is used by the <code>up-store-api</code> Worker's <code>/images/upload</code> endpoint, which is where uploads are actually processed — saving it here is for admin reference only and does not change the Worker's live secret. To rotate the Worker's key, update the <code>CF_IMAGES_TOKEN</code> secret directly in Cloudflare.
+      </div>
+      <button class="btn-save-up" style="background:var(--accent);color:#000;" onclick="saveCloudflareIntegration()">💾 Save Cloudflare Reference</button>
+    </div>
+  `;
+}
+
+function saveIntegration(storageKey, inputId) {
+  const val = document.getElementById(inputId)?.value.trim();
+  if (!val) { showToast('Please enter a value before saving'); return; }
+  localStorage.setItem(storageKey, val);
+  showToast('Saved. Reload the page for it to take effect on checkout.');
+  renderAdminPanel('integrations');
+}
+
+function saveEmailjsIntegration() {
+  const key           = document.getElementById('intEmailjsKey')?.value.trim();
+  const service       = document.getElementById('intEmailjsService')?.value.trim();
+  const template      = document.getElementById('intEmailjsTemplate')?.value.trim();
+  const designTemplate= document.getElementById('intEmailjsDesignTemplate')?.value.trim();
+  const quoteTemplate = document.getElementById('intEmailjsQuoteTemplate')?.value.trim();
+  const quoteErinTemplate    = document.getElementById('intEmailjsQuoteErinTemplate')?.value.trim();
+  const orderConfirmTemplate = document.getElementById('intEmailjsOrderConfirmTemplate')?.value.trim();
+  const newOrderTemplate     = document.getElementById('intEmailjsNewOrderTemplate')?.value.trim();
+  const orderReadyTemplate   = document.getElementById('intEmailjsOrderReadyTemplate')?.value.trim();
+  if (!key || !service || !template) { showToast('Public Key, Service ID, and Default Template are required'); return; }
+  localStorage.setItem('upEmailjsKey', key);
+  localStorage.setItem('upEmailjsService', service);
+  localStorage.setItem('upEmailjsTemplate', template);
+  // Per-flow templates are optional — remove the stored value if the field was cleared,
+  // so the flow correctly falls back to the default template instead of an old value.
+  if (designTemplate) localStorage.setItem('upEmailjsDesignTemplate', designTemplate);
+  else localStorage.removeItem('upEmailjsDesignTemplate');
+  if (quoteTemplate) localStorage.setItem('upEmailjsQuoteTemplate', quoteTemplate);
+  else localStorage.removeItem('upEmailjsQuoteTemplate');
+  // These four have no fallback — a blank field means that email is simply not sent.
+  if (quoteErinTemplate) localStorage.setItem('upEmailjsQuoteErinTemplate', quoteErinTemplate);
+  else localStorage.removeItem('upEmailjsQuoteErinTemplate');
+  if (orderConfirmTemplate) localStorage.setItem('upEmailjsOrderConfirmTemplate', orderConfirmTemplate);
+  else localStorage.removeItem('upEmailjsOrderConfirmTemplate');
+  if (newOrderTemplate) localStorage.setItem('upEmailjsNewOrderTemplate', newOrderTemplate);
+  else localStorage.removeItem('upEmailjsNewOrderTemplate');
+  if (orderReadyTemplate) localStorage.setItem('upEmailjsOrderReadyTemplate', orderReadyTemplate);
+  else localStorage.removeItem('upEmailjsOrderReadyTemplate');
+  showToast('EmailJS settings saved. Reload the page for it to take effect.');
+  renderAdminPanel('integrations');
+}
+
+function saveCloudflareIntegration() {
+  const accountId = document.getElementById('intCfAccountId')?.value.trim();
+  const token     = document.getElementById('intCfImagesToken')?.value.trim();
+  if (!accountId) { showToast('Account ID is required'); return; }
+  localStorage.setItem('upCfAccountId', accountId);
+  if (token) localStorage.setItem('upCfImagesToken', token);
+  showToast('Cloudflare reference info saved.');
+  renderAdminPanel('integrations');
+}
 
 
 // ══════════════════════════════════════════════════════
@@ -7753,7 +7805,7 @@ function renderInvoiceAdmin() {
   const listHTML = real.length ? real.map(o => {
     const total = (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
     const invoiceNum = getInvoiceNumber(o.id);
-    const storeColor = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':o.store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
+    const storeColor = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     return `<div class="invoice-row">
       <div class="invoice-num-badge">${invoiceNum}</div>
       <div class="invoice-customer">
@@ -7833,7 +7885,6 @@ function renderInvoiceAdmin() {
         <div class="admin-nav-item" id="anav-invoices" onclick="renderAdminPanel('invoices')">🧾 <span class="admin-nav-item-label">Invoices</span></div>
         <div class="admin-nav-item" id="anav-discounts" onclick="renderAdminPanel('discounts')">🏷 <span class="admin-nav-item-label">Discounts</span></div>
 
-        <div class="admin-nav-item" id="anav-security" onclick="renderAdminPanel('security')">🔒 <span class="admin-nav-item-label">Security</span></div>
         <div class="admin-nav-item" id="anav-integrations" onclick="renderAdminPanel('integrations')">🔌 <span class="admin-nav-item-label">Integrations</span></div>
         <div class="admin-nav-no-results" id="adminNavNoResults" style="display:none;">No matching sections</div>
       </div>
@@ -8104,7 +8155,6 @@ function renderAdminPanel(tab) {
       case 'invoices':     content.innerHTML = renderInvoiceAdmin();    break;
       case 'discounts':    content.innerHTML = renderDiscountAdmin();   break;
 
-      case 'security':     content.innerHTML = renderPinSettings();     break;
       case 'integrations': content.innerHTML = renderIntegrations();   break;
       default:             content.innerHTML = renderDashboard();       break;
     }
@@ -8166,7 +8216,6 @@ const A11Y_MODALS = [
   { id: 'cartDrawer',     close: () => closeCart() },
   { id: 'checkoutModal',  close: () => closeCheckout() },
   { id: 'quoteModal',     close: () => closeQuoteModal() },
-  { id: 'hsMsgModal',     close: () => closeHsModal() },
   { id: 'editModal',      close: () => closeEditModal() },
   { id: 'costEntryModal', close: () => closeCostModal() },
   { id: 'reviewModal',    close: () => closeReviewModal() },
