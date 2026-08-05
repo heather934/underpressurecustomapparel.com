@@ -4,6 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Under Pressure Custom Apparel</title>
+<meta name="description" content="Custom team apparel, sportswear, and gear built under pressure. Shop team stores, request a custom design, or get a quote for your team, league, or organization.">
+
+<!-- Open Graph / social link previews (Facebook, iMessage, etc.) -->
+<meta property="og:title" content="Under Pressure Custom Apparel">
+<meta property="og:description" content="Custom team apparel, sportswear, and gear built under pressure. Shop team stores, request a custom design, or get a quote for your team, league, or organization.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://underpressurecustomapparel.com">
+<meta property="og:image" content="https://underpressurecustomapparel.com/og-image.png">
+
+<!-- Twitter/X card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Under Pressure Custom Apparel">
+<meta name="twitter:description" content="Custom team apparel, sportswear, and gear built under pressure.">
+<meta name="twitter:image" content="https://underpressurecustomapparel.com/og-image.png">
+
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
 <!-- PayPal — Client ID read from Admin → Integrations or hardcoded below -->
 <script>
@@ -3188,7 +3203,7 @@ function submitHsOrder() {
     .then(finish)
     .catch(err => {
       console.error('EmailJS error:', err);
-      showToast('Submission failed — please try again or call (304) 633-6401');
+      showToast('Submission failed — please try again or email erin@underpressurecustomapparel.com');
       btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🔩 Submit Order to Huntington Steel';
     });
 }
@@ -3202,7 +3217,7 @@ function showHsSuccess(firstName, email) {
     `Your order has been sent directly to the Huntington Steel team at<br>` +
     `<strong style="color:#c8102e;">erin@underpressurecustomapparel.com</strong><br><br>` +
     `They will follow up at <strong>${email}</strong> to confirm and process your order.<br>` +
-    `Questions? Call <strong>(304) 633-6401</strong>.`;
+    `Questions? Email <strong>erin@underpressurecustomapparel.com</strong>.`;
 }
 
 
@@ -3819,7 +3834,7 @@ async function submitDesign() {
     })
     .catch(err => {
       console.error('EmailJS error:', err);
-      showToast('Submission failed — please try again or call (304) 633-6401');
+      showToast('Submission failed — please try again or email erin@underpressurecustomapparel.com');
     })
     .finally(() => {
       btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🎨 Submit Player Design';
@@ -3952,7 +3967,7 @@ function submitQuote() {
     if (anySuccess) {
       showQuoteSuccess(name, email, players, coaches);
     } else {
-      showToast('Submission failed — please try again or call (304) 633-6401');
+      showToast('Submission failed — please try again or email erin@underpressurecustomapparel.com');
       btn.disabled = false;
       btn.textContent = '📋 Request My Team Quote';
     }
