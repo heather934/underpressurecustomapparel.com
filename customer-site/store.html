@@ -290,8 +290,22 @@ nav{display:flex;gap:6px;align-items:center;}
 ──────────────────────────────────────────────────────────────── */
 .p-img{aspect-ratio:1;overflow:hidden;position:relative;background:var(--up-card);display:flex;align-items:center;justify-content:center;font-size:58px;}.p-img.has-img{background:#fff;}
 .p-img-color{position:absolute;inset:0;transition:background-color .28s ease;z-index:0;mix-blend-mode:multiply;pointer-events:none;}
-.p-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;z-index:1;transition:transform .4s;}
+.p-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;z-index:1;transition:transform .4s,opacity .2s;}
 .p-card:hover .p-img img{transform:scale(1.04);}
+.p-img img.p-img-back{opacity:0;pointer-events:none;}
+.p-img.showing-back img.p-img-front{opacity:0;}
+.p-img.showing-back img.p-img-back{opacity:1;}
+/* Front/back toggle pill */
+.p-flip-btn{
+  position:absolute;bottom:9px;right:9px;z-index:3;
+  background:rgba(6,8,16,.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.25);
+  color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;
+  opacity:0;transform:translateY(6px);
+}
+.p-card:hover .p-flip-btn{opacity:1;transform:translateY(0);}
+.p-flip-btn:hover{background:var(--up-blue);border-color:var(--up-blue);}
+.p-flip-btn svg{width:11px;height:11px;flex-shrink:0;}
 /* Swatch strip */
 .p-swatches{display:flex;gap:7px;flex-wrap:wrap;padding:8px 14px 12px;align-items:center;}
 .p-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,box-shadow .15s,border-color .15s;flex-shrink:0;position:relative;}
@@ -2974,11 +2988,16 @@ function renderUP(filter="all"){
     const firstColor = colors ? getColorHex(colors[0]) : '#fff';
     const firstName  = colors ? colors[0] : '';
     return `<div class="p-card" style="animation:slideUp .5s ${i*.05}s ease both">
-      <div class="p-img${p.img?' has-img':''}">
+      <div class="p-img${p.img?' has-img':''}" id="pimg-${cardId}">
         <div class="p-img-color" id="pcolor-${cardId}" style="background-color:${firstColor};"></div>
-        ${p.img?`<img src="${p.img}" alt="${p.name}" onerror="this.style.display='none';this.closest('.p-img').classList.remove('has-img')">`:
+        ${p.img?`<img class="p-img-front" src="${p.img}" alt="${p.name}" onerror="this.style.display='none';this.closest('.p-img').classList.remove('has-img')">`:
           `<span style="position:relative;z-index:2;mix-blend-mode:normal;">${icon}</span>`}
+        ${p.imgBack?`<img class="p-img-back" src="${p.imgBack}" alt="${p.name} back view">`:""}
         <div class="p-badge blue">UP Original</div>
+        ${p.imgBack?`<button class="p-flip-btn" onclick="event.stopPropagation();flipCard('${cardId}',this)" title="See back view">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.6v-2a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.4v2a4 4 0 0 1-4 4H3"/></svg>
+          <span class="p-flip-label">Back</span>
+        </button>`:""}
         <div class="p-hover">
           ${hasP?`<button class="btn-cart-add" onclick="addToCart(${p.id})">+ Add to Cart</button>`:""}
           <button class="btn-printavo" onclick="openQuoteModal()" style="margin-top:${hasP?"6px":"0"};border:none;cursor:pointer;">✉️ Contact Us</button>
@@ -4805,6 +4824,19 @@ function setSwatchColor(cardId, colorName) {
   // Update label
   const label = document.getElementById('pcolor-label-' + cardId);
   if (label) label.textContent = colorName;
+}
+
+// ── Front/back image toggle ───────────────────────────────────────
+// Flips the .p-img container between front and back product photos.
+// Both images share the same .p-img-color tint layer, so the
+// selected swatch color stays applied when flipping.
+function flipCard(cardId, btn) {
+  const wrap = document.getElementById('pimg-' + cardId);
+  if (!wrap) return;
+  const showingBack = wrap.classList.toggle('showing-back');
+  const label = btn && btn.querySelector('.p-flip-label');
+  if (label) label.textContent = showingBack ? 'Front' : 'Back';
+  if (btn) btn.title = showingBack ? 'See front view' : 'See back view';
 }
 
 // ── Build swatch strip ────────────────────────────────────────────
