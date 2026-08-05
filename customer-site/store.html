@@ -2098,6 +2098,17 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
 .processing-overlay-text{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--up-white);text-align:center;padding:0 24px;}
 .paypal-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px 0;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;}
 .paypal-loading .processing-spinner-lg{width:26px;height:26px;border-width:2px;}
+/* ── SHIPPING OPTIONS ── */
+.shipping-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.ship-opt{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--up-navy);border:1px solid var(--up-border);cursor:pointer;transition:border-color .2s;}
+.ship-opt input[type="radio"]{accent-color:var(--up-blue);width:16px;height:16px;flex-shrink:0;}
+.ship-opt.active{border-color:var(--up-blue);background:rgba(21,101,255,.08);}
+.ship-opt:hover{border-color:var(--up-blue);}
+.ship-opt-info{display:flex;flex-direction:column;flex:1;}
+.ship-opt-name{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:var(--up-white);}
+.ship-opt-desc{font-size:12px;color:var(--up-mist);font-weight:300;margin-top:2px;}
+.ship-opt-price{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--up-white);white-space:nowrap;}
+.ship-opt.active .ship-opt-price{color:var(--up-sky);}
 </style>
 </head>
 <body>
@@ -2920,13 +2931,23 @@ function validateCustomer(){
   if(!v("c-email")) markError("c-email","Email is required");
   else if(!EMAIL_PATTERN.test(v("c-email"))) markError("c-email","Enter a valid email address");
   if(v("c-phone") && !PHONE_PATTERN.test(v("c-phone"))) markError("c-phone","Enter a valid phone number");
-  if(!v("c-addr")) markError("c-addr","Shipping address is required");
-  if(!v("c-city")) markError("c-city","City is required");
-  if(!v("c-zip")) markError("c-zip","ZIP code is required");
-  else if(!/^\d{5}(-\d{4})?$/.test(v("c-zip"))) markError("c-zip","Enter a valid ZIP code");
+  if(selectedShipping === 'usps') {
+    if(!v("c-addr")) markError("c-addr","Shipping address is required");
+    if(!v("c-city")) markError("c-city","City is required");
+    if(!v("c-zip")) markError("c-zip","ZIP code is required");
+    else if(!/^\d{5}(-\d{4})?$/.test(v("c-zip"))) markError("c-zip","Enter a valid ZIP code");
+  }
 
   if(firstError){document.getElementById(firstError)?.focus();return false;}
-  customerInfo={first:v("c-first"),last:v("c-last"),email:v("c-email"),phone:v("c-phone"),addr:v("c-addr"),city:v("c-city"),state:v("c-state"),zip:v("c-zip"),notes:v("c-notes")};
+  customerInfo={
+    first:v("c-first"),last:v("c-last"),email:v("c-email"),phone:v("c-phone"),
+    addr:selectedShipping==='usps'?v("c-addr"):'',
+    city:selectedShipping==='usps'?v("c-city"):'',
+    state:selectedShipping==='usps'?v("c-state"):'',
+    zip:selectedShipping==='usps'?v("c-zip"):'',
+    notes:v("c-notes"),
+    shippingMethod:selectedShipping==='pickup'?'Porch Pickup':selectedShipping==='local'?'Meet Locally':'USPS Priority Mail'
+  };
   return true;
 }
 function renderPayPal(){
