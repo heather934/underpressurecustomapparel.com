@@ -2742,6 +2742,7 @@ function showAllHS(){document.querySelectorAll("#hsGrid .p-card.hidden").forEach
 const catIcons={'sportswear-tees':"👕",'sportswear-hoodies':"🧥",'sportswear-shorts':"🩳",'sportswear-jackets':"🧥",'sportswear-hats':"🧢",'sportswear-accessories':"🎒",'sportswear-womens':"👗",'sportswear-youth':"🧒"};
 const catLabels={'sportswear-tees':"Perf. Tees",'sportswear-hoodies':"Hoodies",'sportswear-shorts':"Shorts",'sportswear-jackets':"Jackets",'sportswear-hats':"Hats",'sportswear-accessories':"Accessories",'sportswear-womens':"Women's",'sportswear-youth':"Youth"};
 let cart=[];
+let selectedShipping = 'usps'; // 'pickup' | 'local' | 'usps'
 function cartTotal(){return cart.reduce((s,i)=>s+(i.price*i.qty),0);}
 function cartQty(){return cart.reduce((s,i)=>s+i.qty,0);}
 function updateCartUI(){
@@ -2818,16 +2819,45 @@ function renderCheckoutForm(){
   document.getElementById("checkoutContent").innerHTML=`
     <div class="modal-head"><h3>CHECKOUT</h3><button class="btn-close-m" onclick="closeCheckout()" aria-label="Close checkout">✕</button></div>
     <div class="modal-body">
+      <div class="modal-sec-title">Shipping Method</div>
+      <div class="shipping-opts">
+        <label class="ship-opt ${selectedShipping==='pickup'?'active':''}">
+          <input type="radio" name="shipMethod" value="pickup" ${selectedShipping==='pickup'?'checked':''} onchange="selectShipping('pickup')">
+          <div class="ship-opt-info">
+            <span class="ship-opt-name">🏠 Porch Pickup</span>
+            <span class="ship-opt-desc">Local orders only — we'll coordinate a dropoff</span>
+          </div>
+          <span class="ship-opt-price">FREE</span>
+        </label>
+        <label class="ship-opt ${selectedShipping==='local'?'active':''}">
+          <input type="radio" name="shipMethod" value="local" ${selectedShipping==='local'?'checked':''} onchange="selectShipping('local')">
+          <div class="ship-opt-info">
+            <span class="ship-opt-name">🤝 Huntington Area</span>
+            <span class="ship-opt-desc">Meet locally in the Huntington area</span>
+          </div>
+          <span class="ship-opt-price">$5.00</span>
+        </label>
+        <label class="ship-opt ${selectedShipping==='usps'?'active':''}">
+          <input type="radio" name="shipMethod" value="usps" ${selectedShipping==='usps'?'checked':''} onchange="selectShipping('usps')">
+          <div class="ship-opt-info">
+            <span class="ship-opt-name">📦 USPS Priority Mail</span>
+            <span class="ship-opt-desc">Shipped to your door</span>
+          </div>
+          <span class="ship-opt-price">$${getUPShipping().toFixed(2)}</span>
+        </label>
+      </div>
       <div class="modal-sec-title">Your Information</div>
       <div class="form-grid">
         <div class="form-f"><label>First Name *</label><input id="c-first" type="text" placeholder="Jane" required><div class="field-error" id="c-first-error"></div></div>
         <div class="form-f"><label>Last Name *</label><input id="c-last" type="text" placeholder="Smith" required><div class="field-error" id="c-last-error"></div></div>
         <div class="form-f full"><label>Email *</label><input id="c-email" type="email" placeholder="jane@example.com" required pattern="[^\s@]+@[^\s@]+\.[^\s@]+"><div class="field-error" id="c-email-error"></div></div>
         <div class="form-f full"><label>Phone</label><input id="c-phone" type="tel" placeholder="(304) 555-0100" pattern="[\d\s()+.-]{7,}"><div class="field-error" id="c-phone-error"></div></div>
-        <div class="form-f full"><label>Shipping Address *</label><input id="c-addr" type="text" placeholder="123 Main St" required><div class="field-error" id="c-addr-error"></div></div>
-        <div class="form-f"><label>City *</label><input id="c-city" type="text" placeholder="Huntington" required><div class="field-error" id="c-city-error"></div></div>
-        <div class="form-f"><label>State</label><input id="c-state" type="text" placeholder="WV"></div>
-        <div class="form-f"><label>ZIP *</label><input id="c-zip" type="text" placeholder="25701" required pattern="\d{5}(-\d{4})?"><div class="field-error" id="c-zip-error"></div></div>
+        <div id="address-fields" style="display:${selectedShipping==='usps'?'contents':'none'}">
+          <div class="form-f full"><label>Shipping Address *</label><input id="c-addr" type="text" placeholder="123 Main St"><div class="field-error" id="c-addr-error"></div></div>
+          <div class="form-f"><label>City *</label><input id="c-city" type="text" placeholder="Huntington"><div class="field-error" id="c-city-error"></div></div>
+          <div class="form-f"><label>State</label><input id="c-state" type="text" placeholder="WV"></div>
+          <div class="form-f"><label>ZIP *</label><input id="c-zip" type="text" placeholder="25701" pattern="\d{5}(-\d{4})?"><div class="field-error" id="c-zip-error"></div></div>
+        </div>
         <div class="form-f full"><label>Order Notes (sizes, colors, etc.)</label><input id="c-notes" type="text" placeholder="e.g. Size L in black, XL in white"></div>
       </div>
       <div class="modal-sec-title">Order Summary</div>
@@ -2841,7 +2871,7 @@ function renderCheckoutForm(){
           <span class="os-item-price" id="checkoutDiscountRow" style="color:var(--accent);">-$${t.disc.toFixed(2)}</span>
         </div>
         <div class="os-row">
-          <span class="os-item-name">USPS Priority Mail (${cartQty()} item${cartQty()!==1?'s':''})</span>
+          <span class="os-item-name">${selectedShipping==='pickup'?'🏠 Porch Pickup':selectedShipping==='local'?'🤝 Meet Locally':'📦 USPS Priority Mail'} (${cartQty()} item${cartQty()!==1?'s':''})</span>
           <span class="os-item-price" id="checkoutShipping">$${t.ship.toFixed(2)}</span>
         </div>
         <div class="os-row">
@@ -2871,6 +2901,12 @@ function renderCheckoutForm(){
       <div id="paypal-container"></div>
       <p class="pay-note">Pay with PayPal or any credit/debit card via PayPal Guest Checkout. Secure & encrypted.</p>
     </div>`;
+  renderPayPal();
+}
+
+function selectShipping(method) {
+  selectedShipping = method;
+  renderCheckoutForm();
   renderPayPal();
 }
 function validateCustomer(){
@@ -4252,13 +4288,13 @@ function initImgPreview(prefix) {
 const UP_SHIPPING = {1:7,2:7,3:7,4:9,5:9,6:11,7:11,8:13,9:13,10:15,11:15,12:17,13:17,14:19,15:19,16:21,17:21,18:23,19:23,20:25};
 
 function getUPShipping() {
+  if (selectedShipping === 'pickup') return 0;
+  if (selectedShipping === 'local')  return 5;
   const qty = cartQty();
   if (qty === 0) return 0;
   const key = Math.min(qty, 20);
   return UP_SHIPPING[key] || 25;
-}
-
-// ── CODE GATE ──
+}// ── CODE GATE ──
 let codeGateTarget = null; // { url, key }
 
 function openCodeGate(url, storeKey) {
