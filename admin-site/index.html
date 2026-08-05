@@ -4093,7 +4093,7 @@ function renderInstList() {
   const list = document.getElementById('tm-inst-list');
   if (!list) return;
   if (!tmProductInstances.length) {
-    list.innerHTML = '<div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;padding:8px 0;">No products added yet.</div>';
+    list.innerHTML = `<div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;padding:8px 0;">No products added yet.</div>`;
     return;
   }
   list.innerHTML = tmProductInstances.map((inst, i) => {
