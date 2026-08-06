@@ -6,93 +6,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Under Pressure Custom Apparel</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-// functions/api/config.js
-// ══════════════════════════════════════════════════════════════════
-// Cloudflare Pages Function — Integration credentials API
-// Reads & writes PayPal / EmailJS credentials to KV storage (UP_STORE_DATA)
-// so they persist permanently across all browsers and devices.
-//
-// KV binding name: UP_STORE_DATA (already exists in your account)
-// You must add it as a binding in Cloudflare dashboard:
-//   Workers & Pages → your project → Settings → Bindings → Add → KV namespace
-//   Variable name: UP_STORE_DATA
-//   KV namespace:  UP_STORE_DATA (the existing one)
-//
-// Routes:
-//   GET  /api/config  — returns current credentials as JSON
-//   POST /api/config  — saves new credentials from JSON body
-//
-// Both endpoints require the Cloudflare Access cookie (Google login)
-// since admin.html is already protected by Cloudflare Access.
-// ══════════════════════════════════════════════════════════════════
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json',
-};
-
-const CONFIG_KEY = 'up:integrations';
-
-// ── GET /api/config ───────────────────────────────────────────────
-export async function onRequestGet(context) {
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+// ── Load credentials from Cloudflare KV on page boot ──────────────────
+// Falls back to localStorage if KV is unavailable (e.g. during local dev).
+(async function loadCredsFromKV() {
   try {
-    const raw = await context.env.UP_STORE_DATA.get(CONFIG_KEY);
-    const config = raw ? JSON.parse(raw) : {};
-    return new Response(JSON.stringify({ ok: true, config }), { headers: CORS });
-  } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: e.message }), {
-      status: 500,
-      headers: CORS,
-    });
-  }
-}
-
-// ── POST /api/config ──────────────────────────────────────────────
-export async function onRequestPost(context) {
-  try {
-    const body = await context.request.json();
-
-    // Only accept the keys we care about — nothing else gets stored
-    const allowed = [
-      'paypalClientId',
-      'emailjsPublicKey',
-      'emailjsServiceId',
-      'emailjsTemplateId',
-      'notifyEmail',
-    ];
-
-    const existing_raw = await context.env.UP_STORE_DATA.get(CONFIG_KEY);
-    const existing = existing_raw ? JSON.parse(existing_raw) : {};
-
-    const updated = { ...existing };
-    for (const key of allowed) {
-      if (body[key] !== undefined && body[key] !== null) {
-        // Empty string means "clear this value"
-        if (body[key] === '') {
-          delete updated[key];
-        } else {
-          updated[key] = String(body[key]).trim();
-        }
-      }
+    const res = await fetch('/api/config');
+    if (!res.ok) return;
+    const { config } = await res.json();
+    if (!config) return;
+    if (config.paypalClientId)    localStorage.setItem('upPaypalClientId',    config.paypalClientId);
+    if (config.emailjsPublicKey)  localStorage.setItem('upEmailjsKey',        config.emailjsPublicKey);
+    if (config.emailjsServiceId)  localStorage.setItem('upEmailjsService',    config.emailjsServiceId);
+    if (config.emailjsTemplateId) localStorage.setItem('upEmailjsTemplate',   config.emailjsTemplateId);
+    if (config.emailjsDesignTemplateId)      localStorage.setItem('upEmailjsDesignTemplate',      config.emailjsDesignTemplateId);
+    if (config.emailjsQuoteTemplateId)       localStorage.setItem('upEmailjsQuoteTemplate',       config.emailjsQuoteTemplateId);
+    if (config.emailjsQuoteErinTemplateId)   localStorage.setItem('upEmailjsQuoteErinTemplate',   config.emailjsQuoteErinTemplateId);
+    if (config.emailjsOrderConfirmTemplateId)localStorage.setItem('upEmailjsOrderConfirmTemplate',config.emailjsOrderConfirmTemplateId);
+    if (config.emailjsNewOrderTemplateId)    localStorage.setItem('upEmailjsNewOrderTemplate',    config.emailjsNewOrderTemplateId);
+    if (config.emailjsOrderReadyTemplateId)  localStorage.setItem('upEmailjsOrderReadyTemplate',  config.emailjsOrderReadyTemplateId);
+    if (config.cfAccountId)   localStorage.setItem('upCfAccountId',    config.cfAccountId);
+    if (config.cfImagesToken) localStorage.setItem('upCfImagesToken',  config.cfImagesToken);
+    if (config.emailjsPublicKey && typeof emailjs !== 'undefined') {
+      emailjs.init(config.emailjsPublicKey);
     }
-
-    await context.env.UP_STORE_DATA.put(CONFIG_KEY, JSON.stringify(updated));
-
-    return new Response(JSON.stringify({ ok: true, config: updated }), { headers: CORS });
-  } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: e.message }), {
-      status: 500,
-      headers: CORS,
-    });
-  }
-}
-
-// ── OPTIONS preflight ─────────────────────────────────────────────
-export async function onRequestOptions() {
-  return new Response(null, { status: 204, headers: CORS });
-}     || 
+  } catch(e) { /* silent – falls back to localStorage */ }
+})();
 </script>
 <style>
 /* ═══════════════════════════════
@@ -7803,55 +7743,95 @@ function renderIntegrations() {
   `;
 }
 
+// ── shared KV write helper ────────────────────────────────────────────────
+async function _saveToKV(payload, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const { ok, config } = await res.json();
+    if (!ok) throw new Error('KV write failed');
+    // Mirror to localStorage so the synchronous startup code still works
+    const lsMap = {
+      paypalClientId:              'upPaypalClientId',
+      emailjsPublicKey:            'upEmailjsKey',
+      emailjsServiceId:            'upEmailjsService',
+      emailjsTemplateId:           'upEmailjsTemplate',
+      emailjsDesignTemplateId:     'upEmailjsDesignTemplate',
+      emailjsQuoteTemplateId:      'upEmailjsQuoteTemplate',
+      emailjsQuoteErinTemplateId:  'upEmailjsQuoteErinTemplate',
+      emailjsOrderConfirmTemplateId:'upEmailjsOrderConfirmTemplate',
+      emailjsNewOrderTemplateId:   'upEmailjsNewOrderTemplate',
+      emailjsOrderReadyTemplateId: 'upEmailjsOrderReadyTemplate',
+      cfAccountId:                 'upCfAccountId',
+      cfImagesToken:               'upCfImagesToken',
+    };
+    Object.entries(lsMap).forEach(([kvKey, lsKey]) => {
+      if (config[kvKey]) localStorage.setItem(lsKey, config[kvKey]);
+      else localStorage.removeItem(lsKey);
+    });
+    return true;
+  } catch(e) {
+    showToast('Save failed: ' + e.message + ' — check Cloudflare KV binding is configured.');
+    console.error('_saveToKV error:', e);
+    return false;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save'; }
+  }
+}
+
 function saveIntegration(storageKey, inputId) {
   const val = document.getElementById(inputId)?.value.trim();
   if (!val) { showToast('Please enter a value before saving'); return; }
-  localStorage.setItem(storageKey, val);
-  showToast('Saved. Reload the page for it to take effect on checkout.');
-  renderAdminPanel('integrations');
+  // Map legacy localStorage key → KV key
+  const lsToKv = {
+    'upPaypalClientId': 'paypalClientId',
+  };
+  const kvKey = lsToKv[storageKey];
+  if (!kvKey) { showToast('Unknown key — cannot save'); return; }
+  const btn = document.querySelector('button[onclick*="saveIntegration"]');
+  _saveToKV({ [kvKey]: val }, btn).then(ok => {
+    if (ok) { showToast('Saved permanently to Cloudflare! 🎉'); renderAdminPanel('integrations'); }
+  });
 }
 
 function saveEmailjsIntegration() {
-  const key           = document.getElementById('intEmailjsKey')?.value.trim();
-  const service       = document.getElementById('intEmailjsService')?.value.trim();
-  const template      = document.getElementById('intEmailjsTemplate')?.value.trim();
-  const designTemplate= document.getElementById('intEmailjsDesignTemplate')?.value.trim();
-  const quoteTemplate = document.getElementById('intEmailjsQuoteTemplate')?.value.trim();
-  const quoteErinTemplate    = document.getElementById('intEmailjsQuoteErinTemplate')?.value.trim();
-  const orderConfirmTemplate = document.getElementById('intEmailjsOrderConfirmTemplate')?.value.trim();
-  const newOrderTemplate     = document.getElementById('intEmailjsNewOrderTemplate')?.value.trim();
-  const orderReadyTemplate   = document.getElementById('intEmailjsOrderReadyTemplate')?.value.trim();
+  const get = id => document.getElementById(id)?.value.trim() || '';
+  const key           = get('intEmailjsKey');
+  const service       = get('intEmailjsService');
+  const template      = get('intEmailjsTemplate');
   if (!key || !service || !template) { showToast('Public Key, Service ID, and Default Template are required'); return; }
-  localStorage.setItem('upEmailjsKey', key);
-  localStorage.setItem('upEmailjsService', service);
-  localStorage.setItem('upEmailjsTemplate', template);
-  // Per-flow templates are optional — remove the stored value if the field was cleared,
-  // so the flow correctly falls back to the default template instead of an old value.
-  if (designTemplate) localStorage.setItem('upEmailjsDesignTemplate', designTemplate);
-  else localStorage.removeItem('upEmailjsDesignTemplate');
-  if (quoteTemplate) localStorage.setItem('upEmailjsQuoteTemplate', quoteTemplate);
-  else localStorage.removeItem('upEmailjsQuoteTemplate');
-  // These four have no fallback — a blank field means that email is simply not sent.
-  if (quoteErinTemplate) localStorage.setItem('upEmailjsQuoteErinTemplate', quoteErinTemplate);
-  else localStorage.removeItem('upEmailjsQuoteErinTemplate');
-  if (orderConfirmTemplate) localStorage.setItem('upEmailjsOrderConfirmTemplate', orderConfirmTemplate);
-  else localStorage.removeItem('upEmailjsOrderConfirmTemplate');
-  if (newOrderTemplate) localStorage.setItem('upEmailjsNewOrderTemplate', newOrderTemplate);
-  else localStorage.removeItem('upEmailjsNewOrderTemplate');
-  if (orderReadyTemplate) localStorage.setItem('upEmailjsOrderReadyTemplate', orderReadyTemplate);
-  else localStorage.removeItem('upEmailjsOrderReadyTemplate');
-  showToast('EmailJS settings saved. Reload the page for it to take effect.');
-  renderAdminPanel('integrations');
+  const payload = {
+    emailjsPublicKey:             key,
+    emailjsServiceId:             service,
+    emailjsTemplateId:            template,
+    emailjsDesignTemplateId:      get('intEmailjsDesignTemplate')      || '',
+    emailjsQuoteTemplateId:       get('intEmailjsQuoteTemplate')       || '',
+    emailjsQuoteErinTemplateId:   get('intEmailjsQuoteErinTemplate')   || '',
+    emailjsOrderConfirmTemplateId:get('intEmailjsOrderConfirmTemplate')|| '',
+    emailjsNewOrderTemplateId:    get('intEmailjsNewOrderTemplate')    || '',
+    emailjsOrderReadyTemplateId:  get('intEmailjsOrderReadyTemplate')  || '',
+  };
+  const btn = document.querySelector('button[onclick="saveEmailjsIntegration()"]');
+  _saveToKV(payload, btn).then(ok => {
+    if (ok) { showToast('EmailJS settings saved permanently to Cloudflare! 🎉'); renderAdminPanel('integrations'); }
+  });
 }
 
 function saveCloudflareIntegration() {
   const accountId = document.getElementById('intCfAccountId')?.value.trim();
   const token     = document.getElementById('intCfImagesToken')?.value.trim();
   if (!accountId) { showToast('Account ID is required'); return; }
-  localStorage.setItem('upCfAccountId', accountId);
-  if (token) localStorage.setItem('upCfImagesToken', token);
-  showToast('Cloudflare reference info saved.');
-  renderAdminPanel('integrations');
+  const payload = { cfAccountId: accountId };
+  if (token) payload.cfImagesToken = token;
+  const btn = document.querySelector('button[onclick="saveCloudflareIntegration()"]');
+  _saveToKV(payload, btn).then(ok => {
+    if (ok) { showToast('Cloudflare credentials saved permanently! 🎉'); renderAdminPanel('integrations'); }
+  });
 }
 
 
