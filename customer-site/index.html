@@ -24,9 +24,24 @@
 <script>
 (function() {
   const pid = 'AYJIp9dGfV7S6-XHEkihax6fIhB_60UOPZeOaV0iPd9GT1F10ilchavgai5kOvkEZenkerZYO4fb6tXr';
+  window.paypalSdkConfigured = (pid !== 'YOUR_PAYPAL_CLIENT_ID');
+  window.paypalSdkFailed = false;
   const s = document.createElement('script');
   s.src = 'https://www.paypal.com/sdk/js?client-id=' + pid + '&currency=USD';
   s.setAttribute('data-namespace','paypal_sdk');
+  // The SDK loads async — if checkout is already open when it finishes,
+  // re-render the buttons instead of leaving the loading/placeholder state stuck.
+  s.onload = function(){
+    if (document.getElementById("checkoutModal")?.classList.contains("open") && typeof renderPayPal === "function") {
+      renderPayPal();
+    }
+  };
+  s.onerror = function(){
+    window.paypalSdkFailed = true;
+    if (document.getElementById("checkoutModal")?.classList.contains("open") && typeof renderPayPal === "function") {
+      renderPayPal();
+    }
+  };
   document.head.appendChild(s);
 })();
 </script>
@@ -2942,7 +2957,6 @@ function renderCheckoutForm(){
 function selectShipping(method) {
   selectedShipping = method;
   renderCheckoutForm();
-  renderPayPal();
 }
 function validateCustomer(){
   const v=id=>document.getElementById(id)?.value.trim();
@@ -2977,7 +2991,17 @@ function validateCustomer(){
 function renderPayPal(){
   const container = document.getElementById("paypal-container");
   if(typeof paypal_sdk==="undefined"){
-    container.innerHTML=`<div style="background:#0d1220;border:1px solid #1e2d4a;padding:18px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:#5a7296;font-size:13px;letter-spacing:1px;">⚠ Replace <strong style="color:#4d9fff">YOUR_PAYPAL_CLIENT_ID</strong> in the script tag with your real PayPal Client ID from <a href="https://developer.paypal.com" target="_blank" style="color:#1565ff" rel="noopener noreferrer">developer.paypal.com</a></div>`;
+    if (!window.paypalSdkConfigured) {
+      // The client-id in the script tag is still the literal placeholder — a real config problem.
+      container.innerHTML=`<div style="background:#0d1220;border:1px solid #1e2d4a;padding:18px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:#5a7296;font-size:13px;letter-spacing:1px;">⚠ Replace <strong style="color:#4d9fff">YOUR_PAYPAL_CLIENT_ID</strong> in the script tag with your real PayPal Client ID from <a href="https://developer.paypal.com" target="_blank" style="color:#1565ff" rel="noopener noreferrer">developer.paypal.com</a></div>`;
+    } else if (window.paypalSdkFailed) {
+      // A real client-id is set but the SDK script failed to load (network/adblocker/etc).
+      container.innerHTML=`<div style="background:#0d1220;border:1px solid #1e2d4a;padding:18px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:#5a7296;font-size:13px;letter-spacing:1px;">⚠ PayPal couldn't load. Check your connection or ad blocker, then reopen checkout.</div>`;
+    } else {
+      // SDK is configured correctly but the async script is still fetching — show a loading
+      // state; s.onload will call renderPayPal() again once it's ready.
+      container.innerHTML = `<div class="paypal-loading"><div class="processing-spinner-lg"></div>Loading payment options...</div>`;
+    }
     return;
   }
   // Loading placeholder while the PayPal buttons initialize — render() replaces this once ready
