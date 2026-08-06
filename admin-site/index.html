@@ -6,33 +6,93 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Under Pressure Custom Apparel</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-<!-- PayPal — Client ID read from Admin → Integrations or hardcoded below -->
-<script>
-(function() {
-  const pid = localStorage.getItem('upPaypalClientId') || 'YOUR_PAYPAL_CLIENT_ID';
-  const s = document.createElement('script');
-  s.src = 'https://www.paypal.com/sdk/js?client-id=' + pid + '&currency=USD';
-  s.setAttribute('data-namespace','paypal_sdk');
-  document.head.appendChild(s);
-})();
-</script>
-<!-- EmailJS — credentials set via Admin → Integrations, or hardcoded below as fallback -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script>
-  const EMAILJS_PUBLIC_KEY  = localStorage.getItem('upEmailjsKey')      || "OKEA4c6QDAWLOfpja";
-  const EMAILJS_SERVICE_ID  = localStorage.getItem('upEmailjsService')  || "service_nd1nxhg";
-  const EMAILJS_TEMPLATE_ID = localStorage.getItem('upEmailjsTemplate') || "template_wrlckh4";
-  // Per-flow templates — each falls back to the default template above if not yet set
-  const EMAILJS_DESIGN_TEMPLATE_ID = localStorage.getItem('upEmailjsDesignTemplate') || EMAILJS_TEMPLATE_ID;
-  const EMAILJS_QUOTE_TEMPLATE_ID  = localStorage.getItem('upEmailjsQuoteTemplate')  || EMAILJS_TEMPLATE_ID;
-  const EMAILJS_QUOTE_ERIN_TEMPLATE_ID  = localStorage.getItem('upEmailjsQuoteErinTemplate')  || '';
-  const EMAILJS_ORDER_CONFIRM_TEMPLATE_ID = localStorage.getItem('upEmailjsOrderConfirmTemplate') || '';
-  const EMAILJS_NEW_ORDER_TEMPLATE_ID     = localStorage.getItem('upEmailjsNewOrderTemplate')     || '';
-  const EMAILJS_ORDER_READY_TEMPLATE_ID   = localStorage.getItem('upEmailjsOrderReadyTemplate')   || '';
+// functions/api/config.js
+// ══════════════════════════════════════════════════════════════════
+// Cloudflare Pages Function — Integration credentials API
+// Reads & writes PayPal / EmailJS credentials to KV storage (UP_STORE_DATA)
+// so they persist permanently across all browsers and devices.
+//
+// KV binding name: UP_STORE_DATA (already exists in your account)
+// You must add it as a binding in Cloudflare dashboard:
+//   Workers & Pages → your project → Settings → Bindings → Add → KV namespace
+//   Variable name: UP_STORE_DATA
+//   KV namespace:  UP_STORE_DATA (the existing one)
+//
+// Routes:
+//   GET  /api/config  — returns current credentials as JSON
+//   POST /api/config  — saves new credentials from JSON body
+//
+// Both endpoints require the Cloudflare Access cookie (Google login)
+// since admin.html is already protected by Cloudflare Access.
+// ══════════════════════════════════════════════════════════════════
 
-  if (EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
-    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json',
+};
+
+const CONFIG_KEY = 'up:integrations';
+
+// ── GET /api/config ───────────────────────────────────────────────
+export async function onRequestGet(context) {
+  try {
+    const raw = await context.env.UP_STORE_DATA.get(CONFIG_KEY);
+    const config = raw ? JSON.parse(raw) : {};
+    return new Response(JSON.stringify({ ok: true, config }), { headers: CORS });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: e.message }), {
+      status: 500,
+      headers: CORS,
+    });
   }
+}
+
+// ── POST /api/config ──────────────────────────────────────────────
+export async function onRequestPost(context) {
+  try {
+    const body = await context.request.json();
+
+    // Only accept the keys we care about — nothing else gets stored
+    const allowed = [
+      'paypalClientId',
+      'emailjsPublicKey',
+      'emailjsServiceId',
+      'emailjsTemplateId',
+      'notifyEmail',
+    ];
+
+    const existing_raw = await context.env.UP_STORE_DATA.get(CONFIG_KEY);
+    const existing = existing_raw ? JSON.parse(existing_raw) : {};
+
+    const updated = { ...existing };
+    for (const key of allowed) {
+      if (body[key] !== undefined && body[key] !== null) {
+        // Empty string means "clear this value"
+        if (body[key] === '') {
+          delete updated[key];
+        } else {
+          updated[key] = String(body[key]).trim();
+        }
+      }
+    }
+
+    await context.env.UP_STORE_DATA.put(CONFIG_KEY, JSON.stringify(updated));
+
+    return new Response(JSON.stringify({ ok: true, config: updated }), { headers: CORS });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: e.message }), {
+      status: 500,
+      headers: CORS,
+    });
+  }
+}
+
+// ── OPTIONS preflight ─────────────────────────────────────────────
+export async function onRequestOptions() {
+  return new Response(null, { status: 204, headers: CORS });
+}     || 
 </script>
 <style>
 /* ═══════════════════════════════
