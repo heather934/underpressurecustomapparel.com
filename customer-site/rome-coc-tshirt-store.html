@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rome CoC Youth Ministries — T-Shirt Shop</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD" data-namespace="paypal_sdk"></script>
 <style>
 :root {
   --team-primary:   #7c3aed;
@@ -85,6 +85,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(7,7,13,.97);backdrop-fi
 .p-img{aspect-ratio:1;overflow:hidden;position:relative;background:linear-gradient(135deg,#0d0d1e,#050510);display:flex;align-items:center;justify-content:center;}
 .p-img img{width:100%;height:100%;object-fit:cover;transition:transform .4s;}
 .p-card:hover .p-img img{transform:scale(1.06);}
+.p-img-placeholder{font-size:48px;opacity:.18;pointer-events:none;user-select:none;}
 .p-hover{position:absolute;inset:0;background:rgba(7,7,13,.88);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s;}
 .p-card:hover .p-hover{opacity:1;}
 .btn-add{background:var(--team-primary);color:#fff;border:none;padding:12px 22px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transform:translateY(8px);transition:transform .3s,filter .2s;}
@@ -356,32 +357,33 @@ footer{border-top:1px solid var(--border);padding:32px 40px;display:flex;align-i
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toastMsg"></span></div>
 
 <script>
-const JT = "https://www.jotform.com/uploads/erinncarver/form_files/";
 const COLORS = ["Red","Pink","Grey","Light Blue","Lilac","Yellow"];
 const COLOR_HEX = {Red:"#dc2626",Pink:"#ec4899",Grey:"#9ca3af","Light Blue":"#60a5fa",Lilac:"#a78bfa",Yellow:"#fbbf24"};
 const SIZES = ["Y Small","Y Medium","Y Large","Y XLarge","Small","Medium","Large","XLarge","XXLarge","XXXL"];
 const SHIPPING = {1:7,2:7,3:7,4:9,5:9,6:11,7:11,8:13,9:13,10:15,11:15,12:17,13:17,14:19};
 
 const products = [
-  {id:1, name:"Jesus Loved",               img:`${JT}img_6821_aa60344d5a0ce54387636fd7af0547e4.jpeg`, price:25},
-  {id:2, name:"Tonight… We Ride!",          img:`${JT}img_6828_b8f8d11eb60a6230bf4c3a68857917cd.jpeg`, price:25},
-  {id:3, name:"Letters from Paul",          img:`${JT}img_6835_de3b5f996396d37fa294debe8868263d.jpeg`, price:25},
-  {id:4, name:"Go Spread It",               img:`${JT}img_6843_04b4dcd42f772a4e23a6d5678084837a.jpeg`, price:25},
-  {id:5, name:"Here Am I",                  img:`${JT}img_6847_ba5e046a1bf328f6907003f5d6580ede.jpeg`, price:25},
-  {id:6, name:"Be Salty | Stay Lit",         img:`${JT}img_6863_e300103d0769f9029e38a0370a176da5.jpeg`, price:25},
-  {id:7, name:"Sprinkle a Little Faith",    img:`${JT}img_6858_c72fb2aa945e89b599fda28087694f36.jpeg`, price:25},
-  {id:8, name:"Get in Loser",               img:`${JT}img_6873_77428384b45fee366143268e5f25ddbd.jpeg`, price:25},
-  {id:9, name:"Get in Loser 2",             img:`${JT}img_6877_ccd7c506f5675b145656f4fd955c6ea8.jpeg`, price:25},
-  {id:10,name:"Wanted",                     img:`${JT}img_6890_72753f22d4febe8462f6cf314b82e3e4.jpeg`, price:25},
-  {id:11,name:"3 Chartreuse Buzzards",      img:`${JT}img_6898_3528460e7106d2c084e9fb60adb4fbdd.jpeg`, price:25},
-  {id:12,name:"Camp Shirts Classic",        img:`${JT}img_6881_fd88993b2ff6fe9120c25cd2e8c3bf2e.jpeg`, price:25},
+  {id:1,  name:"Jesus Loved",               img:"", price:25},
+  {id:2,  name:"Tonight… We Ride!",          img:"", price:25},
+  {id:3,  name:"Letters from Paul",          img:"", price:25},
+  {id:4,  name:"Go Spread It",               img:"", price:25},
+  {id:5,  name:"Here Am I",                  img:"", price:25},
+  {id:6,  name:"Be Salty | Stay Lit",         img:"", price:25},
+  {id:7,  name:"Sprinkle a Little Faith",    img:"", price:25},
+  {id:8,  name:"Get in Loser",               img:"", price:25},
+  {id:9,  name:"Get in Loser 2",             img:"", price:25},
+  {id:10, name:"Wanted",                     img:"", price:25},
+  {id:11, name:"3 Chartreuse Buzzards",      img:"", price:25},
+  {id:12, name:"Camp Shirts Classic",        img:"", price:25},
 ];
 
 function renderProducts() {
   document.getElementById("productGrid").innerHTML = products.map((p,i) => `
     <div class="p-card" style="animation:up .5s ${i*.05}s ease both">
       <div class="p-img">
-        <img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.style.opacity='.2'">
+        ${p.img
+          ? `<img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.style.opacity='.2'">`
+          : `<div class="p-img-placeholder">✝️</div>`}
         <div class="p-hover"><button class="btn-add" onclick="openPicker(${p.id})">Select Options</button></div>
       </div>
       <div class="p-info">
@@ -577,7 +579,7 @@ function validateCustomer(){
 }
 function renderPayPal(total){
   if(typeof paypal_sdk==="undefined"){
-    // PayPal configured
+    document.getElementById("paypal-container").innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);padding:14px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:var(--mist);font-size:13px;letter-spacing:1px;">⚠ Replace <strong>YOUR_PAYPAL_CLIENT_ID</strong> in the script tag to activate checkout.</div>`;
     return;
   }
   paypal_sdk.Buttons({

@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD"></script>
 <style>
 :root {
   --up-black:  #060810;
@@ -1496,8 +1497,7 @@ function closeCheckout() {
 
 function renderPayPal(amount) {
   if (typeof paypal === 'undefined') {
-    document.getElementById('co-paypal').innerHTML =
-      '<p style="font-size:12px;color:var(--up-mist);text-align:center;">Payment unavailable — please contact us directly.</p>';
+    // PayPal SDK configured — should not reach here in production
     return;
   }
   document.getElementById('co-paypal').innerHTML = '';

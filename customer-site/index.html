@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Under Pressure Custom Apparel</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD" data-namespace="paypal_sdk"></script>
 <!-- EmailJS — replace YOUR_EMAILJS_PUBLIC_KEY below -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
@@ -2073,147 +2073,9 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
 .processing-overlay{position:absolute;inset:0;background:rgba(8,10,18,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:80;}
 .processing-spinner-lg{width:38px;height:38px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--up-blue);border-radius:50%;animation:spin .7s linear infinite;}
 .processing-overlay-text{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--up-white);text-align:center;padding:0 24px;}
-/* ════════════════════════════
-   PRODUCTION BOARD
-════════════════════════════ */
-.prod-filter-chip{background:transparent;border:1px solid var(--up-border);color:var(--up-mist);padding:6px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;}
-.prod-filter-chip:hover,.prod-filter-chip.on{background:var(--up-blue);border-color:var(--up-blue);color:#fff;font-weight:700;}
-.prod-search{flex:1;min-width:180px;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:7px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
-.prod-search:focus{border-color:var(--up-sky);}.prod-search::placeholder{color:var(--up-mist);}
-.prod-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:20px;}
-.prod-stat-card{background:var(--up-card);border:1px solid var(--up-border);border-left:3px solid var(--up-blue);padding:14px 18px;}
-.prod-stat-card.green{border-left-color:#1a6b2f;}.prod-stat-card.red{border-left-color:var(--hs-red);}
-.prod-stat-n{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:var(--up-white);}
-.prod-stat-l{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:2px;}
-.prod-table{width:100%;border-collapse:collapse;}
-.prod-thead th{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--up-mist);padding:10px 12px;border-bottom:2px solid var(--up-border);text-align:left;white-space:nowrap;background:var(--up-navy);position:sticky;top:0;z-index:2;}
-.prod-thead th.sortable{cursor:pointer;user-select:none;}.prod-thead th.sortable:hover{color:var(--up-sky);}
-.prod-row{border-bottom:1px solid var(--up-border);transition:background .15s;}.prod-row:hover{background:rgba(21,101,255,.05);}
-.prod-td{padding:11px 12px;font-size:13px;vertical-align:middle;}
-.prod-td.name-col{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--up-white);}
-.prod-td.num-col{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--up-sky);text-align:center;}
-.prod-td.size-col{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
-.prod-store-badge{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:2px;}
-.prod-actions-bar{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
-.btn-prod-export{background:var(--up-card);border:1px solid var(--up-border);color:var(--up-mist);padding:8px 18px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
-.btn-prod-export:hover{border-color:var(--up-sky);color:var(--up-sky);}
-.prod-empty{text-align:center;padding:52px;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:1px;}
-.prod-row-check{width:16px;height:16px;cursor:pointer;accent-color:var(--up-blue);}
-.prod-completed{opacity:.45;}.prod-completed .prod-td{text-decoration:line-through;color:var(--up-mist);}
-/* ════════════════════════════
-   PURCHASE LIST
-════════════════════════════ */
-.purchase-store-group{margin-bottom:28px;}
-.purchase-store-label{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:2px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
-.purchase-item-card{background:var(--up-card);border:1px solid var(--up-border);margin-bottom:2px;overflow:hidden;}
-.purchase-item-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--up-border);cursor:pointer;transition:background .15s;}
-.purchase-item-header:hover{background:rgba(21,101,255,.05);}
-.purchase-item-name{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--up-white);}
-.purchase-item-total{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--up-sky);}
-.purchase-item-total span{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-left:4px;}
-.purchase-size-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:2px;padding:12px 18px;background:var(--up-navy);}
-.size-block{background:var(--up-card);border:1px solid var(--up-border);padding:8px 10px;text-align:center;}
-.size-block-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--up-mist);display:block;margin-bottom:4px;}
-.size-block-count{font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:var(--up-white);}
-.size-block.has-count{border-color:var(--up-blue);background:rgba(21,101,255,.08);}.size-block.has-count .size-block-count{color:var(--up-sky);}
-.size-block.zero{opacity:.35;}
-.purchase-color-row{padding:8px 18px 12px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--up-border);}
-.purchase-color-chip{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;background:var(--up-border);color:var(--up-silver);padding:3px 10px;display:flex;align-items:center;gap:5px;}
-.purchase-grand-total{background:linear-gradient(135deg,var(--up-navy),rgba(21,101,255,.1));border:1px solid var(--up-blue);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;margin-top:16px;}
-.pgt-label{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--up-mist);}
-.pgt-value{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--up-white);}
-.btn-print-list{background:transparent;border:1px solid var(--up-border);color:var(--up-mist);padding:8px 18px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
-.btn-print-list:hover{border-color:var(--up-sky);color:var(--up-sky);}
-.purchase-toggle-chevron{font-size:12px;color:var(--up-mist);transition:transform .2s;display:inline-block;margin-left:8px;}
-.purchase-item-card.collapsed .purchase-size-grid,.purchase-item-card.collapsed .purchase-color-row{display:none;}
-.purchase-item-card.collapsed .purchase-toggle-chevron{transform:rotate(-90deg);}
-.cm-link{color:var(--up-sky);text-decoration:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;}.cm-link:hover{text-decoration:underline;}
-
-.cm-wrap{max-width:1100px;margin:0 auto;padding:0 0 80px;}
-.cm-header{display:flex;align-items:center;justify-content:space-between;padding:24px 40px;border-bottom:1px solid var(--up-border);background:var(--up-navy);position:sticky;top:0;z-index:10;}
-.cm-logo{display:flex;align-items:center;gap:14px;}
-.cm-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--up-white);}
-.cm-sub{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:3px;color:var(--up-mist);text-transform:uppercase;}
-.cm-close{background:transparent;border:1px solid var(--up-border);color:var(--up-mist);padding:9px 20px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;transition:all .2s;}
-.cm-close:hover{border-color:#c8102e;color:#c8102e;}
-.cm-tabs{display:flex;border-bottom:2px solid var(--up-border);padding:0 40px;background:var(--up-black);overflow-x:auto;}
-.cm-tab{background:none;border:none;border-bottom:3px solid transparent;color:var(--up-mist);padding:14px 22px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
-.cm-tab:hover{color:var(--up-white);}
-.cm-tab.active{color:var(--up-sky);border-bottom-color:var(--up-blue);}
-.cm-tab.red.active{color:#c8102e;border-bottom-color:#c8102e;}
-.cm-body{padding:32px 40px;}
-.cm-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
-.cm-section-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;}
-.cm-count{font-family:'Barlow Condensed',sans-serif;font-size:14px;background:var(--up-border);padding:2px 10px;margin-left:10px;letter-spacing:1px;}
-.cm-btn-add{background:var(--up-blue);color:#fff;border:none;padding:10px 20px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:background .2s;}
-.cm-btn-add:hover{background:var(--up-blue2);}
-.cm-table-wrap{overflow-x:auto;border:1px solid var(--up-border);}
-.cm-table{width:100%;border-collapse:collapse;min-width:520px;}
-.cm-th{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--up-mist);padding:10px 14px;border-bottom:2px solid var(--up-border);text-align:left;white-space:nowrap;}
-.cm-td{padding:12px 14px;border-bottom:1px solid var(--up-border);vertical-align:middle;font-size:13px;}
-.cm-row:hover .cm-td{background:rgba(21,101,255,.04);}
-.cm-prod-name{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:var(--up-white);margin-bottom:2px;}
-.cm-prod-cat{font-size:11px;color:var(--up-mist);text-transform:uppercase;letter-spacing:1px;}
-.cm-actions{display:flex;gap:6px;white-space:nowrap;}
-.cm-btn-edit{background:rgba(77,159,255,.1);color:var(--up-sky);border:1px solid rgba(77,159,255,.25);padding:5px 12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;}
-.cm-btn-edit:hover{background:var(--up-blue);color:#fff;border-color:var(--up-blue);}
-.cm-btn-del{background:rgba(200,16,46,.08);color:#c8102e;border:1px solid rgba(200,16,46,.2);padding:5px 10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;}
-.cm-btn-del:hover{background:#c8102e;color:#fff;}
-.cm-btn-products{background:rgba(74,222,128,.08);color:#4ade80;border:1px solid rgba(74,222,128,.25);padding:5px 12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;}
-.cm-btn-products:hover{background:#4ade80;color:#000;}
-.cm-empty{text-align:center;padding:32px;color:var(--up-mist);font-size:13px;font-style:italic;}
-.cm-tip{font-size:11px;color:var(--up-mist);margin-top:14px;font-weight:300;letter-spacing:.5px;}
-/* CM modals */
-.cm-modal-head{padding:20px 26px 16px;border-bottom:1px solid var(--up-border);display:flex;align-items:center;justify-content:space-between;}
-.cm-modal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--up-sky);}
-.cm-close-sm{background:none;border:1px solid var(--up-border);color:var(--up-mist);width:28px;height:28px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
-.cm-close-sm:hover{border-color:#c8102e;color:#c8102e;}
-.cm-modal-body{padding:20px 26px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.cm-fg{display:flex;flex-direction:column;gap:4px;}.cm-fg.cm-full{grid-column:1/-1;}
-.cm-fg label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;}
-.cm-fg input,.cm-fg select,.cm-fg textarea{background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;transition:border-color .2s;width:100%;}
-.cm-fg input:focus,.cm-fg select:focus,.cm-fg textarea:focus{border-color:var(--up-sky);}
-.cm-fg select option{background:var(--up-card);}
-.cm-fg textarea{min-height:72px;resize:vertical;}
-.cm-modal-actions{grid-column:1/-1;display:flex;gap:10px;margin-top:6px;}
-.cm-btn-save{flex:1;background:var(--up-blue);color:#fff;border:none;padding:12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:background .2s;}
-.cm-btn-save:hover{background:var(--up-blue2);}
-.cm-btn-cancel{background:transparent;border:1px solid var(--up-border);color:var(--up-mist);padding:12px 20px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;transition:all .2s;}
-.cm-btn-cancel:hover{border-color:var(--up-mist);color:var(--up-white);}
-/* visibility controls */
-.vis-select-wrap{display:flex;flex-direction:column;gap:6px;}
-.vis-state-btns{display:flex;gap:0;}
-.vis-state-btn{background:transparent;border:1px solid var(--up-border);color:var(--up-mist);padding:6px 12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:2px;margin-left:-1px;}
-.vis-state-btn:hover{z-index:1;border-color:var(--up-sky);color:var(--up-sky);}
-.vis-state-btn.active-public{background:rgba(21,101,255,.15);border-color:var(--up-blue);color:var(--up-sky);z-index:1;}
-.vis-state-btn.active-code{background:rgba(251,191,36,.15);border-color:#fbbf24;color:#fbbf24;z-index:1;}
-.vis-state-btn.active-private{background:rgba(200,16,46,.12);border-color:#c8102e;color:#c8102e;z-index:1;}
-.vis-state-icon{font-size:14px;}
-.vis-code-wrap{display:none;gap:6px;margin-top:4px;}
-.vis-code-wrap.show{display:flex;}
-.vis-code-input{background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:7px 10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;outline:none;flex:1;text-transform:uppercase;}
-.vis-code-input:focus{border-color:#fbbf24;}
-.vis-code-save{background:#fbbf24;color:#000;border:none;padding:7px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:background .2s;}
-.vis-code-save:hover{background:#f59e0b;}
-.vis-badge{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-left:6px;vertical-align:middle;}
-.vis-badge.public{background:var(--up-blue);color:#fff;}
-.vis-badge.code{background:#fbbf24;color:#000;}
-.vis-badge.private{background:#c8102e;color:#fff;}
-/* store product manager sub-panel */
-.store-prod-panel{background:var(--up-navy);border:1px solid var(--up-border);border-top:3px solid #4ade80;margin-top:24px;padding:24px 28px;}
-.store-prod-panel-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#4ade80;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
-.store-prod-form{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:16px;}
-.store-prod-form input{background:var(--up-card);border:1px solid var(--up-border);color:var(--up-white);padding:9px 12px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;transition:border-color .2s;width:100%;}
-.store-prod-form input:focus{border-color:#4ade80;}
-.store-prod-list{display:flex;flex-direction:column;gap:2px;}
-.store-prod-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--up-card);border:1px solid var(--up-border);}
-.store-prod-item-name{flex:1;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);}
-.store-prod-item-price{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--up-sky);min-width:48px;}
-.store-prod-item-img{width:40px;height:40px;object-fit:cover;background:var(--up-border);flex-shrink:0;}
-.store-prod-item-del{background:none;border:none;color:var(--up-mist);cursor:pointer;font-size:16px;padding:2px 6px;transition:color .2s;}
-.store-prod-item-del:hover{color:#c8102e;}
-.store-prod-empty{text-align:center;padding:24px;color:var(--up-mist);font-size:12px;font-style:italic;border:1px dashed var(--up-border);}
-
+.paypal-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px 0;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;}
+.paypal-loading .processing-spinner-lg{width:26px;height:26px;border-width:2px;}
+</style>
 </head>
 <body>
 
@@ -2296,9 +2158,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
 
     </nav>
     <div class="nav-right">
-      <button class="hs-order-btn" id="hsOrderBtn" onclick="openHsModal()" style="display:none">
-        📋 HS Order <span class="hs-item-count" id="hsItemCount">0</span>
-      </button>
       <button class="cart-btn" onclick="toggleSearch()" title="Search products" aria-label="Search products" aria-expanded="false" aria-controls="searchBarSection" style="margin-right:2px;">
         🔍 Search
       </button>
@@ -2728,9 +2587,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
   <div class="modal-box"><div id="checkoutContent"></div></div>
 </div>
 
-<!-- ══ HS ORDER FORM MODAL (content is rendered dynamically by renderHsModal) ══ -->
-<div class="hs-modal-bg" id="hsMsgModal"></div>
-
 <!-- ══ REVIEW MODAL ══ -->
 <div class="modal-bg" id="reviewModal">
   <div class="review-form-modal-box">
@@ -2769,56 +2625,10 @@ function showPage(p){
   document.querySelectorAll(".page").forEach(el=>el.classList.remove("active"));
   document.querySelectorAll(".nav-tab,.dropdown-trigger").forEach(el=>el.classList.remove("active"));
   document.getElementById("page-"+p).classList.add("active");
-  // Only activate tab-up trigger (hs tab removed)
   const tab = document.getElementById("tab-"+p);
   if(tab) tab.classList.add("active");
-  // show/hide relevant header buttons
-  document.getElementById("hsOrderBtn").style.display = p==="hs" ? "inline-flex" : "none";
   window.scrollTo({top:0,behavior:"smooth"});
 }
-
-// ══════════════════════════════
-// HS PRODUCTS
-// ══════════════════════════════
-const BASE="https://embroid-em.printavo.com/merch/huntingtonsteel";
-const hsProducts=[
-  {name:"Men's Lightweight Windbreaker Full-Zip",brand:"Independent Trading Co.",cat:"outerwear",price:"$33–$36",icon:"🧥",badge:"",url:`${BASE}/products/independent-trading-co-men-s-lightweight-windbreaker-full-zip-jacket-exp54lwz`},
-  {name:"Carhartt Quilted-Flannel-Lined Duck Active Jac",brand:"Carhartt",cat:"outerwear",price:"$125–$130",icon:"🧥",badge:"Premium",url:`${BASE}/products/carhartt-carhartt-quilted-flanne-lined-duck-active-jac-ct106677-01ee8335-38b3-4416-aff2-a3cef778326a`},
-  {name:"Men's Vintage Diamond Quilted Vest",brand:"Weatherproof",cat:"outerwear",price:"$45–$48",icon:"🦺",badge:"",url:`${BASE}/products/weatherproof-men-s-vintage-diamond-quilted-vest-207359`},
-  {name:"Nike Tech Sport Dri-FIT Polo",brand:"Nike",cat:"polos",price:"$46–$50",icon:"👔",badge:"Nike",url:`${BASE}/products/nike-nike-tech-sport-dri-fit-polo-266998-39b33743-9f04-4975-934b-6ce8cd85d372`},
-  {name:"Nike Dri-FIT Micro Pique 2.0 Polo",brand:"Nike",cat:"polos",price:"$42–$46",icon:"👔",badge:"Nike",url:`${BASE}/products/nike-nike-dri-fit-micro-pique-2-0-polo-nkdc1963-54e388bc-af08-4854-ad11-35b5efe6f760`},
-  {name:"Nike Huntington Steel Polo (3 Colors)",brand:"Nike",cat:"polos",price:"$38–$40",icon:"👔",badge:"Nike",url:BASE},
-  {name:"Eddie Bauer Smooth Mid Layer Fleece 1/2-Zip",brand:"Eddie Bauer",cat:"fleece",price:"$41–$45",icon:"🧶",badge:"",url:`${BASE}/products/eddie-bauer-eddie-bauer-smooth-mid-layer-fleece-1-2-zip-eb2360-0bccfdcb-fb7a-4914-9dab-799cda875abe`},
-  {name:"Eddie Bauer Flannel",brand:"Eddie Bauer",cat:"fleece",price:"$44–$46",icon:"🧶",badge:"",url:BASE},
-  {name:"OGIO Nexus 1/4-Zip Pullover",brand:"OGIO",cat:"fleece",price:"$44–$48",icon:"🧶",badge:"",url:`${BASE}/products/ogio-ogio-nexus-1-4-zip-pullover-oe335-cc89a45b-a57e-4b4e-9746-49a319c90a6b`},
-  {name:"OGIO Code Stretch Long Sleeve Button-Up",brand:"OGIO",cat:"fleece",price:"$44–$48",icon:"👕",badge:"",url:`${BASE}/products/ogio-ogio-code-stretch-long-sleeve-button-up-og145-7d92453c-02f3-4d6a-97e5-18141f54aa2e`},
-  {name:"BELLA+CANVAS 10oz Heavyweight Hoodie",brand:"BELLA+CANVAS",cat:"fleece",price:"$30–$34",icon:"🧥",badge:"",url:`${BASE}/products/bella-canvas-unisex-10-oz-heavyweight-hoodie-sweatshirt-4719-39b92d4b-43b7-442b-9c32-30d02a97e5e5`},
-  {name:"BELLA+CANVAS Sponge Fleece Crewneck",brand:"BELLA+CANVAS",cat:"fleece",price:"$33–$35",icon:"🧥",badge:"",url:`${BASE}/products/bella-canvas-unisex-sponge-fleece-classic-crewneck-sweatshirt-3911`},
-  {name:"BELLA+CANVAS Sponge Fleece Full-Zip Hoodie",brand:"BELLA+CANVAS",cat:"fleece",price:"$31–$34",icon:"🧥",badge:"",url:`${BASE}/products/bella-canvas-unisex-sponge-fleece-full-zip-hoodie-sweatshirt-3739`},
-  {name:"District Perfect Blend CVC Tee",brand:"District",cat:"tees",price:"$18–$22",icon:"👕",badge:"",url:`${BASE}/products/district-district-perfect-blend-cvc-tee-dm108-73919c1c-f5e0-474f-b2d1-1093100fa2ec`},
-  {name:"BELLA+CANVAS Unisex Jersey Long Sleeve Tee",brand:"BELLA+CANVAS",cat:"tees",price:"$18–$22",icon:"👕",badge:"",url:`${BASE}/products/bella-canvas-unisex-jersey-long-sleeve-tee-3501-9a0df329-d96c-4b31-aa63-4bb01332bb1d`},
-  {name:"Carhartt Short Sleeve T-Shirt",brand:"Carhartt",cat:"tees",price:"$24–$28",icon:"👕",badge:"",url:`${BASE}/products/carhartt-carhartt-short-sleeve-t-shirt-ct106020-f6c5862e-0280-44b5-a2d2-a225b8131e80`},
-  {name:"Carhartt Workwear Pocket Long Sleeve Tee",brand:"Carhartt",cat:"tees",price:"$31–$35",icon:"👕",badge:"",url:`${BASE}/products/carhartt-carhartt-workwear-pocket-long-sleeve-t-shirt-ctk126-82e942e3-09e2-4ed5-94ec-b11b54f7eea2`},
-  {name:"DREAM TEAM Patriotic Performance Tee",brand:"Gildan",cat:"tees",price:"$17–$20",icon:"👕",badge:"New",url:`${BASE}/products/dream-team-patriotic-gildan-unisex-performance-t-shirt-42000-812428`},
-  {name:"DREAM TEAM Green Performance Tee",brand:"Gildan",cat:"tees",price:"$17–$20",icon:"👕",badge:"New",url:`${BASE}/products/dream-team-green-gildan-unisex-performance-t-shirt-42000-813061`},
-  {name:"DREAM TEAM Pink Performance Tee",brand:"Gildan",cat:"tees",price:"$17–$20",icon:"👕",badge:"New",url:`${BASE}/products/dream-team-pink-gildan-unisex-performance-t-shirt-42000-813062`},
-  {name:"OGIO Sprint 24-Pack Cooler",brand:"OGIO",cat:"bags",price:"$47",icon:"🎒",badge:"",url:`${BASE}/products/ogio-ogio-sprint-24-pack-cooler-96002-1131ed4a-5966-4692-8bb4-1fcf7d3af0c9`},
-  {name:"OGIO Excelsior Pack",brand:"OGIO",cat:"bags",price:"$59",icon:"🎒",badge:"",url:`${BASE}/products/ogio-ogio-excelsior-pack-411069-410e6ddd-05a9-4e96-bac9-96e43ecfa2f1`},
-  {name:"Port Authority Gym Bag",brand:"Port Authority",cat:"bags",price:"$26",icon:"👜",badge:"",url:`${BASE}/products/port-authority-port-authority-gym-bag-bg970-dc0291d7-33f0-439d-b8bb-2f87896fc4fa`},
-  {name:"Liberty Bags Super Feature Tote",brand:"Liberty Bags",cat:"bags",price:"$21",icon:"🛍️",badge:"",url:`${BASE}/products/liberty-bags-super-feature-tote-8811`},
-  {name:"Nike Stretch-to-Fit Mesh Back Cap",brand:"Nike",cat:"headwear",price:"$29",icon:"🧢",badge:"Nike",url:`${BASE}/products/nike-nike-stretch-to-fit-mesh-back-cap-nkfb6448-f56f331e-a652-4539-b83b-f0f2aec4eeea`},
-  {name:"YP Classics Retro Trucker Cap",brand:"YP Classics",cat:"headwear",price:"$13",icon:"🧢",badge:"",url:`${BASE}/products/yp-classics-retro-trucker-cap-6606-14d49ae4-3877-450a-9e1d-36c4d9a4e94c`},
-  {name:"Harriton Women's Full-Zip Fleece",brand:"Harriton",cat:"womens",price:"$34–$37",icon:"🧥",badge:"",url:`${BASE}/products/harriton-women-s-full-zip-fleece-m990w-5ab66ef5-e3a2-47f4-a517-fe6d5bd2e2e8`},
-  {name:"LAT Women's Weekend Fleece Crewneck",brand:"LAT",cat:"womens",price:"$35–$37",icon:"🧥",badge:"",url:`${BASE}/products/lat-women-s-weekend-fleece-crewneck-sweatshirt-3525-c3f17bb3-41ef-4351-ab30-1b01ed6bdfd7`},
-  {name:"Infinity Her Women's Washed Mesh-Back Cap",brand:"Infinity Her",cat:"womens",price:"$14",icon:"🧢",badge:"",url:`${BASE}/products/infinity-her-women-s-washed-mesh-back-cap-tess-1c7ca66b-f1e7-421e-9898-ecbd2a9553e8`},
-  {name:"Women's California Wave Wash Crewneck",brand:"Independent Trading Co.",cat:"womens",price:"$25–$27",icon:"🧥",badge:"",url:`${BASE}/products/independent-trading-co-women-s-california-wave-wash-crewneck-sweatshirt-prm2500`},
-  {name:"BELLA+CANVAS Women's Relaxed V-Neck Tee",brand:"BELLA+CANVAS",cat:"womens",price:"$15–$18",icon:"👕",badge:"",url:`${BASE}/products/bella-canvas-women-s-relaxed-jersey-v-neck-tee-6405-b69f39ce-f7e9-4d1d-bf83-6d2471120959`},
-  {name:"BELLA+CANVAS Women's Flowy Muscle Tee",brand:"BELLA+CANVAS",cat:"womens",price:"$15–$17",icon:"👕",badge:"",url:`${BASE}/products/bella-canvas-women-s-flowy-rolled-cuffs-muscle-tee-8804-ee4d808a-0ac0-48bf-bc3d-8d25b75ce94a`},
-  {name:"Boxercraft Women's Pom Pom Long Sleeve Tee",brand:"Boxercraft",cat:"womens",price:"$32–$34",icon:"👕",badge:"",url:`${BASE}/products/boxercraft-women-s-pom-pom-long-sleeve-jersey-t-shirt-bw3514-3f6c9cce-1e26-4fd6-a10d-c3d97b995504`}
-];
-const INIT=8;
-function filterHS(cat,el){document.querySelectorAll("#hsFilters .chip").forEach(c=>c.classList.remove("on"));if(el)el.classList.add("on");renderHS(cat);}
-function showAllHS(){document.querySelectorAll("#hsGrid .p-card.hidden").forEach(c=>c.classList.remove("hidden"));document.getElementById("hsMore").style.display="none";}
 
 // ══════════════════════════════
 // CART
@@ -2958,7 +2768,7 @@ function validateCustomer(){
 function renderPayPal(total){
   const container = document.getElementById("paypal-container");
   if(typeof paypal_sdk==="undefined"){
-    // PayPal configured
+    container.innerHTML=`<div style="background:#0d1220;border:1px solid #1e2d4a;padding:18px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:#5a7296;font-size:13px;letter-spacing:1px;">⚠ Replace <strong style="color:#4d9fff">YOUR_PAYPAL_CLIENT_ID</strong> in the script tag with your real PayPal Client ID from <a href="https://developer.paypal.com" target="_blank" style="color:#1565ff" rel="noopener noreferrer">developer.paypal.com</a></div>`;
     return;
   }
   // Loading placeholder while the PayPal buttons initialize — render() replaces this once ready
@@ -3026,8 +2836,52 @@ function showOrderSuccess(details){
 // ══════════════════════════════
 // UP SPORTSWEAR
 // ══════════════════════════════
+// ── DEFAULT UP PRODUCTS ──────────────────────────────────────────
+// These appear on the public store when no admin products have been
+// added yet. Admin-added products (via localStorage) replace them.
+const DEFAULT_UP_PRODUCTS = [
+  {
+    id: 'default-1',
+    name: 'Crew Neck Long Sleeve Tee',
+    cat: 'sportswear-tees',
+    price: '',
+    pnum: '',
+    sport: '',
+    desc: 'Classic long sleeve crew neck tee. Soft, breathable cotton-blend fabric built for all-day wear. Perfect for custom team graphics, spirit wear, or everyday style.',
+    img: '',
+    colors: ['White','Black','Navy','Sport Grey','Red','Royal Blue','Forest','Maroon','Purple','Gold']
+  },
+  {
+    id: 'default-2',
+    name: 'Custom Pullover Hoodie',
+    cat: 'sportswear-hoodies',
+    price: '',
+    pnum: '',
+    sport: '',
+    desc: 'Heavy-weight pullover hoodie with front pouch pocket and drawstring hood. A fan favorite for team orders, school spirit, and custom designs.',
+    img: '',
+    colors: ['Black','Navy','Sport Grey','White','Red','Dark Heather','Royal Blue','Forest','Maroon','Charcoal','Purple','Gold']
+  },
+  {
+    id: 'default-3',
+    name: 'Crew Neck Sweatshirt',
+    cat: 'sportswear-hoodies',
+    price: '',
+    pnum: '',
+    sport: '',
+    desc: 'Classic crewneck sweatshirt with a clean, versatile look. Ideal for custom team imprints, logos, and names. Mid-weight fleece — cozy without the bulk.',
+    img: '',
+    colors: ['Black','Navy','Sport Grey','White','Red','Dark Heather','Royal Blue','Forest','Maroon','Charcoal','Purple']
+  }
+];
+
 let upProducts=[],editIdx=null,upFilter="all";
-function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")||"[]");}catch(e){upProducts=[];}}
+function loadUP(){
+  try { upProducts = JSON.parse(localStorage.getItem("upSportswear") || "[]"); }
+  catch(e) { upProducts = []; }
+  // If no products have been added by admin yet, show the default catalog
+  if (!upProducts.length) upProducts = DEFAULT_UP_PRODUCTS;
+}
 function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));}
 function renderUP(filter="all"){
   upFilter=filter;
@@ -3076,193 +2930,6 @@ function filterUP(cat,el){document.querySelectorAll("#upFilters .chip").forEach(
 
 
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
-// ══════════════════════════════
-// HS ORDER LIST + EMAIL
-// ══════════════════════════════
-let hsOrder = [];
-
-function addToHsOrder(name, price) {
-  const ex = hsOrder.find(i => i.name === name);
-  if (ex) { ex.qty++; }
-  else { hsOrder.push({ name, price, qty: 1, size: "", color: "", notes: "" }); }
-  updateHsOrderBtn();
-  showToast(`"${name}" added to order list!`);
-}
-
-function hsQty(idx, delta) {
-  const item = hsOrder[idx];
-  if (!item) return;
-  item.qty = Math.max(1, item.qty + delta);
-  updateHsOrderBtn();
-  renderHsModal();
-}
-
-function hsRemove(idx) {
-  hsOrder.splice(idx, 1);
-  updateHsOrderBtn();
-  renderHsModal();
-}
-document.getElementById('hsMsgModal')?.addEventListener('click', function(e) {
-  if (e.target === this) closeHsModal();
-});
-
-function updateHsOrderBtn() {
-  const qty = hsOrder.reduce((s, i) => s + i.qty, 0);
-  const el = document.getElementById("hsItemCount");
-  el.textContent = qty;
-  el.classList.add("bump");
-  setTimeout(() => el.classList.remove("bump"), 200);
-}
-
-function openHsModal() {
-  renderHsModal();
-  document.getElementById("hsMsgModal").classList.add("open");
-  a11yOpenTrap(document.getElementById("hsMsgModal"));
-}
-function closeHsModal() {
-  document.getElementById("hsMsgModal").classList.remove("open");
-  a11yCloseTrap();
-}
-
-function renderHsModal() {
-  const orderRows = hsOrder.length === 0
-    ? `<div style="color:#555;font-size:13px;padding:12px 0;font-style:italic;">No items added yet — browse products and click "+ Add to Order"</div>`
-    : hsOrder.map((item, i) => `
-        <div class="hs-cart-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding:10px 0;">
-          <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-            <span class="hs-cart-item-name">${item.name}</span>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <button class="qty-btn" style="background:#161618;border-color:#2a2a2e;" onclick="hsQty(${i},-1)">−</button>
-              <span class="qty-val" style="background:#0a0a0c;border-color:#2a2a2e;">${item.qty}</span>
-              <button class="qty-btn" style="background:#161618;border-color:#2a2a2e;" onclick="hsQty(${i},1)">+</button>
-              <button class="ci-remove" onclick="hsRemove(${i})" aria-label="Remove item from HS order">✕</button>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;">
-            <input type="text" placeholder="Size (e.g. L, XL, 2XL)" value="${item.size}"
-              onchange="hsOrder[${i}].size=this.value"
-              style="background:#0a0a0c;border:1px solid #2a2a2e;color:#f0f0f2;padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;">
-            <input type="text" placeholder="Color (e.g. Black, Grey)" value="${item.color}"
-              onchange="hsOrder[${i}].color=this.value"
-              style="background:#0a0a0c;border:1px solid #2a2a2e;color:#f0f0f2;padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;">
-          </div>
-        </div>`).join("");
-
-  document.getElementById("hsMsgModal").innerHTML = `
-    <div class="hs-modal-box">
-      <div class="hs-modal-head">
-        <h3>HS <span>ORDER</span> FORM</h3>
-        <button class="btn-close-hs" onclick="closeHsModal()" aria-label="Close HS order form">✕</button>
-      </div>
-      <div class="hs-modal-body" id="hsFormWrap">
-
-        <div class="hs-form-sec">Your Order</div>
-        <div style="margin-bottom:18px;">${orderRows}</div>
-
-        <div class="hs-form-sec">Your Information</div>
-        <div class="hs-form-grid">
-          <div class="hs-field"><label>First Name *</label><input id="hs-first" type="text" placeholder="Jane" required><div class="field-error" id="hs-first-error"></div></div>
-          <div class="hs-field"><label>Last Name *</label><input id="hs-last" type="text" placeholder="Smith" required><div class="field-error" id="hs-last-error"></div></div>
-          <div class="hs-field full"><label>Email *</label><input id="hs-email" type="email" placeholder="jane@example.com" required pattern="[^\s@]+@[^\s@]+\.[^\s@]+"><div class="field-error" id="hs-email-error"></div></div>
-          <div class="hs-field full"><label>Phone</label><input id="hs-phone" type="tel" placeholder="(304) 555-0100" pattern="[\d\s()+.-]{7,}"><div class="field-error" id="hs-phone-error"></div></div>
-          <div class="hs-field full"><label>Shipping Address *</label><input id="hs-addr" type="text" placeholder="123 Main St, Huntington, WV 25701" required><div class="field-error" id="hs-addr-error"></div></div>
-          <div class="hs-field full"><label>Additional Notes</label>
-            <textarea id="hs-notes" placeholder="Any special requests, additional size/color info, etc..."></textarea>
-          </div>
-        </div>
-
-        <div class="hs-submit-row">
-          <button class="btn-hs-submit" id="hsSubmitBtn" onclick="submitHsOrder()" ${hsOrder.length===0?'disabled':''}>
-            <span class="spinner" id="hsSpinner" style="display:none;"></span>
-            <span id="hsSubmitLabel">🔩 Submit Order to Huntington Steel</span>
-          </button>
-        </div>
-      </div>
-      <div class="hs-success-screen" id="hsSuccessScreen" style="display:none;">
-        <div class="hs-suc-icon">✅</div>
-        <div class="hs-suc-title">ORDER RECEIVED!</div>
-        <div class="hs-suc-text" id="hsSuccessText"></div>
-        <button class="btn-hs-suc" onclick="closeHsModal()">Continue Shopping</button>
-      </div>
-    </div>`;
-}
-
-function submitHsOrder() {
-  if (!hsOrder.length) { showToast('Add at least one item to your order first'); return; }
-  const v = id => document.getElementById(id)?.value.trim();
-  clearFieldErrors(['hs-first','hs-last','hs-email','hs-phone','hs-addr']);
-  let firstError = null;
-  const markError = (id, msg) => { showFieldError(id, msg); if (!firstError) firstError = id; };
-
-  if (!v('hs-first')) markError('hs-first', 'First name is required');
-  if (!v('hs-last')) markError('hs-last', 'Last name is required');
-  if (!v('hs-email')) markError('hs-email', 'Email is required');
-  else if (!EMAIL_PATTERN.test(v('hs-email'))) markError('hs-email', 'Enter a valid email address');
-  if (v('hs-phone') && !PHONE_PATTERN.test(v('hs-phone'))) markError('hs-phone', 'Enter a valid phone number');
-  if (!v('hs-addr')) markError('hs-addr', 'Shipping address is required');
-
-  if (firstError) { document.getElementById(firstError)?.focus(); return; }
-
-  const btn = document.getElementById('hsSubmitBtn');
-  const spinner = document.getElementById('hsSpinner');
-  const label = document.getElementById('hsSubmitLabel');
-  btn.disabled = true;
-  spinner.style.display = 'inline-block';
-  label.textContent = 'Sending...';
-
-  const firstName = v('hs-first'), email = v('hs-email');
-  const orderSummary = hsOrder.map(i => `${i.name} × ${i.qty}${i.size?` (Size: ${i.size})`:''}${i.color?` (Color: ${i.color})`:''}`).join('\n');
-
-  const templateParams = {
-    to_email:     'erin@underpressurecustomapparel.com',
-    from_name:    `${firstName} ${v('hs-last')}`,
-    from_email:   email,
-    phone:        v('hs-phone'),
-    shipping_address: v('hs-addr'),
-    notes:        v('hs-notes') || 'None',
-    order_summary: orderSummary,
-    submitted_at: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
-    reply_to:     email,
-  };
-
-  const finish = () => {
-    logProductionOrder({
-      store: 'Huntington Steel',
-      customer: `${firstName} ${v('hs-last')}`,
-      phone: v('hs-phone') || '',
-      email: email,
-      items: hsOrder.map(i => ({ name: i.name, qty: i.qty, size: i.size, color: i.color })),
-    });
-    showHsSuccess(firstName, email);
-    hsOrder = [];
-    btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🔩 Submit Order to Huntington Steel';
-  };
-
-  if (typeof emailjs === 'undefined' || EMAILJS_SERVICE_ID === 'YOUR_EMAILJS_SERVICE_ID') {
-    setTimeout(finish, 900);
-    return;
-  }
-
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-    .then(finish)
-    .catch(err => {
-      console.error('EmailJS error:', err);
-      showToast('Submission failed — please try again or call (304) 633-6401');
-      btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🔩 Submit Order to Huntington Steel';
-    });
-}
-
-function showHsSuccess(firstName, email) {
-  document.getElementById('hsFormWrap').style.display = 'none';
-  const success = document.getElementById('hsSuccessScreen');
-  success.style.display = 'block';
-  document.getElementById('hsSuccessText').innerHTML =
-    `Thank you, <strong>${firstName}</strong>!<br><br>` +
-    `Your order has been sent directly to the Huntington Steel team at<br>` +
-    `<strong style="color:#c8102e;">erin@underpressurecustomapparel.com</strong><br><br>` +
-    `They will follow up at <strong>${email}</strong> to confirm and process your order.<br>` +
-    `Questions? Call <strong>(304) 633-6401</strong>.`;
-}
 
 
 // ══════════════════════════════════════════════════════
@@ -3281,9 +2948,11 @@ function loadTeams() {
   } catch(e) { hiddenStores = new Set(); }
   loadStoreAccess();
 }
-// saveTeams, getStoreState, slugify defined in admin section below
+function saveTeams() { localStorage.setItem("upTeams", JSON.stringify(teams)); }
 
-// Store access states loaded by loadAdminState()
+
+// Store access states: 'public' | 'code' | 'private'
+// storeCodes: { storeKey: 'ACCESSCODE' }
 let storeAccess  = {};
 let storeCodes   = {};
 
@@ -3292,9 +2961,18 @@ function loadStoreAccess() {
   try { storeCodes  = JSON.parse(localStorage.getItem("storeCodes")  || "{}"); } catch(e) { storeCodes  = {}; }
 }
 
-function isStoreVisible(storeKey) { return (storeAccess[storeKey] || 'public') === 'public'; }
-function isStoreCodeProtected(storeKey) { return (storeAccess[storeKey] || 'public') === 'code'; }
 
+function getStoreState(storeKey) {
+  return storeAccess[storeKey] || 'public';
+}
+function isStoreVisible(storeKey) {
+  const state = getStoreState(storeKey);
+  return state === 'public';
+}
+function isStoreCodeProtected(storeKey) {
+  return getStoreState(storeKey) === 'code';
+}
+// Legacy toggle kept for compatibility
 
 
 function renderTeamCards() {
@@ -3329,6 +3007,10 @@ function renderTeamCards() {
         <div class="team-card-arrow">→</div>
       </a>`;
   }).join("")}</div>`;
+}
+
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '').replace(/^-+|-+$/g, '');
 }
 
 // ── CM TEAM ADMIN (renders inside content manager) ──
@@ -4112,7 +3794,7 @@ function buildStoreView(orders) {
   const rows = Object.entries(storeData).map(([store, d]) => {
     const profit = d.revenue - d.cost;
     const margin = d.revenue > 0 ? profit/d.revenue*100 : 0;
-    const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
+    const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     const hasCost = d.cost > 0;
     return `<tr class="cost-row">
       <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;">${store}</span></td>
@@ -4152,7 +3834,7 @@ function buildOrderView(orders) {
     const profit = rev - cost;
     const margin = rev > 0 ? profit/rev*100 : 0;
     const hasCost = cost > 0;
-    const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':o.store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
+    const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     return `<tr class="cost-row">
       <td class="cost-td">
         <div class="cost-name">${o.customer}</div>
@@ -4295,7 +3977,7 @@ function loadReviews() {
       { id:3, name:'Pastor David Webb', rating:5, text:"Our youth group loved the Rome CoC shirts! The designs are so creative and fun. A portion going to our ministry made it even more special. Thank you Erin!", store:'Rome CoC Youth', date:'2026-05-08' },
       { id:4, name:'Lisa Monroe', rating:4, text:"Great experience from start to finish. The Be Salty Stay Lit design is hilarious and the quality is excellent. Will definitely be ordering more for our next camp!", store:'Rome CoC Youth', date:'2026-04-25' },
       { id:5, name:'James Carter', rating:5, text:"Under Pressure did our whole team order and everything was flawless. Professional, fast, and the final product was even better than we expected.", store:'UP Sportswear', date:'2026-05-10' },
-      { id:6, name:'Amanda Torres', rating:5, text:"Erin is absolutely the best to work with. She answered every question patiently and made sure our designs were perfect. Our Huntington Steel gear looks amazing.", store:'Huntington Steel', date:'2026-04-30' }
+      { id:6, name:'Amanda Torres', rating:5, text:"Erin is absolutely the best to work with. She answered every question patiently and made sure our designs were perfect. Our custom gear looks amazing!", store:'UP Sportswear', date:'2026-04-30' }
     ];
     localStorage.setItem('upReviews', JSON.stringify(reviews));
   }
@@ -4330,7 +4012,7 @@ function renderReviews() {
   grid.innerHTML = shown.map(r => {
     const storeColor = r.store && r.store.includes('Rampage') ? '#1a6b2f'
       : r.store && r.store.includes('Rome') ? '#7c3aed'
-      : r.store && r.store.includes('Huntington') ? '#c8102e' : 'var(--up-blue)';
+      : 'var(--up-blue)';
     const date = new Date(r.date).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
     return `<div class="review-card" style="border-top-color:${storeColor}">
       <div class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
@@ -4623,9 +4305,8 @@ function buildSearchIndex() {
   const rampageItems = [
     'Baseball Batting Jacket','Softball Batting Jacket','Baseball Soft-Style T-Shirt',
     'Softball Soft-Style T-Shirt','Baseball Dry-Fit','Softball Dry-Fit',
-    'Rampage Baseball Hoodie','Rampage Softball Hoodie','Rampage Baseball Crewneck Sweatshirt',
-    'Rampage Softball Crewneck Sweatshirt','Rampage Baseball Long Sleeve Tee',
-    'Rampage Softball Long Sleeve Tee','Rampage Snapback Cap','Rampage Trucker Cap',
+    'Rampage Baseball Hoodie','Rampage Softball Hoodie','Rampage Baseball Crewneck',
+    'Rampage Softball Crewneck','Rampage Snapback Cap','Rampage Trucker Cap',
     'Rampage Backpack','Rampage Tote Bag'
   ];
   rampageItems.forEach(name => {
@@ -5020,755 +4701,12 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   renderUP();
 }
 
-
-// ══════════════════════════════════════════════════════════════════
-//  ADMIN / CONTENT MANAGER
-//  Triggered by visiting /?admin (Cloudflare Access protects this)
-// ══════════════════════════════════════════════════════════════════
-
-// ── State ────────────────────────────────────────────────────────
-let teams = [];
-let hiddenStores = new Set();
-let storeAccess  = {};
-let storeCodes   = {};
-
-// Store products overrides (admin-managed, read by team stores on load)
-// Keys: 'rampage_products' and 'rome_products'
-function loadAdminState() {
-  try { teams       = JSON.parse(localStorage.getItem('upTeams')      || '[]'); } catch(e) { teams = []; }
-  try { const h     = JSON.parse(localStorage.getItem('hiddenStores') || '[]'); hiddenStores = new Set(h); } catch(e) { hiddenStores = new Set(); }
-  try { storeAccess = JSON.parse(localStorage.getItem('storeAccess')  || '{}'); } catch(e) { storeAccess = {}; }
-  try { storeCodes  = JSON.parse(localStorage.getItem('storeCodes')   || '{}'); } catch(e) { storeCodes = {}; }
+// Fix: scrollToSection was referenced but never defined
+function scrollToSection(id){
+  const el = document.getElementById(id);
+  if (el) setTimeout(() => el.scrollIntoView({behavior:'smooth', block:'start'}), 120);
 }
-function saveTeams()  { localStorage.setItem('upTeams', JSON.stringify(teams)); }
-
-function getStoreState(key) { return storeAccess[key] || 'public'; }
-function setStoreState(key, state) {
-  storeAccess[key] = state;
-  localStorage.setItem('storeAccess', JSON.stringify(storeAccess));
-  const wrap = document.getElementById('codewrap-' + key);
-  if (wrap) wrap.classList.toggle('show', state === 'code');
-  renderAdminPanel(_cmActiveTab);
-}
-function saveStoreCode(key) {
-  const inp = document.getElementById('code-inp-' + key);
-  if (!inp) return;
-  storeCodes[key] = inp.value.trim().toUpperCase();
-  localStorage.setItem('storeCodes', JSON.stringify(storeCodes));
-  showToast('Access code saved: ' + storeCodes[key]);
-}
-
-// ── Show / hide ───────────────────────────────────────────────────
-function showAdminPanel() {
-  loadAdminState();
-  document.getElementById('adminOverlay').style.display = 'flex';
-  document.getElementById('adminOverlay').style.alignItems = 'flex-start';
-  renderAdminPanel('teams');
-}
-function hideAdminPanel() {
-  document.getElementById('adminOverlay').style.display = 'none';
-}
-
-// ── Render shell ──────────────────────────────────────────────────
-let _cmActiveTab = 'teams';
-function renderAdminPanel(tab) {
-  _cmActiveTab = tab;
-  const logoSrc = document.getElementById('headerLogo') ? document.getElementById('headerLogo').src : '';
-  document.getElementById('adminPanelFull').innerHTML = `
-    <div class="cm-wrap">
-      <div class="cm-header">
-        <div class="cm-logo">
-          ${logoSrc && !logoSrc.includes('LOGO_PLACEHOLDER') ? `<img src="${logoSrc}" style="height:42px;">` : '<span style="font-size:28px;">⚡</span>'}
-          <div><div class="cm-title">CONTENT MANAGER</div><div class="cm-sub">Under Pressure Custom Apparel</div></div>
-        </div>
-        <button class="cm-close" onclick="hideAdminPanel()">✕ Close</button>
-      </div>
-      <div class="cm-tabs">
-        <button class="cm-tab ${tab==='teams'?'active':''}"      onclick="renderAdminPanel('teams')">🏆 Team Stores</button>
-        <button class="cm-tab ${tab==='rampage'?'active':''}"    onclick="renderAdminPanel('rampage')" style="${tab==='rampage'?'color:#4ade80;border-bottom-color:#1a6b2f':''}">⚾ Rampage Products</button>
-        <button class="cm-tab ${tab==='rome'?'active':''}"       onclick="renderAdminPanel('rome')"    style="${tab==='rome'?'color:#a78bfa;border-bottom-color:#7c3aed':''}">✝ Rome Products</button>
-        <button class="cm-tab ${tab==='up'?'active':''}"         onclick="renderAdminPanel('up')">⚡ UP Products</button>
-        <button class="cm-tab ${tab==='hs'?'active red':''}"     onclick="renderAdminPanel('hs')">🏭 Huntington Steel</button>
-        <button class="cm-tab ${tab==='production'?'active':''}" onclick="renderAdminPanel('production')" style="${tab==='production'?'color:#4ade80;border-bottom-color:#4ade80':''}">📋 Production</button>
-        <button class="cm-tab ${tab==='purchaselist'?'active':''}" onclick="renderAdminPanel('purchaselist')" style="${tab==='purchaselist'?'color:#fbbf24;border-bottom-color:#fbbf24':''}">🛒 Purchase List</button>
-      </div>
-      <div class="cm-body">
-        ${tab==='teams'       ? renderTeamAdmin()           :
-          tab==='rampage'     ? renderStoreProductAdmin('rampage') :
-          tab==='rome'        ? renderStoreProductAdmin('rome')    :
-          tab==='up'          ? renderUPAdmin()             :
-          tab==='hs'          ? renderHSAdmin()             :
-          tab==='production'  ? renderProductionAdmin()     :
-          tab==='purchaselist'? renderPurchaseList()        :
-          renderTeamAdmin()}
-      </div>
-    </div>`;
-}
-
-// ── Team Stores tab ───────────────────────────────────────────────
-function renderTeamAdmin() {
-  const builtIns = [
-    { name:'River City Rampage',      key:'builtin-rampage',  color:'#1a6b2f', logo:'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png',  url:'team-store-template.html' },
-    { name:'Rome CoC Youth T-Shirts', key:'builtin-romecoc',  color:'#7c3aed', logo:'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png',           url:'rome-coc-tshirt-store.html' },
-  ];
-  const allStores = [...builtIns, ...teams.map((t,i) => ({...t, key:t.key||`team-${i}`, isCustom:true, idx:i}))];
-
-  const rows = allStores.map(t => {
-    const state = getStoreState(t.key);
-    return `<tr class="cm-row" style="${state==='private'?'opacity:.5':''}">
-      <td class="cm-td">
-        <div style="display:flex;align-items:center;gap:10px;">
-          ${t.logo ? `<img src="${t.logo}" style="width:32px;height:32px;object-fit:contain;opacity:.8;" onerror="this.style.display='none'">` : `<div style="width:32px;height:32px;border-radius:50%;background:${t.color||'#1565ff'};opacity:.6;"></div>`}
-          <div>
-            <div class="cm-prod-name">${t.name}
-              ${state==='public'  ? '<span class="vis-badge public">Public</span>'   : ''}
-              ${state==='code'    ? '<span class="vis-badge code">Code</span>'       : ''}
-              ${state==='private' ? '<span class="vis-badge private">Private</span>': ''}
-            </div>
-            <div class="cm-prod-cat">${t.isCustom ? (t.subdomain||'')+'‌.underpressure.com' : 'Built-in store'}</div>
-          </div>
-        </div>
-      </td>
-      <td class="cm-td">
-        <div class="vis-select-wrap">
-          <div class="vis-state-btns">
-            <button class="vis-state-btn ${state==='public'?'active-public':''}"  onclick="setStoreState('${t.key}','public')"><span class="vis-state-icon">🌐</span>Public</button>
-            <button class="vis-state-btn ${state==='code'?'active-code':''}"      onclick="setStoreState('${t.key}','code')"><span class="vis-state-icon">🔑</span>Code</button>
-            <button class="vis-state-btn ${state==='private'?'active-private':''}" onclick="setStoreState('${t.key}','private')"><span class="vis-state-icon">🔒</span>Private</button>
-          </div>
-          <div class="vis-code-wrap ${state==='code'?'show':''}" id="codewrap-${t.key}">
-            <input class="vis-code-input" id="code-inp-${t.key}" placeholder="SET CODE..." maxlength="12" value="${storeCodes[t.key]||''}">
-            <button class="vis-code-save" onclick="saveStoreCode('${t.key}')">Save</button>
-          </div>
-          ${storeCodes[t.key] && state==='code' ? `<div style="font-size:10px;color:#fbbf24;margin-top:3px;letter-spacing:1px;">Code: <strong>${storeCodes[t.key]}</strong></div>` : ''}
-        </div>
-      </td>
-      <td class="cm-td cm-actions">
-        ${t.isCustom
-          ? `<button class="cm-btn-edit" onclick="openCMTeamEdit(${t.idx})">✏ Edit</button>
-             <button class="cm-btn-del"  onclick="cmDeleteTeam(${t.idx})">✕</button>`
-          : `<a href="${t.url}" target="_blank" class="cm-btn-edit" style="text-decoration:none;">↗ Open Store</a>
-             <span style="font-size:10px;color:var(--up-mist);">Built-in</span>`}
-      </td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="3" class="cm-empty">No stores yet.</td></tr>`;
-
-  return `
-    <div class="cm-section-head">
-      <div class="cm-section-title" style="color:var(--up-sky)">Team Stores <span class="cm-count">${2 + teams.length}</span></div>
-      <button class="cm-btn-add" onclick="openCMTeamAdd()">+ Add Store</button>
-    </div>
-    <div class="cm-table-wrap">
-      <table class="cm-table">
-        <thead><tr>
-          <th class="cm-th">Store</th>
-          <th class="cm-th">Visibility</th>
-          <th class="cm-th">Actions</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <div class="cm-tip">Use the ⚾ Rampage Products and ✝ Rome Products tabs to add or remove items from those stores.</div>`;
-}
-
-// ── Store Product Admin (Rampage / Rome) ──────────────────────────
-// Products are stored in localStorage as JSON arrays.
-// team-store-template.html and rome-coc-tshirt-store.html read these
-// on load and merge with (or override) their built-in defaults.
-
-const STORE_KEYS = {
-  rampage: 'admin_rampage_products',
-  rome:    'admin_rome_products',
-};
-
-function loadStoreProducts(store) {
-  try { return JSON.parse(localStorage.getItem(STORE_KEYS[store]) || 'null'); } catch(e) { return null; }
-}
-function saveStoreProducts(store, products) {
-  localStorage.setItem(STORE_KEYS[store], JSON.stringify(products));
-}
-
-// Default product lists (mirrors what's hard-coded in the HTML files)
-const RAMPAGE_DEFAULTS = [
-  {id:1,  name:'Rampage Baseball Batting Jacket',    cat:'jackets',     price:45, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_8132_3305d41b0d8a96b340d2521faa586a2d.jpeg'},
-  {id:2,  name:'Rampage Softball Batting Jacket',    cat:'jackets',     price:45, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_8134_e3db3556c4c3391acd4c090235d5bef5.jpeg'},
-  {id:3,  name:'Softball Gorilla Batting Jacket',    cat:'jackets',     price:45, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_8142_00db4ff7ba6f058ccf2d158d535de37e.jpeg'},
-  {id:4,  name:'Baseball Gorilla Batting Jacket',    cat:'jackets',     price:45, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_8139_9d9ca5e10ea12bc5a19b020474cd56ea.jpeg'},
-  {id:5,  name:'Baseball Soft-Style T-Shirt',        cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7841_b01cf855e29efa8e61787c14949de89b.jpeg'},
-  {id:6,  name:'Softball Soft-Style T-Shirt',        cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7847_49e43a7f6d2be7f8f4948d38fa8a8a6b.jpeg'},
-  {id:7,  name:'Rampage Baseball Logo T-Shirt',      cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7859_8396d8d605575e2a211a10e72286bdac.jpeg'},
-  {id:8,  name:'Rampage Softball Logo T-Shirt',      cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7853_ae057537452778f13732cf06899e7476.jpeg'},
-  {id:9,  name:'RC Baseball Soft-Style T-Shirt',     cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7872_fa254ae3384791f6689fafcafed20501.jpeg'},
-  {id:10, name:'RC Softball Soft-Style T-Shirt',     cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7880_cdc7be5303609ec9b40246714fb04855.jpeg'},
-  {id:11, name:'Rampage Baseball Soft-Style T-Shirt',cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7883_9ed11b86fd8eaf9bba65e04786c8282b.jpeg'},
-  {id:12, name:'Rampage Softball Soft-Style T-Shirt',cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7892_eb51aca61cfcd6cd2a93b5213c97c898.jpeg'},
-  {id:13, name:'RCR White Baseball T-Shirt',         cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7896_4894ff21194627c75fb593dc6c748483.jpeg'},
-  {id:14, name:'RCR White Softball T-Shirt',         cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7900_b8ecfec092b15318cedbe8875b2591fa.jpeg'},
-  {id:15, name:'RCR Pink Baseball T-Shirt',          cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7907_2974343f9337d14fbfe7311affe049da.jpeg'},
-  {id:16, name:'RCR Pink Softball T-Shirt',          cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7911_35231beef3e5f2c1544767ddfd1f9493.jpeg'},
-  {id:17, name:'RCR Green Baseball T-Shirt',         cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7915_466999d10e9be6b1328e1b9f19858fda.jpeg'},
-  {id:18, name:'RCR Green Softball T-Shirt',         cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7924_754e99cf4bcd9169ff7c8fc5d67a9b0f.jpeg'},
-  {id:19, name:'RCR Diamond Baseball T-Shirt',       cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7928_250d7dbc13f4c0f8eba859e01cf79dc6.jpeg'},
-  {id:20, name:'RCR Diamond Softball T-Shirt',       cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7931_cf7007cb436fe38f9b463496e62e8e46.jpeg'},
-  {id:21, name:'Greatest Show on Dirt Green T-Shirt',cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7941_5c714b1fc59552724110e652bbd39770.jpeg'},
-  {id:22, name:'Greatest Show on Dirt Pink T-Shirt', cat:'tees',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7942_6206a8db8d9002d1a177788c945b1afb.jpeg'},
-  {id:23, name:'Baseball Dry-Fit',                   cat:'dryfits',     price:30, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7947_1c3c7d33c891890b008e7d0bc31f4aad.jpeg'},
-  {id:24, name:'Softball Dry-Fit',                   cat:'dryfits',     price:30, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7952_b919ef0a244bc97692f1caafc0c57f62.jpeg'},
-  {id:25, name:'Rampage Baseball Dry-Fit',           cat:'dryfits',     price:30, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7962_7ad1fda9709841069e667e1dd1e2f0bd.jpeg'},
-  {id:26, name:'Rampage Softball Dry-Fit',           cat:'dryfits',     price:30, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7965_c5b5b04ccefbe251c144eedf7bd0fc8a.jpeg'},
-  {id:27, name:'Rampage Baseball Hoodie',            cat:'hoodies',     price:45, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7975_ec2da522a271a537cca19af7e83b646e.jpeg'},
-  {id:28, name:'Rampage Softball Hoodie',            cat:'hoodies',     price:45, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7978_f0a2c4ed14e5c83c382683e7491f155a.jpeg'},
-  {id:29, name:'Rampage Baseball Crewneck Sweatshirt',cat:'hoodies',    price:40, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7984_4078156e2da97de175298398917ed54c.jpeg'},
-  {id:30, name:'Rampage Softball Crewneck Sweatshirt',cat:'hoodies',    price:40, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7987_134393d670db99612967d2b9561d514e.jpeg'},
-  {id:35, name:'Rampage Baseball Long Sleeve Tee',   cat:'longsleeves', price:30, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7975_ec2da522a271a537cca19af7e83b646e.jpeg'},
-  {id:36, name:'Rampage Softball Long Sleeve Tee',   cat:'longsleeves', price:30, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_7978_f0a2c4ed14e5c83c382683e7491f155a.jpeg'},
-  {id:31, name:'Rampage Snapback Cap',               cat:'hats',        price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_8094_e4b173e5de7dfc4b1c32d3c40a8004cc.jpeg'},
-  {id:32, name:'Rampage Trucker Cap',                cat:'hats',        price:22, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_8069_56f9fda224d8adad4be667eaef108af5.jpeg'},
-  {id:33, name:'Rampage Backpack',                   cat:'bags',        price:35, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_8082_2a9ea51abcbb620da8531b58682843f9.jpeg'},
-  {id:34, name:'Rampage Tote Bag',                   cat:'bags',        price:18, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_8084_e999be9e837e9ef120f865b0bba7c764.jpeg'},
-];
-
-const ROME_DEFAULTS = [
-  {id:1, name:'Jesus Loved',               cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6821_aa60344d5a0ce54387636fd7af0547e4.jpeg'},
-  {id:2, name:'Tonight… We Ride!',         cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6828_b8f8d11eb60a6230bf4c3a68857917cd.jpeg'},
-  {id:3, name:'Letters from Paul',         cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6835_de3b5f996396d37fa294debe8868263d.jpeg'},
-  {id:4, name:'Go Spread It',              cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6843_04b4dcd42f772a4e23a6d5678084837a.jpeg'},
-  {id:5, name:'Here Am I',                 cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6847_ba5e046a1bf328f6907003f5d6580ede.jpeg'},
-  {id:6, name:'Be Salty | Stay Lit',       cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6863_e300103d0769f9029e38a0370a176da5.jpeg'},
-  {id:7, name:'Sprinkle a Little Faith',   cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6858_c72fb2aa945e89b599fda28087694f36.jpeg'},
-  {id:8, name:'Get in Loser',              cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6873_77428384b45fee366143268e5f25ddbd.jpeg'},
-  {id:9, name:'Get in Loser 2',            cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6877_ccd7c506f5675b145656f4fd955c6ea8.jpeg'},
-  {id:10,name:'Wanted',                    cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6890_72753f22d4febe8462f6cf314b82e3e4.jpeg'},
-  {id:11,name:'3 Chartreuse Buzzards',     cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6898_3528460e7106d2c084e9fb60adb4fbdd.jpeg'},
-  {id:12,name:'Camp Shirts Classic',       cat:'tees', price:25, img:'https://www.jotform.com/uploads/erinncarver/form_files/img_6881_fd88993b2ff6fe9120c25cd2e8c3bf2e.jpeg'},
-];
-
-const STORE_DEFAULTS = { rampage: RAMPAGE_DEFAULTS, rome: ROME_DEFAULTS };
-const STORE_LABELS   = { rampage: '⚾ Rampage', rome: '✝ Rome CoC' };
-const STORE_COLORS   = { rampage: '#4ade80', rome: '#a78bfa' };
-const STORE_CAT_LABELS = {
-  jackets:'Batting Jacket', tees:'T-Shirt', dryfits:'Dry-Fit',
-  longsleeves:'Long Sleeve', hoodies:'Hoodie/Fleece', hats:'Hat', bags:'Bag',
-};
-
-let _spStore = null; // which store is being edited in the product panel
-let _spEditIdx = -1;
-
-function renderStoreProductAdmin(store) {
-  _spStore = store;
-  const saved    = loadStoreProducts(store);
-  const products = saved || STORE_DEFAULTS[store];
-  const isCustom = saved !== null;
-  const color    = STORE_COLORS[store];
-  const label    = STORE_LABELS[store];
-
-  const rows = products.map((p, i) => `
-    <tr class="cm-row">
-      <td class="cm-td" style="width:52px;">
-        <img src="${p.img}" style="width:44px;height:44px;object-fit:cover;background:var(--up-border);" onerror="this.style.opacity='.2'">
-      </td>
-      <td class="cm-td">
-        <div class="cm-prod-name">${p.name}</div>
-        <div class="cm-prod-cat">${STORE_CAT_LABELS[p.cat]||p.cat}</div>
-      </td>
-      <td class="cm-td" style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${color};">$${p.price}</td>
-      <td class="cm-td cm-actions">
-        <button class="cm-btn-edit" onclick="openSPEdit('${store}',${i})">✏ Edit</button>
-        <button class="cm-btn-del"  onclick="deleteSP('${store}',${i})">✕ Remove</button>
-      </td>
-    </tr>`).join('') || `<tr><td colspan="4" class="cm-empty">No products yet.</td></tr>`;
-
-  return `
-    <div class="cm-section-head">
-      <div class="cm-section-title" style="color:${color}">${label} Products <span class="cm-count">${products.length}</span></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        ${isCustom ? `<button class="cm-btn-cancel" onclick="resetSPToDefaults('${store}')">↺ Reset to Defaults</button>` : ''}
-        <button class="cm-btn-add" style="background:${color};color:#000;" onclick="openSPAdd('${store}')">+ Add Product</button>
-      </div>
-    </div>
-    ${!isCustom ? `<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);padding:10px 16px;margin-bottom:16px;font-size:12px;color:#fbbf24;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">⚠ Showing built-in defaults. Add, edit, or remove a product to save a custom list for this store.</div>` : ''}
-    <div class="cm-table-wrap">
-      <table class="cm-table">
-        <thead><tr>
-          <th class="cm-th">Image</th>
-          <th class="cm-th">Product</th>
-          <th class="cm-th">Price</th>
-          <th class="cm-th">Actions</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <div class="cm-tip">Changes save instantly to this browser's localStorage and are read by the store page when it loads. Both pages must be on the same domain for localStorage to be shared.</div>`;
-}
-
-function openSPAdd(store) {
-  _spStore = store;
-  _spEditIdx = -1;
-  openSPModal(store, null);
-}
-function openSPEdit(store, idx) {
-  _spStore = store;
-  _spEditIdx = idx;
-  const saved    = loadStoreProducts(store);
-  const products = saved || STORE_DEFAULTS[store];
-  openSPModal(store, products[idx]);
-}
-function openSPModal(store, p) {
-  const color = STORE_COLORS[store];
-  const catOpts = Object.entries(STORE_CAT_LABELS).map(([v,l]) =>
-    `<option value="${v}" ${p?.cat===v?'selected':''}>${l}</option>`).join('');
-  document.getElementById('cmModalInner').innerHTML = `
-    <div class="cm-modal-head">
-      <div class="cm-modal-title" style="color:${color}">${p ? '✏ Edit Product' : '+ Add Product'}</div>
-      <button class="cm-close-sm" onclick="closeCMModal()">✕</button>
-    </div>
-    <div class="cm-modal-body">
-      <div class="cm-fg cm-full"><label>Product Name *</label><input id="sp-name" value="${p?.name||''}" placeholder="e.g. Rampage Baseball Long Sleeve"></div>
-      <div class="cm-fg"><label>Category</label>
-        <select id="sp-cat">${catOpts}</select>
-      </div>
-      <div class="cm-fg"><label>Price ($) *</label><input id="sp-price" type="number" value="${p?.price||25}" min="0" step="1"></div>
-      <div class="cm-fg cm-full"><label>Image URL (Jotform or any direct link)</label>
-        <input id="sp-img" value="${p?.img||''}" placeholder="https://..." oninput="spImgPreview()">
-      </div>
-      <div class="cm-fg cm-full" id="sp-img-preview-wrap" style="${p?.img?'':'display:none'}">
-        <img id="sp-img-preview" src="${p?.img||''}" style="max-height:120px;object-fit:contain;background:#fff;width:100%;" onerror="document.getElementById('sp-img-preview-wrap').style.display='none'">
-      </div>
-      <div class="cm-fg cm-full"><label>Colors (comma-separated, e.g. Green,Black,White)</label>
-        <input id="sp-colors" value="${p?.colors ? p.colors.join(',') : ''}"></div>
-      <div class="cm-modal-actions">
-        <button class="cm-btn-cancel" onclick="closeCMModal()">Cancel</button>
-        <button class="cm-btn-save" style="background:${color};color:#000;" onclick="saveSP('${store}')">Save Product</button>
-      </div>
-    </div>`;
-  document.getElementById('cmModal').classList.add('open');
-}
-function spImgPreview() {
-  const url  = document.getElementById('sp-img')?.value.trim();
-  const wrap = document.getElementById('sp-img-preview-wrap');
-  const img  = document.getElementById('sp-img-preview');
-  if (url && wrap && img) { wrap.style.display=''; img.src=url; }
-}
-function saveSP(store) {
-  const name   = document.getElementById('sp-name')?.value.trim();
-  const price  = parseFloat(document.getElementById('sp-price')?.value) || 0;
-  const cat    = document.getElementById('sp-cat')?.value;
-  const img    = document.getElementById('sp-img')?.value.trim();
-  const colRaw = document.getElementById('sp-colors')?.value.trim();
-  if (!name) { showToast('Product name is required'); return; }
-
-  const saved    = loadStoreProducts(store);
-  const products = saved ? [...saved] : [...STORE_DEFAULTS[store]];
-  const colorsArr = colRaw ? colRaw.split(',').map(c=>c.trim()).filter(Boolean) : undefined;
-  const entry = { id: _spEditIdx > -1 ? products[_spEditIdx].id : Date.now(), name, cat, price, img };
-  if (colorsArr) entry.colors = colorsArr;
-
-  if (_spEditIdx > -1) products[_spEditIdx] = entry;
-  else products.push(entry);
-
-  saveStoreProducts(store, products);
-  closeCMModal();
-  renderAdminPanel(store);
-  showToast(`"${name}" saved to ${STORE_LABELS[store]}`);
-}
-function deleteSP(store, idx) {
-  const saved    = loadStoreProducts(store);
-  const products = saved ? [...saved] : [...STORE_DEFAULTS[store]];
-  const name = products[idx]?.name || 'Product';
-  if (!confirm(`Remove "${name}" from ${STORE_LABELS[store]}?`)) return;
-  products.splice(idx, 1);
-  saveStoreProducts(store, products);
-  renderAdminPanel(store);
-  showToast(`"${name}" removed.`);
-}
-function resetSPToDefaults(store) {
-  if (!confirm(`Reset ${STORE_LABELS[store]} to the original built-in product list? All custom changes will be lost.`)) return;
-  localStorage.removeItem(STORE_KEYS[store]);
-  renderAdminPanel(store);
-  showToast(`${STORE_LABELS[store]} reset to defaults.`);
-}
-
-// ── UP Products tab ───────────────────────────────────────────────
-function renderUPAdmin() {
-  const rows = upProducts.map((p, i) => `
-    <tr class="cm-row">
-      <td class="cm-td"><div class="cm-prod-name">${p.name}</div><div class="cm-prod-cat">${catLabels[p.cat]||p.cat}</div></td>
-      <td class="cm-td">${p.price||'—'}</td>
-      <td class="cm-td cm-actions">
-        <button class="cm-btn-edit" onclick="openCMEditUP(${i})">✏ Edit</button>
-        <button class="cm-btn-del"  onclick="deleteCMUP(${i})">✕</button>
-      </td>
-    </tr>`).join('') || `<tr><td colspan="3" class="cm-empty">No UP products yet — add one below.</td></tr>`;
-
-  return `
-    <div class="cm-section-head">
-      <div class="cm-section-title" style="color:var(--up-sky)">UP Sportswear Products <span class="cm-count">${upProducts.length}</span></div>
-      <button class="cm-btn-add" onclick="openCMAddUP()">+ Add Product</button>
-    </div>
-    <div class="cm-table-wrap">
-      <table class="cm-table">
-        <thead><tr>
-          <th class="cm-th">Product</th>
-          <th class="cm-th">Price</th>
-          <th class="cm-th">Actions</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-}
-
-let _upEditIdx = -1;
-function openCMAddUP() {
-  _upEditIdx = -1;
-  openUPModal(null);
-}
-function openCMEditUP(idx) {
-  _upEditIdx = idx;
-  openUPModal(upProducts[idx]);
-}
-function openUPModal(p) {
-  const catOpts = Object.entries(catLabels).map(([v,l])=>`<option value="${v}" ${p?.cat===v?'selected':''}>${l}</option>`).join('');
-  document.getElementById('cmModalInner').innerHTML = `
-    <div class="cm-modal-head">
-      <div class="cm-modal-title">${p ? '✏ Edit Product' : '+ Add UP Product'}</div>
-      <button class="cm-close-sm" onclick="closeCMModal()">✕</button>
-    </div>
-    <div class="cm-modal-body">
-      <div class="cm-fg cm-full"><label>Product Name *</label><input id="cup-name" value="${p?.name||''}"></div>
-      <div class="cm-fg"><label>Category</label><select id="cup-cat">${catOpts}</select></div>
-      <div class="cm-fg"><label>Display Price</label><input id="cup-price" value="${p?.price||''}" placeholder="$29.99"></div>
-      <div class="cm-fg"><label>Checkout Price ($)</label><input id="cup-pnum" type="number" value="${p?.pnum||''}" min="0" step="0.01"></div>
-      <div class="cm-fg cm-full"><label>Image URL</label><input id="cup-img" value="${p?.img||''}" placeholder="https://..."></div>
-      <div class="cm-fg cm-full"><label>Description</label><textarea id="cup-desc">${p?.desc||''}</textarea></div>
-      <div class="cm-modal-actions">
-        <button class="cm-btn-cancel" onclick="closeCMModal()">Cancel</button>
-        <button class="cm-btn-save" onclick="saveCMUP()">Save Product</button>
-      </div>
-    </div>`;
-  document.getElementById('cmModal').classList.add('open');
-}
-function saveCMUP() {
-  const name = document.getElementById('cup-name')?.value.trim();
-  if (!name) { showToast('Name is required'); return; }
-  const product = {
-    id:    _upEditIdx > -1 ? upProducts[_upEditIdx].id : Date.now(),
-    name,
-    cat:   document.getElementById('cup-cat')?.value,
-    price: document.getElementById('cup-price')?.value.trim(),
-    pnum:  document.getElementById('cup-pnum')?.value.trim(),
-    img:   document.getElementById('cup-img')?.value.trim(),
-    desc:  document.getElementById('cup-desc')?.value.trim(),
-  };
-  if (_upEditIdx > -1) upProducts[_upEditIdx] = product;
-  else upProducts.unshift(product);
-  saveUP(); renderUP(); closeCMModal(); renderAdminPanel('up');
-  showToast(`"${name}" saved.`);
-}
-function deleteCMUP(idx) {
-  const name = upProducts[idx]?.name || 'Product';
-  if (!confirm(`Remove "${name}"?`)) return;
-  upProducts.splice(idx, 1);
-  saveUP(); renderUP(); renderAdminPanel('up');
-  showToast(`"${name}" removed.`);
-}
-
-// ── Team store add/edit ───────────────────────────────────────────
-let _cmTeamEditIdx = -1;
-function openCMTeamAdd() {
-  _cmTeamEditIdx = -1;
-  document.getElementById('cmModalInner').innerHTML = teamModalHTML(null);
-  document.getElementById('cmModal').classList.add('open');
-}
-function openCMTeamEdit(idx) {
-  _cmTeamEditIdx = idx;
-  document.getElementById('cmModalInner').innerHTML = teamModalHTML(teams[idx]);
-  document.getElementById('cmModal').classList.add('open');
-}
-function teamModalHTML(t) {
-  const subdomain = t ? (t.subdomain || slugify(t.name||'')) : '';
-  return `
-    <div class="cm-modal-head">
-      <div class="cm-modal-title">${t ? '✏ Edit Store' : '+ Add Team Store'}</div>
-      <button class="cm-close-sm" onclick="closeCMModal()">✕</button>
-    </div>
-    <div class="cm-modal-body">
-      <div class="cm-fg cm-full"><label>Team Name *</label><input id="tm-name" value="${t?.name||''}" placeholder="e.g. Fairland Little League" oninput="autoSubdomain()"></div>
-      <div class="cm-fg cm-full"><label>Subdomain (→ <span id="tm-preview">${subdomain||'teamname'}</span>.underpressure.com)</label>
-        <input id="tm-sub" value="${subdomain}" placeholder="fairlandlittleleague" oninput="updateSubPreview()">
-      </div>
-      <div class="cm-fg"><label>Brand Color</label>
-        <input type="color" id="tm-color" value="${t?.color||'#1565ff'}" style="width:100%;height:38px;cursor:pointer;background:var(--up-navy);border:1px solid var(--up-border);">
-      </div>
-      <div class="cm-fg"><label>Description</label><input id="tm-desc" value="${t?.desc||''}" placeholder="Custom team apparel..."></div>
-      <div class="cm-fg cm-full"><label>Logo URL</label><input id="tm-logo" value="${t?.logo||''}" placeholder="https://..."></div>
-      <div class="cm-modal-actions">
-        <button class="cm-btn-cancel" onclick="closeCMModal()">Cancel</button>
-        <button class="cm-btn-save" onclick="saveCMTeam()">${t ? 'Save Changes' : 'Add Store'}</button>
-      </div>
-    </div>`;
-}
-function autoSubdomain() {
-  const nm = document.getElementById('tm-name')?.value || '';
-  const sub = document.getElementById('tm-sub');
-  if (sub && (!sub.value || sub.dataset.auto !== 'no')) {
-    sub.value = slugify(nm);
-    sub.dataset.auto = 'yes';
-    updateSubPreview();
-  }
-}
-function updateSubPreview() {
-  const sub = document.getElementById('tm-sub');
-  if (sub) { sub.dataset.auto = 'no'; document.getElementById('tm-preview').textContent = sub.value || 'teamname'; }
-}
-function saveCMTeam() {
-  const name = document.getElementById('tm-name')?.value.trim();
-  if (!name) { showToast('Team name is required'); return; }
-  const team = {
-    key:       `team-${Date.now()}`,
-    name,
-    subdomain: document.getElementById('tm-sub')?.value.trim() || slugify(name),
-    color:     document.getElementById('tm-color')?.value || '#1565ff',
-    desc:      document.getElementById('tm-desc')?.value.trim(),
-    logo:      document.getElementById('tm-logo')?.value.trim(),
-  };
-  if (_cmTeamEditIdx > -1) { team.key = teams[_cmTeamEditIdx].key || team.key; teams[_cmTeamEditIdx] = team; }
-  else teams.push(team);
-  saveTeams(); closeCMModal(); renderAdminPanel('teams');
-  showToast(`"${name}" ${_cmTeamEditIdx > -1 ? 'updated' : 'added'}.`);
-}
-function cmDeleteTeam(idx) {
-  const name = teams[idx]?.name || 'Store';
-  if (!confirm(`Remove "${name}" from team stores?`)) return;
-  teams.splice(idx, 1);
-  saveTeams(); renderAdminPanel('teams');
-  showToast(`"${name}" removed.`);
-}
-function slugify(name) { return name.toLowerCase().replace(/[^a-z0-9]+/g,'').replace(/^-+|-+$/g,''); }
-
-// ── Shared modal close ────────────────────────────────────────────
-function closeCMModal() { document.getElementById('cmModal').classList.remove('open'); }
-document.addEventListener('DOMContentLoaded', function() {
-  const cm = document.getElementById('cmModal');
-  if (cm) cm.addEventListener('click', function(e) { if (e.target === this) closeCMModal(); });
-  // Show admin panel if ?admin is in the URL
-  if (window.location.search.includes('admin') || window.location.pathname.includes('admin')) {
-    showAdminPanel();
-  }
-});
-
-// ══════════════════════════════════════════════════════
-//  HUNTINGTON STEEL ADMIN
-// ══════════════════════════════════════════════════════
-let hsOverrides = [];
-function loadHSOverrides() {
-  try { hsOverrides = JSON.parse(localStorage.getItem('hsOverrides') || '[]'); } catch(e) { hsOverrides = []; }
-  hsOverrides.forEach(o => {
-    if (o._deleted) { const i = (typeof hsProducts!=='undefined'?hsProducts:[]).findIndex(p=>p.name===o.name); if(i>-1) hsProducts.splice(i,1); return; }
-    if (typeof hsProducts==='undefined') return;
-    const idx = hsProducts.findIndex(p=>p.name===o.name);
-    if (idx>-1) Object.assign(hsProducts[idx],o); else hsProducts.push(o);
-  });
-}
-function saveHSOverrides() { localStorage.setItem('hsOverrides', JSON.stringify(hsOverrides)); }
-function syncHSOverride(p) {
-  const idx = hsOverrides.findIndex(o=>o.name===p.name);
-  if (idx>-1) hsOverrides[idx]={...hsOverrides[idx],...p}; else hsOverrides.push({...p});
-  saveHSOverrides();
-}
-function renderHSAdmin() {
-  const products = (typeof hsProducts!=='undefined'?hsProducts:[]);
-  const rows = products.map((p,i)=>`
-    <tr class="cm-row">
-      <td class="cm-td"><div class="cm-prod-name">${p.name}</div><div class="cm-prod-cat" style="color:var(--hs-red)">${p.brand||''}</div></td>
-      <td class="cm-td">${p.price||'—'}</td>
-      <td class="cm-td">${p.cat||'—'}</td>
-      <td class="cm-td"><a href="${p.url||'#'}" target="_blank" class="cm-link">View ↗</a></td>
-      <td class="cm-td cm-actions">
-        <button class="cm-btn-edit" onclick="openCMEditHS(${i})">✏ Edit</button>
-        <button class="cm-btn-del" onclick="cmDeleteHS(${i})">✕</button>
-      </td>
-    </tr>`).join('')||`<tr><td colspan="5" class="cm-empty">No HS products.</td></tr>`;
-  return `
-    <div class="cm-section-head">
-      <div class="cm-section-title" style="color:var(--hs-red)">Huntington Steel Products <span class="cm-count">${products.length}</span></div>
-      <button class="cm-btn-add" style="background:var(--hs-red);" onclick="openCMAddHS()">+ Add HS Product</button>
-    </div>
-    <div class="cm-table-wrap"><table class="cm-table">
-      <thead><tr><th class="cm-th">Product</th><th class="cm-th">Price</th><th class="cm-th">Category</th><th class="cm-th">Order Link</th><th class="cm-th">Actions</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div>`;
-}
-let _hsEditIdx = -1;
-function openCMAddHS() { _hsEditIdx=-1; openHSModal(null); }
-function openCMEditHS(idx) { _hsEditIdx=idx; openHSModal(hsProducts[idx]); }
-function openHSModal(p) {
-  const cats=['outerwear','polos','fleece','tees','bags','headwear','womens'];
-  document.getElementById('cmModalInner').innerHTML=`
-    <div class="cm-modal-head">
-      <div class="cm-modal-title" style="color:var(--hs-red)">${p?'✏ Edit HS Product':'+ Add HS Product'}</div>
-      <button class="cm-close-sm" onclick="closeCMModal()">✕</button>
-    </div>
-    <div class="cm-modal-body">
-      <div class="cm-fg"><label>Product Name *</label><input id="hs-name" value="${p?.name||''}" placeholder="e.g. Nike Dri-FIT Polo"></div>
-      <div class="cm-fg"><label>Display Price</label><input id="hs-price" value="${p?.price||''}" placeholder="$45"></div>
-      <div class="cm-fg"><label>Category</label><select id="hs-cat">${cats.map(c=>`<option value="${c}" ${p?.cat===c?'selected':''}>${c}</option>`).join('')}</select></div>
-      <div class="cm-fg"><label>Brand</label><input id="hs-brand" value="${p?.brand||''}" placeholder="e.g. Nike"></div>
-      <div class="cm-fg cm-full"><label>Order Link URL</label><input id="hs-url" value="${p?.url||''}" placeholder="https://..."></div>
-      <div class="cm-modal-actions">
-        <button class="cm-btn-cancel" onclick="closeCMModal()">Cancel</button>
-        <button class="cm-btn-save" style="background:var(--hs-red);" onclick="saveHSProduct()">Save Product</button>
-      </div>
-    </div>`;
-  document.getElementById('cmModal').classList.add('open');
-}
-function saveHSProduct() {
-  const name=document.getElementById('hs-name')?.value.trim();
-  if (!name){showToast('Name is required');return;}
-  const product={name,price:document.getElementById('hs-price')?.value.trim(),cat:document.getElementById('hs-cat')?.value,brand:document.getElementById('hs-brand')?.value.trim(),url:document.getElementById('hs-url')?.value.trim(),icon:'👕',badge:''};
-  if (typeof hsProducts!=='undefined'){if(_hsEditIdx>-1)hsProducts[_hsEditIdx]={...hsProducts[_hsEditIdx],...product};else hsProducts.push(product);}
-  syncHSOverride(product);
-  if(typeof renderHS==='function')renderHS();
-  closeCMModal();renderAdminPanel('hs');showToast(`"${name}" ${_hsEditIdx>-1?'updated':'added'}.`);
-}
-function cmDeleteHS(idx) {
-  const name=hsProducts[idx]?.name||'Product';
-  if(!confirm(`Remove "${name}" from the HS catalog?`))return;
-  const removed=hsProducts.splice(idx,1)[0];
-  const oi=hsOverrides.findIndex(o=>o.name===removed.name);
-  if(oi>-1)hsOverrides.splice(oi,1);else hsOverrides.push({...removed,_deleted:true});
-  saveHSOverrides();if(typeof renderHS==='function')renderHS();
-  renderAdminPanel('hs');showToast(`"${name}" removed.`);
-}
-
-// ══════════════════════════════════════════════════════
-//  PRODUCTION BOARD
-// ══════════════════════════════════════════════════════
-function toggleProductionComplete(id) {
-  const o=productionOrders.find(p=>p.id===id);
-  if(o){o.completed=!o.completed;saveProductionOrders();renderAdminPanel('production');}
-}
-function deleteProductionOrder(id) {
-  if(!confirm('Remove this order from the production board?'))return;
-  productionOrders=productionOrders.filter(p=>p.id!==id);
-  saveProductionOrders();renderAdminPanel('production');
-}
-function exportProductionCSV() {
-  const rows=[['Store','Customer','Phone','Email','Item','Player Name','Number','Size','Color','Qty','Date','Status']];
-  productionOrders.filter(o=>!o._storeRegistration).forEach(o=>(o.items||[]).forEach(item=>rows.push([o.store,o.customer,o.phone,o.email,item.name||'',item.playerName||'',item.playerNumber||'',item.size||'',item.color||'',item.qty||1,new Date(o.timestamp).toLocaleDateString(),o.completed?'Completed':'Pending'])));
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}));
-  a.download=`UP-Production-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;a.click();
-}
-let prodFilterStore='all',prodFilterStatus='all',prodSearch='';
-function renderProductionAdmin() {
-  loadProductionOrders();
-  const stores=[...new Set(productionOrders.map(o=>o.store))];
-  const filtered=productionOrders.filter(o=>{
-    const sm=prodFilterStore==='all'||o.store===prodFilterStore;
-    const tm=prodFilterStatus==='all'||(prodFilterStatus==='pending'&&!o.completed)||(prodFilterStatus==='completed'&&o.completed);
-    const qm=!prodSearch||[o.customer,o.store,...(o.items||[]).map(i=>`${i.name} ${i.playerName} ${i.playerNumber} ${i.size}`)].join(' ').toLowerCase().includes(prodSearch.toLowerCase());
-    return sm&&tm&&qm;
-  });
-  const real=productionOrders.filter(o=>!o._storeRegistration);
-  const total=real.reduce((s,o)=>s+(o.items||[]).reduce((ss,i)=>ss+(i.qty||1),0),0);
-  const pending=real.filter(o=>!o.completed).reduce((s,o)=>s+(o.items||[]).reduce((ss,i)=>ss+(i.qty||1),0),0);
-  const sc=n=>n==='River City Rampage'?'#1a6b2f':n==='Rome CoC Youth T-Shirts'?'#7c3aed':n==='Huntington Steel'?'#c8102e':'var(--up-blue)';
-  const rowsHTML=filtered.length===0
-    ?`<tr><td colspan="9" class="prod-empty">${productionOrders.length===0?'📋 No production orders yet.':'No orders match your filter.'}</td></tr>`
-    :filtered.flatMap(o=>{
-      if(o._storeRegistration)return[`<tr style="background:rgba(255,255,255,.02);"><td colspan="9" style="padding:8px 12px;border-bottom:1px solid var(--up-border);"><span class="prod-store-badge" style="background:${sc(o.store)};color:#fff;">${o.store}</span> <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);">Registered ${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} — awaiting first order</span></td></tr>`];
-      return(o.items||[]).map((item,ii)=>`<tr class="prod-row${o.completed?' prod-completed':''}">${ii===0?`<td class="prod-td" rowspan="${o.items.length}" style="border-right:1px solid var(--up-border);vertical-align:middle;"><input type="checkbox" class="prod-row-check" ${o.completed?'checked':''} onchange="toggleProductionComplete(${o.id})"></td><td class="prod-td" rowspan="${o.items.length}" style="border-right:1px solid var(--up-border);vertical-align:middle;"><span class="prod-store-badge" style="background:${sc(o.store)};color:#fff;">${o.store}</span><div style="font-size:11px;color:var(--up-mist);margin-top:4px;">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div></td><td class="prod-td name-col" rowspan="${o.items.length}" style="border-right:1px solid var(--up-border);vertical-align:middle;">${o.customer}<div style="font-size:11px;color:var(--up-mist);">${o.phone||o.email||''}</div></td>`:''}<td class="prod-td" style="border-right:1px solid var(--up-border);"><div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${item.name||'—'}</div>${item.color?`<div style="font-size:11px;color:var(--up-mist);">${item.color}</div>`:''}</td><td class="prod-td name-col" style="border-right:1px solid var(--up-border);text-align:center;">${item.playerName||'<span style="color:var(--up-mist);">—</span>'}</td><td class="prod-td num-col" style="border-right:1px solid var(--up-border);">${item.playerNumber||'—'}</td><td class="prod-td size-col" style="border-right:1px solid var(--up-border);">${item.size||'—'}</td><td class="prod-td" style="border-right:1px solid var(--up-border);text-align:center;"><span style="font-size:18px;font-weight:700;">${item.qty||1}</span></td>${ii===0?`<td class="prod-td" rowspan="${o.items.length}" style="vertical-align:middle;text-align:center;"><button class="cm-btn-del" onclick="deleteProductionOrder(${o.id})" style="padding:4px 10px;">✕</button></td>`:''}</tr>`);
-    }).join('');
-  return `
-    <div class="cm-section-head">
-      <div class="cm-section-title" style="color:#4ade80;">Production <span style="color:var(--up-sky)">Board</span></div>
-      <button class="btn-prod-export" onclick="exportProductionCSV()">⬇ Export CSV</button>
-    </div>
-    <div class="prod-stats">
-      <div class="prod-stat-card"><div class="prod-stat-n">${real.length}</div><div class="prod-stat-l">Total Orders</div></div>
-      <div class="prod-stat-card"><div class="prod-stat-n">${total}</div><div class="prod-stat-l">Total Items</div></div>
-      <div class="prod-stat-card green"><div class="prod-stat-n">${total-pending}</div><div class="prod-stat-l">Completed</div></div>
-      <div class="prod-stat-card red"><div class="prod-stat-n">${pending}</div><div class="prod-stat-l">Pending</div></div>
-    </div>
-    <div class="prod-actions-bar">
-      <input class="prod-search" placeholder="🔍 Search..." value="${prodSearch}" oninput="prodSearch=this.value;renderAdminPanel('production')">
-      <button class="prod-filter-chip${prodFilterStatus==='all'?' on':''}" onclick="prodFilterStatus='all';renderAdminPanel('production')">All</button>
-      <button class="prod-filter-chip${prodFilterStatus==='pending'?' on':''}" onclick="prodFilterStatus='pending';renderAdminPanel('production')">⏳ Pending</button>
-      <button class="prod-filter-chip${prodFilterStatus==='completed'?' on':''}" onclick="prodFilterStatus='completed';renderAdminPanel('production')">✅ Completed</button>
-      ${stores.map(s=>`<button class="prod-filter-chip${prodFilterStore===s?' on':''}" onclick="prodFilterStore='${s}';renderAdminPanel('production')">${s}</button>`).join('')}
-      ${prodFilterStore!=='all'?`<button class="prod-filter-chip" onclick="prodFilterStore='all';renderAdminPanel('production')">✕ Clear</button>`:''}
-    </div>
-    <div class="cm-table-wrap"><table class="prod-table">
-      <thead class="prod-thead"><tr><th style="width:30px;"></th><th class="sortable">Store / Date</th><th class="sortable">Customer</th><th class="sortable">Item</th><th class="sortable">Player Name</th><th class="sortable">#</th><th class="sortable">Size</th><th class="sortable">Qty</th><th></th></tr></thead>
-      <tbody>${rowsHTML}</tbody>
-    </table></div>`;
-}
-
-// ══════════════════════════════════════════════════════
-//  PURCHASE LIST
-// ══════════════════════════════════════════════════════
-function renderPurchaseList() {
-  loadProductionOrders();
-  const real=productionOrders.filter(o=>!o._storeRegistration&&!o.completed);
-  const SIZE_ORDER=['2T-3T','4T-5T','6T-7T','Y Small','Y Med','Y Large','Y XLarge','YS','YM','YL','YXL','XS','S','Small','M','Med','Medium','L','Large','XL','XLarge','XXL','2XL','XXLarge','XXXL','3XL','4XL','5XL','One Size','No Size'];
-  const sortSizes=sz=>sz.sort((a,b)=>{const ai=SIZE_ORDER.indexOf(a),bi=SIZE_ORDER.indexOf(b);if(ai===-1&&bi===-1)return a.localeCompare(b);if(ai===-1)return 1;if(bi===-1)return-1;return ai-bi;});
-  const grand=real.reduce((s,o)=>s+(o.items||[]).reduce((ss,i)=>ss+(parseInt(i.qty)||1),0),0);
-  if(!real.length)return`<div class="cm-section-head"><div class="cm-section-title" style="color:#fbbf24">Purchase <span style="color:var(--up-sky)">List</span></div></div><div class="prod-empty">📦 No pending orders yet.</div>`;
-  const stores=['River City Rampage','Rome CoC Youth T-Shirts','UP Sportswear',...new Set(real.map(o=>o.store))].filter((v,i,a)=>a.indexOf(v)===i);
-  const bd={};
-  real.forEach(o=>{if(!bd[o.store])bd[o.store]={};const sd=bd[o.store];(o.items||[]).forEach(item=>{const n=item.name||'Unknown',sz=item.size||'No Size',col=item.color||'No Color',qty=parseInt(item.qty)||1;if(!sd[n])sd[n]={_total:0,_colors:{}};sd[n][sz]=(sd[n][sz]||0)+qty;sd[n]._total+=qty;sd[n]._colors[col]=(sd[n]._colors[col]||0)+qty;});});
-  const scc=n=>n==='River City Rampage'?'#1a6b2f':n==='Rome CoC Youth T-Shirts'?'#7c3aed':n==='Huntington Steel'?'#c8102e':'var(--up-blue)';
-  const chex=c=>({'Green':'#1a6b2f','Black':'#111','White':'#fff','Sport Grey':'#9e9e9e','Pink':'#ec4899','Red':'#dc2626','Light Blue':'#60a5fa','Lilac':'#a78bfa','Yellow':'#fbbf24','Navy':'#0d1220','Blue':'#1565ff'}[c]||'#888');
-  const sections=stores.map(sn=>{const sd=bd[sn];if(!sd||!Object.keys(sd).length)return'';const sc=scc(sn);const cards=Object.entries(sd).map(([nm,data],ci)=>{const id='pcard-'+sn.replace(/\s/g,'')+'-'+ci;const szs=sortSizes(Object.keys(data).filter(k=>k!=='_total'&&k!=='_colors'));return`<div class="purchase-item-card" id="${id}"><div class="purchase-item-header" onclick="togglePurchaseCard('${id}')"><div class="purchase-item-name">${nm}</div><div style="display:flex;align-items:center;gap:12px;"><div class="purchase-item-total">${data._total||0} <span>total</span></div><span class="purchase-toggle-chevron">▼</span></div></div><div class="purchase-size-grid">${szs.map(sz=>`<div class="size-block ${(data[sz]||0)>0?'has-count':'zero'}"><span class="size-block-label">${sz}</span><div class="size-block-count">${data[sz]||0}</div></div>`).join('')}</div>${Object.keys(data._colors||{}).length?`<div class="purchase-color-row">${Object.entries(data._colors).map(([c,n])=>`<div class="purchase-color-chip"><div style="width:10px;height:10px;border-radius:50%;background:${chex(c)};border:1px solid rgba(0,0,0,.2);"></div>${c} <strong style="color:var(--up-sky);margin-left:4px;">×${n}</strong></div>`).join('')}</div>`:''}</div>`;}).join('');return`<div class="purchase-store-group"><div class="purchase-store-label" style="background:${sc}20;border-left:3px solid ${sc};"><span class="prod-store-badge" style="background:${sc};color:#fff;">${sn}</span> <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);">${Object.keys(sd).length} item types · ${Object.values(sd).reduce((s,d)=>s+(d._total||0),0)} pieces</span></div>${cards}</div>`;}).join('');
-  return`<div class="cm-section-head"><div><div class="cm-section-title" style="color:#fbbf24;">Purchase <span style="color:var(--up-sky)">List</span></div><div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">Pending orders only · Exact size counts</div></div><div style="display:flex;gap:8px;"><button class="btn-print-list" onclick="exportPurchaseCSV()">⬇ Export CSV</button><button class="btn-print-list" onclick="window.print()">🖨 Print</button></div></div>${sections}<div class="purchase-grand-total"><div><div class="pgt-label">Grand Total — All Stores</div><div style="font-size:12px;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;margin-top:2px;">Pending orders only</div></div><div class="pgt-value">${grand} <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--up-mist);">PIECES</span></div></div><div class="cm-tip">Click any item row to expand. Mark orders complete in the Production tab to remove them.</div>`;
-}
-function togglePurchaseCard(id){const c=document.getElementById(id);if(c)c.classList.toggle('collapsed');}
-function exportPurchaseCSV(){
-  loadProductionOrders();
-  const real=productionOrders.filter(o=>!o._storeRegistration&&!o.completed);
-  const rows=[['Store','Item','Size','Color','Quantity']];
-  real.forEach(o=>(o.items||[]).forEach(item=>rows.push([o.store,item.name||'',item.size||'',item.color||'',item.qty||1])));
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}));
-  a.download=`UP-Purchase-List-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;a.click();
-}
-
-// ══════════════════════════════════════════════════════
-//  CANVA IMPORT
-// ══════════════════════════════════════════════════════
-async function importCanva(prefix) {
-  const input=document.getElementById(prefix+'-img'),btn=document.getElementById(prefix+'-canva-btn'),url=input?.value.trim();
-  if(!url){setCanvaStatus(prefix,'err','Paste a Canva share/publish link first.');return;}
-  if(!url.includes('canva.com')&&!url.includes('canva.site')){setCanvaStatus(prefix,'ok','✓ Direct image URL set.');previewImg(prefix);return;}
-  if(btn)btn.disabled=true;setCanvaStatus(prefix,'loading','⏳ Fetching Canva design...');
-  try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,messages:[{role:'user',content:`Fetch this Canva published page and extract the og:image meta tag URL: ${url}\nReturn ONLY the image URL, nothing else. If none, return NONE.`}]})});
-    const d=await r.json(),result=d.content?.[0]?.text?.trim()||'NONE';
-    if(result==='NONE'||!result.startsWith('http')){const fb=url.match(/canva\.com\/design\/([A-Za-z0-9_-]+)/);if(fb){input.value=`https://www.canva.com/design/${fb[1]}/thumbnail`;previewImg(prefix);setCanvaStatus(prefix,'ok','✓ Canva thumbnail extracted!');}else setCanvaStatus(prefix,'err','⚠ Could not extract. Download as PNG from Canva and paste the URL.');}
-    else{input.value=result;previewImg(prefix);setCanvaStatus(prefix,'ok','✓ Canva image imported!');}
-  }catch(e){setCanvaStatus(prefix,'err','⚠ Import failed. Paste a direct image URL instead.');}
-  finally{if(btn)btn.disabled=false;}
-}
-function setCanvaStatus(prefix,type,msg){const el=document.getElementById(prefix+'-canva-status');if(el){el.className='canva-status '+type;el.textContent=msg;}}
-function previewImg(prefix){const input=document.getElementById(prefix+'-img'),wrap=document.getElementById(prefix+'-img-preview'),img=document.getElementById(prefix+'-img-preview-img'),url=input?.value.trim();if(!url||!wrap||!img)return;if(url.match(/\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i)||url.includes('canva.com')||url.includes('jotform.com')||url.startsWith('data:')){img.src=url;wrap.style.display='block';img.onerror=()=>{wrap.style.display='none';};img.onload=()=>{wrap.style.display='block';};}}
-function clearImg(prefix){const i=document.getElementById(prefix+'-img'),w=document.getElementById(prefix+'-img-preview'),s=document.getElementById(prefix+'-canva-status');if(i)i.value='';if(w)w.style.display='none';if(s){s.className='canva-status';s.textContent='';}}
-
-// Load HS overrides on init (hsProducts may be defined later via UP section)
-setTimeout(()=>{if(typeof hsProducts!=='undefined')loadHSOverrides();},0);
-
-// Fix: scrollToSection
-function scrollToSection(id){const el=document.getElementById(id);if(el)setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),120);}
 </script>
-
-
-<!-- ══ ADMIN OVERLAY ══ -->
-<div id="adminOverlay" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);overflow-y:auto;">
-  <div id="adminPanelFull"></div>
-</div>
-
-<!-- CM MODAL (add/edit team or product) -->
-<div class="modal-bg" id="cmModal">
-  <div class="cm-modal-box" id="cmModalInner"></div>
-</div>
 
 </body>
 </html>
