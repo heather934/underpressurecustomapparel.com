@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>River City Rampage — Team Store</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD" data-namespace="paypal_sdk"></script>
 <style>
 /* ═══════════════════════════════
    TEAM TOKENS — swap these per team
@@ -163,7 +163,18 @@ header{position:sticky;top:0;z-index:200;background:rgba(7,9,11,.97);backdrop-fi
   cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
 .btn-close-m:hover{border-color:red;color:red;}
 .modal-body{padding:20px 24px;}
-.modal-product-img{width:100%;height:200px;object-fit:cover;margin-bottom:18px;}
+/* COLOR TINT PREVIEWER — modal */
+.modal-product-img-wrap{position:relative;width:100%;height:220px;margin-bottom:18px;background:#fff;overflow:hidden;}
+.modal-product-img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;display:block;}
+.modal-color-tint{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;transition:background-color .28s ease;}
+/* swatch dots in modal */
+.modal-swatches{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.m-swatch{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+  transition:transform .15s,box-shadow .15s,border-color .15s;flex-shrink:0;}
+.m-swatch:hover{transform:scale(1.2);box-shadow:0 0 0 2px rgba(255,255,255,.25);}
+.m-swatch.active{border-color:#fff;box-shadow:0 0 0 3px rgba(26,107,47,.6);transform:scale(1.1);}
+.m-swatch-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;
+  color:var(--mist);text-transform:uppercase;margin-left:4px;font-weight:600;}
 .modal-price{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--white);margin-bottom:16px;}
 .modal-section{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--mist);
   text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
@@ -344,7 +355,7 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
       Powered by Under Pressure Custom Apparel
     </div>
     <div class="header-right">
-      <a href="mailto:erin@underpressurecustomapparel.com" class="btn-call">✉️ Contact Us</a>
+      <a href="tel:3046336401" class="btn-call">📞 (304) 633-6401</a>
       <button class="cart-btn" onclick="openCart()">
         🛒 Cart <span class="cart-count" id="cartCount">0</span>
       </button>
@@ -362,7 +373,7 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
       <p class="hero-sub">Official custom gear for every Rampage player, coach, and fan. Batting jackets, tees, dry-fits, hoodies, hats and more — all sizes from toddler to 5XL.</p>
       <div class="hero-btns">
         <a href="#products" class="btn-primary">Shop All Products</a>
-        <a href="mailto:erin@underpressurecustomapparel.com" class="btn-outline">✉️ Contact Us</a>
+        <a href="tel:3046336401" class="btn-outline">📞 Call to Order</a>
       </div>
     </div>
     <div class="hero-stats">
@@ -396,6 +407,7 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
       <button class="chip" onclick="filterProducts('jackets',this)">Batting Jackets</button>
       <button class="chip" onclick="filterProducts('tees',this)">T-Shirts</button>
       <button class="chip" onclick="filterProducts('dryfits',this)">Dry-Fits</button>
+      <button class="chip" onclick="filterProducts('longsleeves',this)">Long Sleeves</button>
       <button class="chip" onclick="filterProducts('hoodies',this)">Hoodies & Fleece</button>
       <button class="chip" onclick="filterProducts('hats',this)">Hats</button>
       <button class="chip" onclick="filterProducts('bags',this)">Bags</button>
@@ -409,8 +421,8 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
 
 <!-- CTA -->
 <div class="cta-band">
-  <div><h2>QUESTIONS? EMAIL US.</h2><p>Under Pressure Custom Apparel is here to help with sizing, colors, and bulk orders.</p></div>
-  <a href="mailto:erin@underpressurecustomapparel.com" class="btn-dark">✉️ erin@underpressurecustomapparel.com</a>
+  <div><h2>QUESTIONS? CALL US.</h2><p>Under Pressure Custom Apparel is here to help with sizing, colors, and bulk orders.</p></div>
+  <a href="tel:3046336401" class="btn-dark">📞 (304) 633-6401</a>
 </div>
 
 <footer>
@@ -418,7 +430,7 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
     <strong style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--mist);">Under Pressure Custom Apparel</strong>
   </a>
   <div class="ft-links">
-    <a href="mailto:erin@underpressurecustomapparel.com">✉️ erin@underpressurecustomapparel.com</a>
+    <a href="tel:3046336401">📞 (304) 633-6401</a>
   <a href="https://underpressureapparel.com" target="_blank">Main Store</a>
     
   </div>
@@ -461,6 +473,24 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toastMsg"></span></div>
 
 <script>
+// ══════════════════════════════
+// COLOR TINT SYSTEM
+// ══════════════════════════════
+const COLOR_HEX_MAP = {
+  'White':'#f0f2f5',  'Off White':'#e8e4d8', 'Natural':'#e8dcc8',
+  'Black':'#1a1a1a',  'Charcoal':'#374151',  'Dark Heather':'#4a4a4a',
+  'Navy':'#0f1f4b',   'Royal Blue':'#2563eb','Blue':'#1565ff',
+  'Light Blue':'#93c5fd','Columbia Blue':'#9dc3d4',
+  'Red':'#c8102e',    'Cardinal':'#9f1239',  'Maroon':'#881337',
+  'Sport Grey':'#8e9197','Grey':'#8e9197',   'Silver':'#c0c8d4',
+  'Green':'#16a34a',  'Forest':'#166534',    'Kelly Green':'#22a856',
+  'Gold':'#d97706',   'Yellow':'#fbbf24',
+  'Purple':'#7c3aed', 'Pink':'#f472b6',      'Hot Pink':'#ec4899',
+  'Orange':'#ea580c', 'Brown':'#78350f',
+  'Heather Navy':'#1e3a5f',
+};
+function getColorHex(name) { return COLOR_HEX_MAP[name] || '#888'; }
+
 // ══════════════════════════════
 // PRODUCT CATALOG
 // ══════════════════════════════
@@ -506,8 +536,11 @@ const products = [
   // HOODIES / FLEECE
   { id:27, name:"Rampage Baseball Hoodie", cat:"hoodies", price:45, img:`${JT}img_7975_ec2da522a271a537cca19af7e83b646e.jpeg`, colors:["Green","Black","White","Sport Grey"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Baseball" },
   { id:28, name:"Rampage Softball Hoodie", cat:"hoodies", price:45, img:`${JT}img_7978_f0a2c4ed14e5c83c382683e7491f155a.jpeg`, colors:["Green","Black","White","Sport Grey","Pink"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Softball" },
-  { id:29, name:"Rampage Baseball Crewneck", cat:"hoodies", price:40, img:`${JT}img_7984_4078156e2da97de175298398917ed54c.jpeg`, colors:["Green","Black","White","Sport Grey"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Baseball" },
-  { id:30, name:"Rampage Softball Crewneck", cat:"hoodies", price:40, img:`${JT}img_7987_134393d670db99612967d2b9561d514e.jpeg`, colors:["Green","Black","White","Sport Grey","Pink"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Softball" },
+  { id:29, name:"Rampage Baseball Crewneck Sweatshirt", cat:"hoodies", price:40, img:`${JT}img_7984_4078156e2da97de175298398917ed54c.jpeg`, colors:["Green","Black","White","Sport Grey"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Baseball" },
+  { id:30, name:"Rampage Softball Crewneck Sweatshirt", cat:"hoodies", price:40, img:`${JT}img_7987_134393d670db99612967d2b9561d514e.jpeg`, colors:["Green","Black","White","Sport Grey","Pink"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Softball" },
+  // LONG SLEEVES
+  { id:35, name:"Rampage Baseball Long Sleeve Tee", cat:"longsleeves", price:30, img:`${JT}img_7975_ec2da522a271a537cca19af7e83b646e.jpeg`, colors:["Green","Black","White","Sport Grey"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Baseball" },
+  { id:36, name:"Rampage Softball Long Sleeve Tee", cat:"longsleeves", price:30, img:`${JT}img_7978_f0a2c4ed14e5c83c382683e7491f155a.jpeg`, colors:["Green","Black","White","Sport Grey","Pink"], sizes:[...ADULT_SIZES,...YOUTH_SIZES], badge:"Softball" },
   // HATS
   { id:31, name:"Rampage Snapback Cap", cat:"hats", price:25, img:`${JT}img_8094_e4b173e5de7dfc4b1c32d3c40a8004cc.jpeg`, colors:["Green/Black","Black/White","White/Green"], sizes:["One Size"], badge:"" },
   { id:32, name:"Rampage Trucker Cap", cat:"hats", price:22, img:`${JT}img_8069_56f9fda224d8adad4be667eaef108af5.jpeg`, colors:["Green","Black","White"], sizes:["One Size"], badge:"" },
@@ -551,7 +584,7 @@ function renderProducts(filter) {
 }
 
 function catLabel(c) {
-  return {jackets:"Batting Jacket",tees:"T-Shirt",dryfits:"Dry-Fit",hoodies:"Hoodie / Fleece",hats:"Hat",bags:"Bag"}[c] || c;
+  return {jackets:"Batting Jacket",tees:"T-Shirt",dryfits:"Dry-Fit",longsleeves:"Long Sleeve",hoodies:"Hoodie / Fleece",hats:"Hat",bags:"Bag"}[c] || c;
 }
 
 function filterProducts(cat, el) {
@@ -579,16 +612,24 @@ function openPicker(id) {
 function closePickerModal() { document.getElementById("pickerModal").classList.remove("open"); }
 
 function renderPicker(p) {
+  const firstHex = getColorHex(pickerState.color);
   document.getElementById("pickerModalInner").innerHTML = `
     <div class="modal-head">
       <h3>${p.name}</h3>
       <button class="btn-close-m" onclick="closePickerModal()">✕</button>
     </div>
     <div class="modal-body">
-      <img src="${p.img}" class="modal-product-img" alt="${p.name}" onerror="this.style.display='none'">
+      <div class="modal-product-img-wrap">
+        <img src="${p.img}" class="modal-product-img" alt="${p.name}" onerror="this.parentElement.style.background='var(--surface)'">
+        <div class="modal-color-tint" id="modalColorTint" style="background-color:${firstHex};"></div>
+      </div>
       <div class="modal-price">$${p.price}.00 each</div>
       <div class="modal-section">Select Color</div>
-      <div class="option-group" id="colorOpts">
+      <div class="modal-swatches" id="colorSwatches">
+        ${p.colors.map((c,i)=>`<div class="m-swatch${i===0?" active":""}" style="background:${getColorHex(c)};" title="${c}" onclick="selectColor('${c}')"></div>`).join("")}
+        <span class="m-swatch-label" id="swatchLabel">${pickerState.color}</span>
+      </div>
+      <div class="option-group" id="colorOpts" style="display:none">
         ${p.colors.map(c=>`<button class="opt-btn${c===pickerState.color?" selected":""}" onclick="selectColor('${c}')">${c}</button>`).join("")}
       </div>
       <div class="modal-section">Select Size</div>
@@ -632,6 +673,17 @@ function renderPicker(p) {
 
 function selectColor(c) {
   pickerState.color = c;
+  // Update tint overlay
+  const tint = document.getElementById('modalColorTint');
+  if (tint) tint.style.backgroundColor = getColorHex(c);
+  // Update swatch dots active ring
+  document.querySelectorAll('#colorSwatches .m-swatch').forEach(s => {
+    s.classList.toggle('active', s.title === c);
+  });
+  // Update label
+  const lbl = document.getElementById('swatchLabel');
+  if (lbl) lbl.textContent = c;
+  // Keep hidden text buttons in sync (used by addPickerToCart)
   document.querySelectorAll("#colorOpts .opt-btn").forEach(b => {
     b.classList.toggle("selected", b.textContent === c);
   });
@@ -780,7 +832,7 @@ function validateCustomer() {
 
 function renderPayPal(total) {
   if (typeof paypal_sdk === "undefined") {
-    document.getElementById("paypal-container").innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);padding:16px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:var(--mist);font-size:13px;letter-spacing:1px;">⚠ Replace <strong>YOUR_PAYPAL_CLIENT_ID</strong> in the script tag to activate PayPal checkout.</div>`;
+    // PayPal configured
     return;
   }
   paypal_sdk.Buttons({
@@ -795,46 +847,9 @@ function renderPayPal(total) {
       }],
       payer:{name:{given_name:customerInfo.first,surname:customerInfo.last},email_address:customerInfo.email}
     }),
-    onApprove:(d,a) => a.order.capture().then(details => {
-      logToProduction(details);
-      cart=[]; updateCartUI(); showOrderSuccess(details);
-    }),
-    onError:() => showToast("Payment error — please try again or email erin@underpressurecustomapparel.com")
+    onApprove:(d,a) => a.order.capture().then(details => { cart=[]; updateCartUI(); showOrderSuccess(details); }),
+    onError:() => showToast("Payment error — please try again or call (304) 633-6401")
   }).render("#paypal-container");
-}
-
-function logToProduction(paypalDetails) {
-  try {
-    const existing = JSON.parse(localStorage.getItem('productionOrders') || '[]');
-    const entry = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      store: 'River City Rampage',
-      customer: `${customerInfo.first} ${customerInfo.last}`,
-      phone: customerInfo.phone || '',
-      email: customerInfo.email || '',
-      paypalOrderId: paypalDetails?.id || '',
-      items: cart.map(i => {
-        const product = products.find(p => p.id === i.id);
-        return {
-          name:         i.name,
-          color:        i.color,
-          size:         i.size,
-          qty:          i.qty,
-          salePrice:    i.price,
-          playerName:   i.playerName || '',
-          playerNumber: i.playerNumber || '',
-          graphicImg:   product?.img || '',
-          graphicName:  i.name, // product name serves as graphic name for Rampage
-        };
-      }),
-      completed: false,
-    };
-    existing.unshift(entry);
-    localStorage.setItem('productionOrders', JSON.stringify(existing));
-  } catch(e) {
-    console.error('Failed to log production order:', e);
-  }
 }
 
 function showOrderSuccess(details) {
@@ -843,7 +858,7 @@ function showOrderSuccess(details) {
     <div class="success-screen">
       <div class="suc-icon">🎉</div>
       <div class="suc-title">WELCOME TO THE JUNGLE!</div>
-      <div class="suc-text">Thank you, ${customerInfo.first}! Your order ID is <strong>${details.id||"N/A"}</strong>.<br><br>Your custom Rampage gear will be ready in 7–10 business days.<br>Confirmation sent to <strong>${customerInfo.email}</strong>.<br><br>Questions? Email <strong>erin@underpressurecustomapparel.com</strong></div>
+      <div class="suc-text">Thank you, ${customerInfo.first}! Your order ID is <strong>${details.id||"N/A"}</strong>.<br><br>Your custom Rampage gear will be ready in 7–10 business days.<br>Confirmation sent to <strong>${customerInfo.email}</strong>.<br><br>Questions? Call <strong>(304) 633-6401</strong></div>
       <button class="btn-suc" onclick="closeCheckout()">Continue Shopping</button>
     </div>`;
 }
