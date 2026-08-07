@@ -802,7 +802,7 @@ function validateCustomer() {
 }
 
 function renderPayPal(total){
-  const sub=cartTotal(), ship=getUPShipping(), grand=sub+ship;
+  const sub=cartTotal(), ship=getShipping(), grand=sub+ship;
   const amount=grand.toFixed(2);
   document.getElementById("paypal-container").innerHTML=`
     <button onclick="payWithPayPal(${amount})" style="
