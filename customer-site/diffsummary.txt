@@ -1,0 +1,260 @@
+<       <button class="hs-order-btn" id="hsOrderBtn" onclick="openHsModal()" style="display:none">
+<         📋 HS Order <span class="hs-item-count" id="hsItemCount">0</span>
+<       </button>
+< <!-- ══ HS ORDER FORM MODAL (content is rendered dynamically by renderHsModal) ══ -->
+< <div class="hs-modal-bg" id="hsMsgModal"></div>
+< 
+<   // Only activate tab-up trigger (hs tab removed)
+<   // show/hide relevant header buttons
+<   document.getElementById("hsOrderBtn").style.display = p==="hs" ? "inline-flex" : "none";
+< // HS PRODUCTS
+< // ══════════════════════════════
+< const BASE="https://embroid-em.printavo.com/merch/huntingtonsteel";
+< const hsProducts=[
+< ];
+< const INIT=8;
+< function filterHS(cat,el){document.querySelectorAll("#hsFilters .chip").forEach(c=>c.classList.remove("on"));if(el)el.classList.add("on");renderHS(cat);}
+< function showAllHS(){document.querySelectorAll("#hsGrid .p-card.hidden").forEach(c=>c.classList.remove("hidden"));document.getElementById("hsMore").style.disp
+< 
+< // ══════════════════════════════
+> // ── DEFAULT UP PRODUCTS ──────────────────────────────────────────
+> // These appear on the public store when no admin products have been
+> // added yet. Admin-added products (via localStorage) replace them.
+> const DEFAULT_UP_PRODUCTS = [
+>   {
+>     id: 'default-1',
+>     name: 'Crew Neck Long Sleeve Tee',
+>     cat: 'sportswear-tees',
+>     price: '',
+>     pnum: '',
+>     sport: '',
+>     desc: 'Classic long sleeve crew neck tee. Soft, breathable cotton-blend fabric built for all-day wear. Perfect for custom team graphics, spirit wear, or e
+>     img: '',
+>     colors: ['White','Black','Navy','Sport Grey','Red','Royal Blue','Forest','Maroon','Purple','Gold']
+>   },
+>   {
+>     id: 'default-2',
+>     name: 'Custom Pullover Hoodie',
+>     cat: 'sportswear-hoodies',
+>     price: '',
+>     pnum: '',
+>     sport: '',
+>     desc: 'Heavy-weight pullover hoodie with front pouch pocket and drawstring hood. A fan favorite for team orders, school spirit, and custom designs.',
+>     img: '',
+>     colors: ['Black','Navy','Sport Grey','White','Red','Dark Heather','Royal Blue','Forest','Maroon','Charcoal','Purple','Gold']
+>   },
+>   {
+>     id: 'default-3',
+>     name: 'Crew Neck Sweatshirt',
+>     cat: 'sportswear-hoodies',
+>     price: '',
+>     pnum: '',
+>     sport: '',
+>     desc: 'Classic crewneck sweatshirt with a clean, versatile look. Ideal for custom team imprints, logos, and names. Mid-weight fleece — cozy without the 
+>     img: '',
+>     colors: ['Black','Navy','Sport Grey','White','Red','Dark Heather','Royal Blue','Forest','Maroon','Charcoal','Purple']
+>   }
+> ];
+> 
+< function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")||"[]");}catch(e){upProducts=[];}}
+> function loadUP(){
+>   try { upProducts = JSON.parse(localStorage.getItem("upSportswear") || "[]"); }
+>   catch(e) { upProducts = []; }
+>   // If no products have been added by admin yet, show the default catalog
+>   if (!upProducts.length) upProducts = DEFAULT_UP_PRODUCTS;
+> }
+< // ══════════════════════════════
+< // HS ORDER LIST + EMAIL
+< // ══════════════════════════════
+< let hsOrder = [];
+< 
+< function addToHsOrder(name, price) {
+<   const ex = hsOrder.find(i => i.name === name);
+<   if (ex) { ex.qty++; }
+<   else { hsOrder.push({ name, price, qty: 1, size: "", color: "", notes: "" }); }
+<   updateHsOrderBtn();
+<   showToast(`"${name}" added to order list!`);
+< }
+< 
+< function hsQty(idx, delta) {
+<   const item = hsOrder[idx];
+<   if (!item) return;
+<   item.qty = Math.max(1, item.qty + delta);
+<   updateHsOrderBtn();
+<   renderHsModal();
+< }
+< 
+< function hsRemove(idx) {
+<   hsOrder.splice(idx, 1);
+<   updateHsOrderBtn();
+<   renderHsModal();
+< }
+< document.getElementById('hsMsgModal')?.addEventListener('click', function(e) {
+<   if (e.target === this) closeHsModal();
+< });
+< 
+< function updateHsOrderBtn() {
+<   const qty = hsOrder.reduce((s, i) => s + i.qty, 0);
+<   const el = document.getElementById("hsItemCount");
+<   el.textContent = qty;
+<   el.classList.add("bump");
+<   setTimeout(() => el.classList.remove("bump"), 200);
+< }
+< 
+< function openHsModal() {
+<   renderHsModal();
+<   document.getElementById("hsMsgModal").classList.add("open");
+<   a11yOpenTrap(document.getElementById("hsMsgModal"));
+< }
+< function closeHsModal() {
+<   document.getElementById("hsMsgModal").classList.remove("open");
+<   a11yCloseTrap();
+< }
+< 
+< function renderHsModal() {
+<   const orderRows = hsOrder.length === 0
+<     ? `<div style="color:#555;font-size:13px;padding:12px 0;font-style:italic;">No items added yet — browse products and click "+ Add to Order"</div>`
+<     : hsOrder.map((item, i) => `
+<         <div class="hs-cart-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding:10px 0;">
+<           <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+<             <span class="hs-cart-item-name">${item.name}</span>
+<             <div style="display:flex;align-items:center;gap:6px;">
+<               <button class="qty-btn" style="background:#161618;border-color:#2a2a2e;" onclick="hsQty(${i},-1)">−</button>
+<               <span class="qty-val" style="background:#0a0a0c;border-color:#2a2a2e;">${item.qty}</span>
+<               <button class="qty-btn" style="background:#161618;border-color:#2a2a2e;" onclick="hsQty(${i},1)">+</button>
+<               <button class="ci-remove" onclick="hsRemove(${i})" aria-label="Remove item from HS order">✕</button>
+<             </div>
+<           </div>
+<           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;">
+<             <input type="text" placeholder="Size (e.g. L, XL, 2XL)" value="${item.size}"
+<               onchange="hsOrder[${i}].size=this.value"
+<               style="background:#0a0a0c;border:1px solid #2a2a2e;color:#f0f0f2;padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;">
+<             <input type="text" placeholder="Color (e.g. Black, Grey)" value="${item.color}"
+<               onchange="hsOrder[${i}].color=this.value"
+<               style="background:#0a0a0c;border:1px solid #2a2a2e;color:#f0f0f2;padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;">
+<           </div>
+<         </div>`).join("");
+< 
+<   document.getElementById("hsMsgModal").innerHTML = `
+<     <div class="hs-modal-box">
+<       <div class="hs-modal-head">
+<         <h3>HS <span>ORDER</span> FORM</h3>
+<         <button class="btn-close-hs" onclick="closeHsModal()" aria-label="Close HS order form">✕</button>
+<       </div>
+<       <div class="hs-modal-body" id="hsFormWrap">
+< 
+<         <div class="hs-form-sec">Your Order</div>
+<         <div style="margin-bottom:18px;">${orderRows}</div>
+< 
+<         <div class="hs-form-sec">Your Information</div>
+<         <div class="hs-form-grid">
+<           <div class="hs-field"><label>First Name *</label><input id="hs-first" type="text" placeholder="Jane" required><div class="field-error" id="hs-first-
+<           <div class="hs-field"><label>Last Name *</label><input id="hs-last" type="text" placeholder="Smith" required><div class="field-error" id="hs-last-er
+<           <div class="hs-field full"><label>Email *</label><input id="hs-email" type="email" placeholder="jane@example.com" required pattern="[^\s@]+@[^\s@]+\
+<           <div class="hs-field full"><label>Phone</label><input id="hs-phone" type="tel" placeholder="(304) 555-0100" pattern="[\d\s()+.-]{7,}"><div class="fi
+<           <div class="hs-field full"><label>Shipping Address *</label><input id="hs-addr" type="text" placeholder="123 Main St, Huntington, WV 25701" required
+<           <div class="hs-field full"><label>Additional Notes</label>
+<             <textarea id="hs-notes" placeholder="Any special requests, additional size/color info, etc..."></textarea>
+<           </div>
+<         </div>
+< 
+<         <div class="hs-submit-row">
+<           <button class="btn-hs-submit" id="hsSubmitBtn" onclick="submitHsOrder()" ${hsOrder.length===0?'disabled':''}>
+<             <span class="spinner" id="hsSpinner" style="display:none;"></span>
+<             <span id="hsSubmitLabel">🔩 Submit Order to Huntington Steel</span>
+<           </button>
+<         </div>
+<       </div>
+<       <div class="hs-success-screen" id="hsSuccessScreen" style="display:none;">
+<         <div class="hs-suc-icon">✅</div>
+<         <div class="hs-suc-title">ORDER RECEIVED!</div>
+<         <div class="hs-suc-text" id="hsSuccessText"></div>
+<         <button class="btn-hs-suc" onclick="closeHsModal()">Continue Shopping</button>
+<       </div>
+<     </div>`;
+< }
+< 
+< function submitHsOrder() {
+<   if (!hsOrder.length) { showToast('Add at least one item to your order first'); return; }
+<   const v = id => document.getElementById(id)?.value.trim();
+<   clearFieldErrors(['hs-first','hs-last','hs-email','hs-phone','hs-addr']);
+<   let firstError = null;
+<   const markError = (id, msg) => { showFieldError(id, msg); if (!firstError) firstError = id; };
+< 
+<   if (!v('hs-first')) markError('hs-first', 'First name is required');
+<   if (!v('hs-last')) markError('hs-last', 'Last name is required');
+<   if (!v('hs-email')) markError('hs-email', 'Email is required');
+<   else if (!EMAIL_PATTERN.test(v('hs-email'))) markError('hs-email', 'Enter a valid email address');
+<   if (v('hs-phone') && !PHONE_PATTERN.test(v('hs-phone'))) markError('hs-phone', 'Enter a valid phone number');
+<   if (!v('hs-addr')) markError('hs-addr', 'Shipping address is required');
+< 
+<   if (firstError) { document.getElementById(firstError)?.focus(); return; }
+< 
+<   const btn = document.getElementById('hsSubmitBtn');
+<   const spinner = document.getElementById('hsSpinner');
+<   const label = document.getElementById('hsSubmitLabel');
+<   btn.disabled = true;
+<   spinner.style.display = 'inline-block';
+<   label.textContent = 'Sending...';
+< 
+<   const firstName = v('hs-first'), email = v('hs-email');
+<   const orderSummary = hsOrder.map(i => `${i.name} × ${i.qty}${i.size?` (Size: ${i.size})`:''}${i.color?` (Color: ${i.color})`:''}`).join('\n');
+< 
+<   const templateParams = {
+<     to_email:     'erin@underpressurecustomapparel.com',
+<     from_name:    `${firstName} ${v('hs-last')}`,
+<     from_email:   email,
+<     phone:        v('hs-phone'),
+<     shipping_address: v('hs-addr'),
+<     notes:        v('hs-notes') || 'None',
+<     order_summary: orderSummary,
+<     submitted_at: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+<     reply_to:     email,
+<   };
+< 
+<   const finish = () => {
+<     logProductionOrder({
+<       store: 'Huntington Steel',
+<       customer: `${firstName} ${v('hs-last')}`,
+<       phone: v('hs-phone') || '',
+<       email: email,
+<       items: hsOrder.map(i => ({ name: i.name, qty: i.qty, size: i.size, color: i.color })),
+<     });
+<     showHsSuccess(firstName, email);
+<     hsOrder = [];
+<     btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🔩 Submit Order to Huntington Steel';
+<   };
+< 
+<   if (typeof emailjs === 'undefined' || EMAILJS_SERVICE_ID === 'YOUR_EMAILJS_SERVICE_ID') {
+<     setTimeout(finish, 900);
+<     return;
+<   }
+< 
+<   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+<     .then(finish)
+<     .catch(err => {
+<       console.error('EmailJS error:', err);
+<       showToast('Submission failed — please try again or call (304) 633-6401');
+<       btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🔩 Submit Order to Huntington Steel';
+<     });
+< }
+< 
+< function showHsSuccess(firstName, email) {
+<   document.getElementById('hsFormWrap').style.display = 'none';
+<   const success = document.getElementById('hsSuccessScreen');
+<   success.style.display = 'block';
+<   document.getElementById('hsSuccessText').innerHTML =
+<     `Thank you, <strong>${firstName}</strong>!<br><br>` +
+<     `Your order has been sent directly to the Huntington Steel team at<br>` +
+<     `<strong style="color:#c8102e;">erin@underpressurecustomapparel.com</strong><br><br>` +
+<     `They will follow up at <strong>${email}</strong> to confirm and process your order.<br>` +
+<     `Questions? Call <strong>(304) 633-6401</strong>.`;
+< }
+<     const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
+>     const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
+<     const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':o.store==='Huntington Steel'?'#c8102e':'var(--up-blue)';
+>     const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
+<       { id:6, name:'Amanda Torres', rating:5, text:"Erin is absolutely the best to work with. She answered every question patiently and made sure our designs 
+>       { id:6, name:'Amanda Torres', rating:5, text:"Erin is absolutely the best to work with. She answered every question patiently and made sure our designs 
+<       : r.store && r.store.includes('Huntington') ? '#c8102e' : 'var(--up-blue)';
+>       : 'var(--up-blue)';
