@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD"></script>
 <style>
 :root {
   --up-black:  #060810;
@@ -1494,27 +1493,53 @@ function closeCheckout() {
   document.getElementById('tsCheckoutModal').classList.remove('open');
   document.body.style.overflow = '';
 }
-
 function renderPayPal(amount) {
-  if (typeof paypal === 'undefined') {
-    // PayPal SDK configured — should not reach here in production
-    return;
-  }
-  document.getElementById('co-paypal').innerHTML = '';
-  paypal.Buttons({
-    createOrder: (data, actions) => actions.order.create({
-      purchase_units: [{ amount: { value: amount.toFixed(2) }, description: `${teamData?.name||'Team'} Order` }]
-    }),
-    onApprove: async (data, actions) => {
-      const details = await actions.order.capture();
-      closeCheckout();
-      sendOrderEmail(details);
-      showSuccess(details);
-      cart = [];
-      updateCartUI();
-    },
-    onError: err => { console.error(err); showToast('Payment error — please try again'); }
-  }).render('#co-paypal');
+  const fixed = parseFloat(amount).toFixed(2);
+  document.getElementById('co-paypal').innerHTML = `
+    <button onclick="payWithPayPal(${fixed})" style="
+      display:block;width:100%;padding:14px 20px;
+      background:#0070ba;color:#fff;border:none;cursor:pointer;
+      font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
+      letter-spacing:2px;text-transform:uppercase;transition:background .2s;">
+      💳 PAY $${fixed} WITH PAYPAL
+    </button>
+    <p style="margin-top:8px;font-size:11px;color:#5a7296;text-align:center;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">
+      Opens PayPal in a new tab — complete your payment there, then return here.
+    </p>`;
+}
+function payWithPayPal(amount) {
+  try {
+    const existing = JSON.parse(localStorage.getItem('productionOrders') || '[]');
+    existing.unshift({
+      id: Date.now(), timestamp: new Date().toISOString(),
+      store: teamData?.name || 'Team Store',
+      customer: `${document.getElementById('co-first')?.value||''} ${document.getElementById('co-last')?.value||''}`.trim(),
+      phone: document.getElementById('co-phone')?.value || '',
+      email: document.getElementById('co-email')?.value || '',
+      items: cart.map(i => ({ name: i.label, size: i.size||'', color: i.color||'', qty: i.qty })),
+      completed: false
+    });
+    localStorage.setItem('productionOrders', JSON.stringify(existing));
+  } catch(e) {}
+  sendOrderEmail({ id: 'PAYPAL-DIRECT', payer: { name: { given_name: document.getElementById('co-first')?.value||'' }, email_address: document.getElementById('co-email')?.value||'' } });
+  window.open(`https://www.paypal.com/paypalme/underpressurecustomapparel/${amount}`, '_blank', 'noopener,noreferrer');
+  cart = []; updateCartUI();
+  document.getElementById('tsCheckoutContent').innerHTML = `
+    <div class="ts-success">
+      <div class="ts-success-icon">💳</div>
+      <div class="ts-success-title">ALMOST DONE!</div>
+      <div class="ts-success-msg">
+        A PayPal tab just opened — complete your $${amount} payment there.<br><br>
+        Your order has been logged. If the tab didn't open,
+        <a href="https://www.paypal.com/paypalme/underpressurecustomapparel/${amount}"
+           target="_blank" rel="noopener noreferrer" style="color:#4d9fff;">click here to pay</a>.<br><br>
+        Questions? Call <strong>(304) 633-6401</strong>
+      </div>
+      <button class="ts-submit-btn" onclick="closeCheckout()" style="max-width:200px;">Done</button>
+    </div>`;
+  document.getElementById('tsCheckoutModal').classList.add('open');
+}
+
 }
 
 function showSuccess(details) {
