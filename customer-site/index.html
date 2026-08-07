@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Under Pressure Custom Apparel</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD&intent=capture&commit=true&enable-funding=card,paylater&disable-funding=venmo" data-namespace="paypal_sdk"></script>
 <!-- EmailJS — replace YOUR_EMAILJS_PUBLIC_KEY below -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
@@ -2720,6 +2720,8 @@ function closeCheckout(){
 document.getElementById("checkoutModal").addEventListener("click",function(e){if(e.target===this)closeCheckout();});
 function renderCheckoutForm(){
   const total=cartTotal();
+  const shipping=getUPShipping();
+  const grandTotal=total+shipping;
   const rows=cart.map(i=>`<div class="os-row"><span class="os-item-name">${i.name} × ${i.qty}</span><span class="os-item-price">$${(i.price*i.qty).toFixed(2)}</span></div>`).join("");
   document.getElementById("checkoutContent").innerHTML=`
     <div class="modal-head"><h3>CHECKOUT</h3><button class="btn-close-m" onclick="closeCheckout()" aria-label="Close checkout">✕</button></div>
@@ -2809,43 +2811,47 @@ function initPayPal(){
     pre.innerHTML=`<div id="pp-no-sdk" style="background:#0d1220;border:1px solid #1e2d4a;padding:18px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:#5a7296;font-size:13px;letter-spacing:1px;">⚠ Replace <strong style="color:#4d9fff">YOUR_PAYPAL_CLIENT_ID</strong> in the script tag with your real PayPal Client ID from <a href="https://developer.paypal.com" target="_blank" style="color:#1565ff" rel="noopener noreferrer">developer.paypal.com</a></div>`;
     return;
   }
-  paypal_sdk.Buttons({
-    style:{layout:"vertical",color:"blue",shape:"rect",label:"pay"},
-    onClick:(d,a)=>{if(!validateCustomer())return a.reject();return a.resolve();},
-    createOrder:(d,a)=>{
-      // Read live cart totals at the moment the customer taps Pay
-      const sub=cartTotal(), ship=getUPShipping(), grand=sub+ship;
-      return a.order.create({purchase_units:[{description:"Under Pressure Custom Apparel Order",
-        amount:{value:grand.toFixed(2),currency_code:"USD",
-          breakdown:{item_total:{value:sub.toFixed(2),currency_code:"USD"},
-                     shipping:{value:ship.toFixed(2),currency_code:"USD"}}},
-        items:cart.map(i=>({name:i.name,quantity:String(i.qty),unit_amount:{value:i.price.toFixed(2),currency_code:"USD"}})),
-        shipping:{name:{full_name:`${customerInfo.first} ${customerInfo.last}`},
-                  address:{address_line_1:customerInfo.addr,admin_area_2:customerInfo.city,admin_area_1:customerInfo.state,postal_code:customerInfo.zip,country_code:"US"}}}],
-        payer:{name:{given_name:customerInfo.first,surname:customerInfo.last},email_address:customerInfo.email}});},
-    onApprove:(d,a)=>{
-      showProcessingOverlay('Processing your order...');
-      return a.order.capture().then(details=>{
-        const orderItems = cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}));
-        logProductionOrder({
-          store: 'UP Sportswear',
-          customer: `${customerInfo.first} ${customerInfo.last}`,
-          phone: customerInfo.phone||'',
-          email: customerInfo.email||'',
-          items: orderItems
-        });
-        sendOrderEmails(details, orderItems);
-        cart=[];updateCartUI();
-        hideProcessingOverlay();
-        showOrderSuccess(details);
-      }).catch(err=>{
-        console.error('PayPal capture error:', err);
-        hideProcessingOverlay();
-        showToast("Payment could not be completed — please try again or contact us");
-      });
-    },
-    onError:()=>{ hideProcessingOverlay(); showToast("Payment error — please try again"); }
-  }).render("#paypal-prerender");
+  // Shared handlers — read live cart state at payment time
+  function ppCreateOrder(d,a){
+    const sub=cartTotal(), ship=getUPShipping(), grand=sub+ship;
+    return a.order.create({purchase_units:[{description:"Under Pressure Custom Apparel Order",
+      amount:{value:grand.toFixed(2),currency_code:"USD",
+        breakdown:{item_total:{value:sub.toFixed(2),currency_code:"USD"},
+                   shipping:{value:ship.toFixed(2),currency_code:"USD"}}},
+      items:cart.map(i=>({name:i.name.substring(0,127),quantity:String(i.qty),unit_amount:{value:i.price.toFixed(2),currency_code:"USD"}})),
+      shipping:{name:{full_name:`${customerInfo.first} ${customerInfo.last}`},
+                address:{address_line_1:customerInfo.addr,admin_area_2:customerInfo.city,admin_area_1:customerInfo.state,postal_code:customerInfo.zip,country_code:"US"}}}],
+      payer:{name:{given_name:customerInfo.first,surname:customerInfo.last},email_address:customerInfo.email}});
+  }
+  function ppOnApprove(d,a){
+    showProcessingOverlay('Processing your order...');
+    return a.order.capture().then(details=>{
+      const orderItems = cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}));
+      logProductionOrder({store:'UP Sportswear',customer:`${customerInfo.first} ${customerInfo.last}`,phone:customerInfo.phone||'',email:customerInfo.email||'',items:orderItems});
+      sendOrderEmails(details, orderItems);
+      cart=[];updateCartUI();
+      hideProcessingOverlay();
+      showOrderSuccess(details);
+    }).catch(err=>{
+      console.error('PayPal capture error:', err);
+      hideProcessingOverlay();
+      showToast("Payment could not be completed — please try again or contact us");
+    });
+  }
+  function ppOnClick(d,a){if(!validateCustomer())return a.reject();return a.resolve();}
+  function ppOnError(){hideProcessingOverlay();showToast("Payment error — please try again");}
+
+  // Render each funding source separately — avoids the popup coordinator window
+  // that triggers mobile browser popup blockers.
+  const ppConfig = {createOrder:ppCreateOrder,onApprove:ppOnApprove,onClick:ppOnClick,onError:ppOnError};
+  [
+    {fundingSource:paypal_sdk.FUNDING.PAYPAL, style:{layout:"vertical",color:"blue",shape:"rect",label:"pay"}},
+    {fundingSource:paypal_sdk.FUNDING.PAYLATER, style:{layout:"vertical",color:"gold",shape:"rect",label:"paylater"}},
+    {fundingSource:paypal_sdk.FUNDING.CARD, style:{layout:"vertical",color:"black",shape:"rect",label:"pay"}}
+  ].forEach(opts=>{
+    const btn = paypal_sdk.Buttons(Object.assign({},ppConfig,opts));
+    if(btn.isEligible()) btn.render("#paypal-prerender");
+  });
 }
 // Kick off PayPal pre-render as soon as the page is ready
 if(document.readyState==="loading"){
