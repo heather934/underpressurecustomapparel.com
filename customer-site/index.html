@@ -2590,6 +2590,9 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
   <div class="modal-box"><div id="checkoutContent"></div></div>
 </div>
 
+<!-- ══ PAYPAL PRERENDER — hidden off-screen, keeps buttons alive across page lifetime ══ -->
+<div id="paypal-prerender" style="position:fixed;left:-9999px;top:-9999px;width:300px;visibility:hidden;" aria-hidden="true"></div>
+
 <!-- ══ REVIEW MODAL ══ -->
 <div class="modal-bg" id="reviewModal">
   <div class="review-form-modal-box">
@@ -2688,8 +2691,32 @@ function closeCart(){document.getElementById("cartDrawer").classList.remove("ope
 // CHECKOUT
 // ══════════════════════════════
 let customerInfo={};
-function openCheckout(){closeCart();renderCheckoutForm();document.getElementById("checkoutModal").classList.add("open");a11yOpenTrap(document.getElementById("checkoutModal"));}
-function closeCheckout(){document.getElementById("checkoutModal").classList.remove("open");a11yCloseTrap();}
+function openCheckout(){
+  closeCart();
+  renderCheckoutForm();
+  // Move the already-rendered PayPal buttons from the hidden prerender div into the
+  // checkout modal. This sidesteps mobile popup blockers — the buttons were created
+  // during page load (a neutral moment), not inside an async callback after a tap.
+  const pre = document.getElementById("paypal-prerender");
+  const slot = document.getElementById("paypal-container");
+  if(pre && slot && pre.children.length){
+    while(slot.firstChild) slot.removeChild(slot.firstChild);
+    while(pre.firstChild) slot.appendChild(pre.firstChild);
+  }
+  document.getElementById("checkoutModal").classList.add("open");
+  a11yOpenTrap(document.getElementById("checkoutModal"));
+}
+function closeCheckout(){
+  // Move buttons back to the prerender div so they stay alive for next open
+  const pre = document.getElementById("paypal-prerender");
+  const slot = document.getElementById("paypal-container");
+  if(pre && slot && slot.children.length){
+    while(pre.firstChild) pre.removeChild(pre.firstChild);
+    while(slot.firstChild) pre.appendChild(slot.firstChild);
+  }
+  document.getElementById("checkoutModal").classList.remove("open");
+  a11yCloseTrap();
+}
 document.getElementById("checkoutModal").addEventListener("click",function(e){if(e.target===this)closeCheckout();});
 function renderCheckoutForm(){
   const total=cartTotal();
@@ -2743,10 +2770,10 @@ function renderCheckoutForm(){
         <div class="discount-error" id="discountErrorMsg" style="display:none;"></div>
       </div>
       <div class="modal-sec-title">Payment — <span class="pp-badge">PayPal</span></div>
-      <div id="paypal-container"></div>
+      <div id="paypal-container"><div class="paypal-loading"><div class="processing-spinner-lg"></div>Loading payment options...</div></div>
       <p class="pay-note">Pay with PayPal or any credit/debit card via PayPal Guest Checkout. Secure & encrypted.</p>
     </div>`;
-  renderPayPal(total);
+  // PayPal buttons are moved in by openCheckout() — do NOT call renderPayPal() here
 }
 function validateCustomer(){
   const v=id=>document.getElementById(id)?.value.trim();
@@ -2768,18 +2795,25 @@ function validateCustomer(){
   customerInfo={first:v("c-first"),last:v("c-last"),email:v("c-email"),phone:v("c-phone"),addr:v("c-addr"),city:v("c-city"),state:v("c-state"),zip:v("c-zip"),notes:v("c-notes")};
   return true;
 }
-function renderPayPal(total){
-  const container = document.getElementById("paypal-container");
+// ── PayPal pre-render ────────────────────────────────────────────────────────
+// Renders once into #paypal-prerender on page load (neutral moment, not inside
+// a tap handler). openCheckout() then physically moves the live button iframe
+// into #paypal-container, which is the only way to defeat mobile popup blockers.
+// createOrder/onApprove read live cart state at payment time so the amount is
+// always correct regardless of when the buttons were first rendered.
+function initPayPal(){
+  const pre = document.getElementById("paypal-prerender");
+  if(!pre) return;
   if(typeof paypal_sdk==="undefined"){
-    container.innerHTML=`<div style="background:#0d1220;border:1px solid #1e2d4a;padding:18px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:#5a7296;font-size:13px;letter-spacing:1px;">⚠ Replace <strong style="color:#4d9fff">YOUR_PAYPAL_CLIENT_ID</strong> in the script tag with your real PayPal Client ID from <a href="https://developer.paypal.com" target="_blank" style="color:#1565ff" rel="noopener noreferrer">developer.paypal.com</a></div>`;
+    // SDK not loaded — show a warning inside #paypal-container when checkout opens
+    pre.innerHTML=`<div id="pp-no-sdk" style="background:#0d1220;border:1px solid #1e2d4a;padding:18px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:#5a7296;font-size:13px;letter-spacing:1px;">⚠ Replace <strong style="color:#4d9fff">YOUR_PAYPAL_CLIENT_ID</strong> in the script tag with your real PayPal Client ID from <a href="https://developer.paypal.com" target="_blank" style="color:#1565ff" rel="noopener noreferrer">developer.paypal.com</a></div>`;
     return;
   }
-  // Loading placeholder while the PayPal buttons initialize — render() replaces this once ready
-  container.innerHTML = `<div class="paypal-loading"><div class="processing-spinner-lg"></div>Loading payment options...</div>`;
   paypal_sdk.Buttons({
     style:{layout:"vertical",color:"blue",shape:"rect",label:"pay"},
     onClick:(d,a)=>{if(!validateCustomer())return a.reject();return a.resolve();},
     createOrder:(d,a)=>{
+      // Read live cart totals at the moment the customer taps Pay
       const sub=cartTotal(), ship=getUPShipping(), grand=sub+ship;
       return a.order.create({purchase_units:[{description:"Under Pressure Custom Apparel Order",
         amount:{value:grand.toFixed(2),currency_code:"USD",
@@ -2811,7 +2845,13 @@ function renderPayPal(total){
       });
     },
     onError:()=>{ hideProcessingOverlay(); showToast("Payment error — please try again"); }
-  }).render("#paypal-container");
+  }).render("#paypal-prerender");
+}
+// Kick off PayPal pre-render as soon as the page is ready
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded", initPayPal);
+} else {
+  initPayPal();
 }
 
 // Sends the customer-facing order confirmation and the internal "new order" notice to Erin.
