@@ -3316,7 +3316,7 @@ function renderTeamCards() {
   }
   grid.innerHTML = `<div class="team-cards-grid">${teams.map((t, i) => {
     const subdomain = t.subdomain || slugify(t.name);
-    const url = `https://${subdomain}.underpressure.com`;
+    const url = `https://underpressurecustomapparel.com/team-store?team=${subdomain}`;
     const color = t.color || '#1565ff';
     const color2 = t.color2 || '';
     const bannerBg = color2 ? `linear-gradient(90deg,${color},${color2})` : color;
@@ -3331,7 +3331,7 @@ function renderTeamCards() {
           ${logoHTML}
           <div class="team-card-name">${t.name}</div>
           <div class="team-card-desc">${t.desc || 'Custom team apparel — powered by Under Pressure'}</div>
-          <div class="team-card-url">${subdomain}.underpressure.com</div>
+          <div class="team-card-url">underpressurecustomapparel.com/team-store?team=${subdomain}</div>
           <div class="team-card-cta" style="background:${bannerBg}">Shop ${t.name}</div>
         </div>
         <div class="team-card-arrow">→</div>
@@ -3406,7 +3406,7 @@ function renderTeamAdmin() {
             ${getStoreState(t.key)==='public'  ? '<span class="vis-badge public">Public</span>'   : ''}
             ${getStoreState(t.key)==='code'    ? '<span class="vis-badge code">Code Access</span>' : ''}
             ${getStoreState(t.key)==='private' ? '<span class="vis-badge private">Private</span>' : ''}</div>
-            <div class="cm-prod-cat">${subdomain}.underpressure.com${pCount ? ` · <span style="color:var(--up-sky);">${pCount} product${pCount!==1?'s':''}</span>` : ''}</div>
+            <div class="cm-prod-cat">underpressurecustomapparel.com/team-store?team=${subdomain}${pCount ? ` · <span style="color:var(--up-sky);">${pCount} product${pCount!==1?'s':''}</span>` : ''}</div>
           </div>
         </div>
       </td>
@@ -3459,7 +3459,7 @@ function renderTeamAdmin() {
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <div class="cm-tip">Each team gets a card on the UP Sportswear page. Shoppers click to visit their store subdomain.</div>`;
+    <div class="cm-tip">Each team gets a card on the UP Sportswear page. Shoppers click to visit their team store.</div>`;
 }
 
 function teamFormHTML(t) {
@@ -3476,7 +3476,7 @@ function teamFormHTML(t) {
   return `
     <div class="cm-fg cm-full"><label>Team Name *</label><input id="tm-name" value="${t?.name||''}" placeholder="e.g. Fairland Little League" oninput="autoSubdomain()"></div>
     <div class="cm-fg cm-full">
-      <label>Subdomain * — will become <span id="tm-preview" style="color:var(--up-sky)">${subdomain||'teamname'}.underpressure.com</span></label>
+      <label>Subdomain * — will become <span id="tm-preview" style="color:var(--up-sky)">underpressurecustomapparel.com/team-store?team=${subdomain||'teamname'}</span></label>
       <input id="tm-sub" value="${subdomain}" placeholder="fairlandlittleleague" oninput="updateSubPreview()" style="font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">
     </div>
     <div class="cm-fg"><label>Primary Color</label>
@@ -4215,7 +4215,7 @@ function updateSubPreview() {
   if (sub) {
     sub.dataset.auto = "manual";
     const preview = document.getElementById("tm-preview");
-    if (preview) preview.textContent = (sub.value || 'teamname') + '.underpressure.com';
+    if (preview) preview.textContent = 'underpressurecustomapparel.com/team-store?team=' + (sub.value || 'teamname');
   }
 }
 function syncColorHex() {
@@ -4689,7 +4689,7 @@ function buildCarousel() {
         const color2 = t.color2 || '';
         const bannerBg = color2 ? `linear-gradient(90deg,${color},${color2})` : color;
         const colorStyle = `--team-color:${color};--team-color2:${color2||color};--team-banner-bg:${bannerBg};text-decoration:none;position:relative;`;
-        const url = t.url || `https://${t.subdomain || slugify(t.name)}.underpressure.com`;
+        const url = t.url || `https://underpressurecustomapparel.com/team-store?team=${t.subdomain || slugify(t.name)}`;
         const stateForCard = getStoreState(t.key);
         const cardHref = stateForCard === 'code'
           ? `javascript:openCodeGate('${url}','${t.key}')`
