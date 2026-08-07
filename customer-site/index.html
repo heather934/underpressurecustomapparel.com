@@ -396,57 +396,6 @@ footer{border-top:1px solid var(--up-border);padding:34px 48px;display:flex;alig
 .ft-copy{font-size:11px;color:rgba(90,114,150,.4);letter-spacing:1px;}
 
 /* ════════════════════════════
-   HS ORDER FORM MODAL
-════════════════════════════ */
-.hs-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;padding:20px;}
-.hs-modal-bg.open{opacity:1;pointer-events:all;}
-.hs-modal-box{background:var(--hs-card);border:1px solid var(--hs-border);border-top:3px solid var(--hs-red);width:100%;max-width:600px;max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform .3s;}
-.hs-modal-bg.open .hs-modal-box{transform:translateY(0);}
-.hs-modal-head{padding:22px 28px 18px;border-bottom:1px solid var(--hs-border);display:flex;align-items:center;justify-content:space-between;}
-.hs-modal-head h3{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;color:var(--hs-white);}
-.hs-modal-head h3 span{color:var(--hs-red);}
-.btn-close-hs{background:none;border:1px solid var(--hs-border);color:#555;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
-.btn-close-hs:hover{border-color:var(--hs-red);color:var(--hs-red);}
-.hs-modal-body{padding:24px 28px;}
-.hs-form-sec{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:3px;color:var(--hs-red);text-transform:uppercase;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid var(--hs-border);}
-.hs-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
-.hs-field{display:flex;flex-direction:column;gap:4px;}.hs-field.full{grid-column:1/-1;}
-.hs-field label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:#555;text-transform:uppercase;}
-.hs-field input,.hs-field select,.hs-field textarea{background:var(--hs-black);border:1px solid var(--hs-border);color:var(--hs-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color .2s;width:100%;}
-.hs-field input:focus,.hs-field textarea:focus{border-color:var(--hs-red);}
-.hs-field textarea{min-height:90px;resize:vertical;}
-.hs-cart-summary{background:var(--hs-black);border:1px solid var(--hs-border);padding:14px;margin-bottom:18px;}
-.hs-cart-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:14px;border-bottom:1px solid var(--hs-border);}
-.hs-cart-row:last-child{border-bottom:none;font-family:'Bebas Neue',sans-serif;font-size:18px;padding-top:10px;margin-top:4px;}
-.hs-cart-row:last-child span:first-child{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#555;}
-.hs-cart-item-name{color:#8a8a90;font-weight:300;}
-.hs-cart-item-qty{color:var(--hs-white);font-weight:600;}
-.hs-submit-row{display:flex;gap:10px;align-items:center;margin-top:6px;}
-.btn-hs-submit{background:var(--hs-red);color:#fff;border:none;padding:13px 32px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:all .2s;flex:1;display:flex;align-items:center;justify-content:center;gap:12px;}
-.btn-hs-submit:hover{background:var(--hs-red2);}
-.btn-hs-submit:disabled{opacity:.4;cursor:not-allowed;}
-.btn-hs-submit .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none;}
-.btn-hs-cancel{background:transparent;border:1px solid var(--hs-border);color:#555;padding:13px 20px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;transition:all .2s;}
-.btn-hs-cancel:hover{border-color:#555;color:var(--hs-white);}
-.hs-success-screen{text-align:center;padding:40px 20px;}
-.hs-suc-icon{font-size:52px;margin-bottom:14px;}
-.hs-suc-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--hs-red);margin-bottom:9px;}
-.hs-suc-text{font-size:14px;color:#8a8a90;font-weight:300;line-height:1.7;margin-bottom:22px;}
-.btn-hs-suc{background:var(--hs-red);color:#fff;border:none;padding:12px 30px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
-/* HS CART BUTTON in header of HS page */
-.hs-order-btn{display:inline-flex;align-items:center;gap:7px;background:var(--hs-card);border:1px solid var(--hs-border);color:var(--hs-white);padding:9px 16px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;}
-.hs-order-btn:hover{border-color:var(--hs-red);color:var(--hs-red);}
-.hs-item-count{background:var(--hs-red);color:#fff;border-radius:50%;width:19px;height:19px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;min-width:19px;transition:transform .15s;}
-.hs-item-count.bump{transform:scale(1.5);}
-/* HS product add-to-order button */
-.btn-hs-add{background:var(--hs-red);color:#fff;}.btn-hs-add:hover{background:var(--hs-red2);}
-
-/* TOAST */
-.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--up-card);border:1px solid var(--up-blue);color:var(--up-white);padding:11px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px;z-index:800;opacity:0;transition:all .3s cubic-bezier(.16,1,.3,1);display:flex;align-items:center;gap:9px;pointer-events:none;white-space:nowrap;}
-.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
-.toast-dot{width:7px;height:7px;background:var(--up-blue);border-radius:50%;flex-shrink:0;}
-
-/* ════════════════════════════
    TEAM STORE CARDS
 ════════════════════════════ */
 .team-cards-grid {
@@ -2797,67 +2746,46 @@ function validateCustomer(){
   customerInfo={first:v("c-first"),last:v("c-last"),email:v("c-email"),phone:v("c-phone"),addr:v("c-addr"),city:v("c-city"),state:v("c-state"),zip:v("c-zip"),notes:v("c-notes")};
   return true;
 }
-// ── PayPal pre-render ────────────────────────────────────────────────────────
-// Renders once into #paypal-prerender on page load (neutral moment, not inside
-// a tap handler). openCheckout() then physically moves the live button iframe
-// into #paypal-container, which is the only way to defeat mobile popup blockers.
-// createOrder/onApprove read live cart state at payment time so the amount is
-// always correct regardless of when the buttons were first rendered.
-function initPayPal(){
-  const pre = document.getElementById("paypal-prerender");
-  if(!pre) return;
-  if(typeof paypal_sdk==="undefined"){
-    // SDK not loaded — show a warning inside #paypal-container when checkout opens
-    pre.innerHTML=`<div id="pp-no-sdk" style="background:#0d1220;border:1px solid #1e2d4a;padding:18px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:#5a7296;font-size:13px;letter-spacing:1px;">⚠ Replace <strong style="color:#4d9fff">YOUR_PAYPAL_CLIENT_ID</strong> in the script tag with your real PayPal Client ID from <a href="https://developer.paypal.com" target="_blank" style="color:#1565ff" rel="noopener noreferrer">developer.paypal.com</a></div>`;
-    return;
-  }
-  // Shared handlers — read live cart state at payment time
-  function ppCreateOrder(d,a){
-    const sub=cartTotal(), ship=getUPShipping(), grand=sub+ship;
-    return a.order.create({purchase_units:[{description:"Under Pressure Custom Apparel Order",
-      amount:{value:grand.toFixed(2),currency_code:"USD",
-        breakdown:{item_total:{value:sub.toFixed(2),currency_code:"USD"},
-                   shipping:{value:ship.toFixed(2),currency_code:"USD"}}},
-      items:cart.map(i=>({name:i.name.substring(0,127),quantity:String(i.qty),unit_amount:{value:i.price.toFixed(2),currency_code:"USD"}})),
-      shipping:{name:{full_name:`${customerInfo.first} ${customerInfo.last}`},
-                address:{address_line_1:customerInfo.addr,admin_area_2:customerInfo.city,admin_area_1:customerInfo.state,postal_code:customerInfo.zip,country_code:"US"}}}],
-      payer:{name:{given_name:customerInfo.first,surname:customerInfo.last},email_address:customerInfo.email}});
-  }
-  function ppOnApprove(d,a){
-    showProcessingOverlay('Processing your order...');
-    return a.order.capture().then(details=>{
-      const orderItems = cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}));
-      logProductionOrder({store:'UP Sportswear',customer:`${customerInfo.first} ${customerInfo.last}`,phone:customerInfo.phone||'',email:customerInfo.email||'',items:orderItems});
-      sendOrderEmails(details, orderItems);
-      cart=[];updateCartUI();
-      hideProcessingOverlay();
-      showOrderSuccess(details);
-    }).catch(err=>{
-      console.error('PayPal capture error:', err);
-      hideProcessingOverlay();
-      showToast("Payment could not be completed — please try again or contact us");
-    });
-  }
-  function ppOnClick(d,a){if(!validateCustomer())return a.reject();return a.resolve();}
-  function ppOnError(){hideProcessingOverlay();showToast("Payment error — please try again");}
-
-  // Render each funding source separately — avoids the popup coordinator window
-  // that triggers mobile browser popup blockers.
-  const ppConfig = {createOrder:ppCreateOrder,onApprove:ppOnApprove,onClick:ppOnClick,onError:ppOnError};
-  [
-    {fundingSource:paypal_sdk.FUNDING.PAYPAL, style:{layout:"vertical",color:"blue",shape:"rect",label:"pay"}},
-    {fundingSource:paypal_sdk.FUNDING.PAYLATER, style:{layout:"vertical",color:"gold",shape:"rect",label:"paylater"}},
-    {fundingSource:paypal_sdk.FUNDING.CARD, style:{layout:"vertical",color:"black",shape:"rect",label:"pay"}}
-  ].forEach(opts=>{
-    const btn = paypal_sdk.Buttons(Object.assign({},ppConfig,opts));
-    if(btn.isEligible()) btn.render("#paypal-prerender");
-  });
+/function renderPayPal(total){
+  const sub=cartTotal(), ship=getUPShipping(), grand=sub+ship;
+  const amount=grand.toFixed(2);
+  document.getElementById("paypal-container").innerHTML=`
+    <button onclick="payWithPayPal(${amount})" style="
+      display:block;width:100%;padding:14px 20px;margin-top:4px;
+      background:#0070ba;color:#fff;border:none;cursor:pointer;
+      font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
+      letter-spacing:2px;text-transform:uppercase;transition:background .2s;">
+      💳 PAY $${amount} WITH PAYPAL
+    </button>
+    <p style="margin-top:8px;font-size:11px;color:var(--up-mist);text-align:center;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">
+      Opens PayPal in a new tab — complete your payment there, then return here.
+    </p>`;
 }
-// Kick off PayPal pre-render as soon as the page is ready
-if(document.readyState==="loading"){
-  document.addEventListener("DOMContentLoaded", initPayPal);
-} else {
-  initPayPal();
+function payWithPayPal(amount){
+  if(!validateCustomer()) return;
+  logProductionOrder({
+    store:'UP Sportswear',
+    customer:`${customerInfo.first} ${customerInfo.last}`,
+    phone:customerInfo.phone||'',
+    email:customerInfo.email||'',
+    items:cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}))
+  });
+  window.open(`https://www.paypal.com/paypalme/underpressurecustomapparel/${amount}`,'_blank','noopener,noreferrer');
+  cart=[];updateCartUI();
+  document.getElementById("checkoutContent").innerHTML=`
+    <div class="success-screen">
+      <div class="suc-icon">💳</div>
+      <div class="suc-title">ALMOST DONE!</div>
+      <div class="suc-text">
+        A PayPal tab just opened — complete your $${amount} payment there.<br><br>
+        Your order has been logged. If the tab didn't open,
+        <a href="https://www.paypal.com/paypalme/underpressurecustomapparel/${amount}"
+           target="_blank" rel="noopener noreferrer"
+           style="color:var(--up-sky);">click here to pay</a>.<br><br>
+        Questions? Call <strong>(304) 633-6401</strong>
+      </div>
+      <button class="btn-suc" onclick="closeCheckout()">Done</button>
+    </div>`;
 }
 
 // Sends the customer-facing order confirmation and the internal "new order" notice to Erin.
