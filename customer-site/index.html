@@ -2746,7 +2746,7 @@ function validateCustomer(){
   customerInfo={first:v("c-first"),last:v("c-last"),email:v("c-email"),phone:v("c-phone"),addr:v("c-addr"),city:v("c-city"),state:v("c-state"),zip:v("c-zip"),notes:v("c-notes")};
   return true;
 }
-/function renderPayPal(total){
+function renderPayPal(total){
   const sub=cartTotal(), ship=getUPShipping(), grand=sub+ship;
   const amount=grand.toFixed(2);
   document.getElementById("paypal-container").innerHTML=`
