@@ -593,13 +593,19 @@ function renderPayPal(total){
     </p>`;
 }
 function payWithPayPal(amount){
-  if(!validateCustomer()) return;
-  logProductionOrder({
-    store:'UP Sportswear',
+try {
+  const existing=JSON.parse(localStorage.getItem('productionOrders')||'[]');
+  existing.unshift({
+    id:Date.now(), timestamp:new Date().toISOString(),
+    store:'Rome CoC Youth T-Shirts',
     customer:`${customerInfo.first} ${customerInfo.last}`,
-    phone:customerInfo.phone||'',
-    email:customerInfo.email||'',
-    items:cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}))
+    phone:customerInfo.phone||'', email:customerInfo.email||'',
+    items:cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty})),
+    completed:false
+  });
+  localStorage.setItem('productionOrders',JSON.stringify(existing));
+} catch(e){}
+.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}))
   });
   window.open(`https://www.paypal.com/paypalme/underpressurecustomapparel/${amount}`,'_blank','noopener,noreferrer');
   cart=[];updateCartUI();
