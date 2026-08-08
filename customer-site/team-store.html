@@ -928,16 +928,16 @@ const PRODUCT_CATALOG = {
                          { key:'back',  label:'Back',  src:'/products/vneck-t-back.png'  }],
                 graphicView:'front', graphicTop:'43%', graphicLeft:'54%', graphicWidth:'36%' },
   longsleeve: { label: 'Long Sleeve Tee',       category: 'tops',    icon: '👕',
-                views: [{ key:'front', label:'Front', src:'/products/crew-neck-ls-front.png' },
-                         { key:'back',  label:'Back',  src:'/products/crew-neck-ls-back.png'  }],
+                views: [{ key:'front', label:'Front', src:'/products/crew-neck-ls-front.svg' },
+                         { key:'back',  label:'Back',  src:'/products/crew-neck-ls-back.svg'  }],
                 graphicView:'front', graphicTop:'43%', graphicLeft:'54%', graphicWidth:'36%' },
   hoodie:     { label: 'Hoodie',                category: 'fleece',  icon: '🧥',
-                views: [{ key:'front', label:'Front', src:'/products/hoodie-front.png' },
-                         { key:'back',  label:'Back',  src:'/products/hoodie-back.png'  }],
+                views: [{ key:'front', label:'Front', src:'/products/hoodie-front.svg' },
+                         { key:'back',  label:'Back',  src:'/products/hoodie-back.svg'  }],
                 graphicView:'front', graphicTop:'45%', graphicLeft:'54%', graphicWidth:'34%' },
   crewneck:   { label: 'Crew Neck Sweatshirt',  category: 'fleece',  icon: '🧥',
-                views: [{ key:'front', label:'Front', src:'/products/crew-neck-sw-front.png' },
-                         { key:'back',  label:'Back',  src:'/products/crew-neck-sw-back.png'  }],
+                views: [{ key:'front', label:'Front', src:'/products/crew-neck-sw-front.svg' },
+                         { key:'back',  label:'Back',  src:'/products/crew-neck-sw-back.svg'  }],
                 graphicView:'front', graphicTop:'44%', graphicLeft:'54%', graphicWidth:'36%' },
   racerback:  { label: 'Racerback Tank',        category: 'tanks',   icon: '👙',
                 views: [{ key:'front', label:'Front', src:'/products/racerback-front.png' },
@@ -1508,6 +1508,8 @@ function renderPayPal(amount) {
     </p>`;
 }
 function payWithPayPal(amount) {
+  // Open PayPal FIRST — must be synchronous within click handler to avoid popup blockers
+  window.open(`https://www.paypal.com/paypalme/underpressurecustomapparel/${amount}`, '_blank', 'noopener,noreferrer');
   try {
     const existing = JSON.parse(localStorage.getItem('productionOrders') || '[]');
     existing.unshift({
@@ -1522,7 +1524,6 @@ function payWithPayPal(amount) {
     localStorage.setItem('productionOrders', JSON.stringify(existing));
   } catch(e) {}
   sendOrderEmail({ id: 'PAYPAL-DIRECT', payer: { name: { given_name: document.getElementById('co-first')?.value||'' }, email_address: document.getElementById('co-email')?.value||'' } });
-  window.open(`https://www.paypal.com/paypalme/underpressurecustomapparel/${amount}`, '_blank', 'noopener,noreferrer');
   cart = []; updateCartUI();
   document.getElementById('tsCheckoutContent').innerHTML = `
     <div class="ts-success">
@@ -1538,8 +1539,6 @@ function payWithPayPal(amount) {
       <button class="ts-submit-btn" onclick="closeCheckout()" style="max-width:200px;">Done</button>
     </div>`;
   document.getElementById('tsCheckoutModal').classList.add('open');
-}
-
 }
 
 function showSuccess(details) {
