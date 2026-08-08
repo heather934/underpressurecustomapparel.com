@@ -1575,7 +1575,6 @@ function payWithPayPal(amount) {
     });
     localStorage.setItem('productionOrders', JSON.stringify(existing));
   } catch(e) {}
-  sendOrderEmail({ id: 'PAYPAL-DIRECT', payer: { name: { given_name: document.getElementById('co-first')?.value||'' }, email_address: document.getElementById('co-email')?.value||'' } });
   window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`, '_blank', 'noopener,noreferrer');
   cart = []; updateCartUI();
   document.getElementById('tsCheckoutContent').innerHTML = `
@@ -1589,7 +1588,7 @@ function payWithPayPal(amount) {
            target="_blank" rel="noopener noreferrer" style="color:#4d9fff;">click here to pay</a>.<br><br>
         Questions? Call <strong>(304) 633-6401</strong>
       </div>
-      <button class="ts-submit-btn" onclick="closeCheckout()" style="max-width:200px;">Done</button>
+      <button class="ts-submit-btn" onclick="sendOrderEmail({id:'PAYPAL-DIRECT'});closeCheckout();" style="max-width:200px;">Done</button>
     </div>`;
   document.getElementById('tsCheckoutModal').classList.add('open');
 }
