@@ -914,14 +914,14 @@ body {
 // ═══════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════
-const KV_API    = 'https://up-store-api.h-m-ward1846.workers.dev';
+const KV_API    = 'https://up-store-api.h-m-ward1864.workers.dev';
 // EmailJS — read keys from localStorage (written by admin on login)
 let EMAILJS_SERVICE_ID       = '';
 let EMAILJS_ORDER_CONFIRM_ID = '';
 let EMAILJS_NEW_ORDER_ID     = '';
 (async function initEmailJS() {
   try {
-    const res = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
+    const res = await fetch('https://up-store-api.h-m-ward1864.workers.dev/api/config');
     if (!res.ok) return;
     const { config } = await res.json();
     if (!config) return;
