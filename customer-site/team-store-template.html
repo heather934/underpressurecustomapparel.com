@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>River City Rampage — Team Store</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD&intent=capture&commit=true&enable-funding=card,paylater&disable-funding=venmo" data-namespace="paypal_sdk"></script>
 <style>
 /* ═══════════════════════════════
    TEAM TOKENS — swap these per team
@@ -801,54 +800,52 @@ function validateCustomer() {
   return true;
 }
 
-// ── PayPal pre-render ────────────────────────────────────────────────────────
-// Renders once into #paypal-prerender on page load (neutral moment, not inside
-// a tap handler). openCheckout() then physically moves the live button iframe
-// into #paypal-container, defeating mobile popup blockers.
-function initPayPal() {
-  const pre = document.getElementById("paypal-prerender");
-  if(!pre) return;
-  if (typeof paypal_sdk === "undefined") {
-    pre.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);padding:16px;text-align:center;font-family:'Barlow Condensed',sans-serif;color:var(--mist);font-size:13px;letter-spacing:1px;">⚠ Replace <strong>YOUR_PAYPAL_CLIENT_ID</strong> in the script tag to activate PayPal checkout.</div>`;
-    return;
-  }
-  // Shared handlers — read live cart state at payment time
-  function ppCreateOrder(d,a){
-    const sub=cartTotal(), ship=getRampageShipping(), grand=sub+ship;
-    return a.order.create({
-      purchase_units:[{
-        description:"Under Pressure Team Store Order",
-        amount:{value:grand.toFixed(2),currency_code:"USD",
-          breakdown:{item_total:{value:sub.toFixed(2),currency_code:"USD"},
-                     shipping:{value:ship.toFixed(2),currency_code:"USD"}}},
-        items:cart.map(i=>({name:`${i.name} (${i.color}, ${i.size})`.substring(0,127),quantity:String(i.qty),unit_amount:{value:i.price.toFixed(2),currency_code:"USD"}})),
-        shipping:{name:{full_name:`${customerInfo.first} ${customerInfo.last}`}}
-      }],
-      payer:{name:{given_name:customerInfo.first,surname:customerInfo.last},email_address:customerInfo.email}
+function renderPayPal(total){
+  const sub=cartTotal(), ship=getShipping(), grand=sub+ship;
+  const amount=grand.toFixed(2);
+  document.getElementById("paypal-container").innerHTML=`
+    <button onclick="payWithPayPal(${amount})" style="
+      display:block;width:100%;padding:14px 20px;margin-top:4px;
+      background:#0070ba;color:#fff;border:none;cursor:pointer;
+      font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
+      letter-spacing:2px;text-transform:uppercase;transition:background .2s;">
+      💳 PAY $${amount} WITH PAYPAL
+    </button>
+    <p style="margin-top:8px;font-size:11px;color:var(--up-mist);text-align:center;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">
+      Opens PayPal in a new tab — complete your payment there, then return here.
+    </p>`;
+}
+function payWithPayPal(amount){
+  if(!validateCustomer()) return;
+  try {
+    const existing=JSON.parse(localStorage.getItem('productionOrders')||'[]');
+    existing.unshift({
+      id:Date.now(), timestamp:new Date().toISOString(),
+      store: storeConfig?.name || 'Team Store',
+      customer:`${customerInfo.first} ${customerInfo.last}`,
+      phone:customerInfo.phone||'', email:customerInfo.email||'',
+      items:cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty})),
+      completed:false
     });
-  }
-  function ppOnApprove(d,a){ return a.order.capture().then(details => { cart=[]; updateCartUI(); showOrderSuccess(details); }); }
-  function ppOnClick(d,a){ if (!validateCustomer()) return a.reject(); return a.resolve(); }
-  function ppOnError(){ showToast("Payment error — please try again or call (304) 633-6401"); }
-
-  // Render each funding source separately — avoids popup coordinator window
-  // that triggers mobile browser popup blockers.
-  const ppConfig = {createOrder:ppCreateOrder,onApprove:ppOnApprove,onClick:ppOnClick,onError:ppOnError};
-  [
-    {fundingSource:paypal_sdk.FUNDING.PAYPAL, style:{layout:"vertical",color:"blue",shape:"rect",label:"pay"}},
-    {fundingSource:paypal_sdk.FUNDING.PAYLATER, style:{layout:"vertical",color:"gold",shape:"rect",label:"paylater"}},
-    {fundingSource:paypal_sdk.FUNDING.CARD, style:{layout:"vertical",color:"black",shape:"rect",label:"pay"}}
-  ].forEach(opts=>{
-    const btn = paypal_sdk.Buttons(Object.assign({},ppConfig,opts));
-    if(btn.isEligible()) btn.render("#paypal-prerender");
-  });
+    localStorage.setItem('productionOrders',JSON.stringify(existing));
+  } catch(e){}
+  window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`,'_blank','noopener,noreferrer');
+  cart=[];updateCartUI();
+  document.getElementById("checkoutContent").innerHTML=`
+    <div class="success-screen">
+      <div class="suc-icon">💳</div>
+      <div class="suc-title">ALMOST DONE!</div>
+      <div class="suc-text">
+        A PayPal tab just opened — complete your $${amount} payment there.<br><br>
+        Your order has been logged. If the tab didn't open,
+        <a href="https://www.paypal.com/paypalme/theonlymrscarver/${amount}"
+           target="_blank" rel="noopener noreferrer"
+           style="color:var(--up-sky);">click here to pay</a>.<br><br>
+        Questions? Call <strong>(304) 633-6401</strong>
+      </div>
+      <button class="btn-suc" onclick="closeCheckout()">Done</button>
+    </div>`;
 }
-if(document.readyState==="loading"){
-  document.addEventListener("DOMContentLoaded", initPayPal);
-} else {
-  initPayPal();
-}
-
 function showOrderSuccess(details) {
   document.getElementById("checkoutContent").innerHTML = `
     <div class="modal-head"><h3>ORDER CONFIRMED</h3><button class="btn-close-m" onclick="closeCheckout()">✕</button></div>
