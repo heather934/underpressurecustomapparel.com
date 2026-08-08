@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 :root {
   --up-black:  #060810;
@@ -914,8 +915,14 @@ body {
 //  CONFIG
 // ═══════════════════════════════════════════════════════
 const KV_API    = 'https://up-store-api.h-m-ward1846.workers.dev';
-const EMAILJS_SERVICE_ID  = 'service_underpressure';
-const EMAILJS_TEMPLATE_ID = 'template_order';
+// EmailJS — read keys from localStorage (written by admin on login)
+let EMAILJS_SERVICE_ID           = localStorage.getItem('upEmailjsService')             || '';
+let EMAILJS_ORDER_CONFIRM_ID     = localStorage.getItem('upEmailjsOrderConfirmTemplate') || '';
+let EMAILJS_NEW_ORDER_ID         = localStorage.getItem('upEmailjsNewOrderTemplate')     || '';
+(function initEmailJS() {
+  const key = localStorage.getItem('upEmailjsKey') || '';
+  if (key && typeof emailjs !== 'undefined') emailjs.init(key);
+})();
 
 // ── Product catalog — maps admin type → mockup files + graphic placement ──
 const PRODUCT_CATALOG = {
@@ -1556,23 +1563,41 @@ function showSuccess(details) {
 }
 
 async function sendOrderEmail(details) {
-  if (typeof emailjs === 'undefined') return;
+  if (typeof emailjs === 'undefined' || !EMAILJS_SERVICE_ID) {
+    console.warn('EmailJS not configured — skipping email');
+    return;
+  }
   const v = id => document.getElementById(id)?.value || '';
   const lineItems = cart.map(i =>
     `${i.label}${i.designName?' ('+i.designName+')':''} — ${i.color}, ${i.size} × ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`
   ).join('\n');
-  const params = {
-    store_name:   teamData?.name || 'Team Store',
-    customer_name:`${v('co-first')} ${v('co-last')}`,
-    email:         v('co-email'),
-    phone:         v('co-phone'),
-    address:      `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
-    notes:         v('co-notes'),
-    order_items:   lineItems,
-    total:        `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
-    paypal_id:     details.id || '',
+  const sharedParams = {
+    store_name:    teamData?.name || 'Team Store',
+    customer_name: `${v('co-first')} ${v('co-last')}`,
+    email:          v('co-email'),
+    phone:          v('co-phone'),
+    address:       `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
+    notes:          v('co-notes'),
+    order_items:    lineItems,
+    total:         `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
+    paypal_id:      details.id || '',
   };
-  try { await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params); } catch(e) { console.warn('Email send failed:', e); }
+  // Email to customer
+  if (EMAILJS_ORDER_CONFIRM_ID) {
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_CONFIRM_ID, {
+      ...sharedParams,
+      to_email:  v('co-email'),
+      reply_to: 'erin@underpressurecustomapparel.com'
+    }).catch(e => console.warn('Customer email failed:', e));
+  }
+  // Email to Erin
+  if (EMAILJS_NEW_ORDER_ID) {
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_ID, {
+      ...sharedParams,
+      to_email: 'erin@underpressurecustomapparel.com',
+      reply_to:  v('co-email')
+    }).catch(e => console.warn('Erin email failed:', e));
+  }
 }
 
 // ═══════════════════════════════════════════════════════
