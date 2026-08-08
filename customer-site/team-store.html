@@ -1005,11 +1005,24 @@ const COLOR_HEX_MAP = {
 };
 function getColorHex(name) { return COLOR_HEX_MAP[name] || '#888'; }
 
-const UP_SHIPPING = {1:7,2:7,3:7,4:9,5:9,6:11,7:11,8:13,9:13,10:15,11:15,12:17,
-                     13:17,14:19,15:19,16:21,17:21,18:23,19:23,20:25};
+// Shipping methods
+const SHIPPING_METHODS = [
+  { id: 'pickup',    label: 'Local Orders Only (Porch Pickup)',    price: 0 },
+  { id: 'local',     label: 'Huntington Area (Meet Locally)',       price: 5 },
+  { id: 'usps',      label: 'USPS Shipping',                        price: null }, // calculated below
+];
+// USPS Priority Mail estimates from ZIP 45669 (1-7 lbs)
+const USPS_RATES = { 1:9.35, 2:9.35, 3:12.50, 4:12.50, 5:16.75, 6:16.75, 7:16.75 };
+function getUspsRate(qty) {
+  const lbs = Math.min(Math.max(Math.ceil(qty * 0.75), 1), 7);
+  return USPS_RATES[lbs] || 16.75;
+}
 function getShipping(qty) {
   if (!qty) return 0;
-  return UP_SHIPPING[Math.min(qty,20)] || 25;
+  const method = document.getElementById('co-ship-method')?.value || 'usps';
+  if (method === 'pickup') return 0;
+  if (method === 'local')  return 5;
+  return getUspsRate(qty);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1451,10 +1464,23 @@ function closeCart() {
 // ═══════════════════════════════════════════════════════
 //  CHECKOUT
 // ═══════════════════════════════════════════════════════
+function updateCheckoutTotals() {
+  const qty   = cartQty();
+  const sub   = cartTotal();
+  const ship  = getShipping(qty);
+  const grand = sub + ship;
+  const shipEl  = document.getElementById('co-ship-display');
+  const totalEl = document.getElementById('co-total-display');
+  if (shipEl)  shipEl.textContent  = ship === 0 ? 'FREE' : `$${ship.toFixed(2)}`;
+  if (totalEl) totalEl.textContent = `$${grand.toFixed(2)}`;
+  renderPayPal(grand);
+}
+
 function openCheckout() {
   closeCart();
+  const qty   = cartQty();
   const sub   = cartTotal();
-  const ship  = getShipping(cartQty());
+  const ship  = getShipping(qty);
   const grand = sub + ship;
 
   const rows = cart.map(i => `
@@ -1481,11 +1507,22 @@ function openCheckout() {
         <div class="ts-form-f"><label>ZIP *</label><input id="co-zip" placeholder="25701" required></div>
         <div class="ts-form-f full"><label>Order Notes</label><textarea id="co-notes" placeholder="Any special requests or sizing notes…"></textarea></div>
       </div>
+      <div class="ts-section-lbl">Shipping Method</div>
+      <div class="ts-form-grid">
+        <div class="ts-form-f full">
+          <label>Select Shipping *</label>
+          <select id="co-ship-method" onchange="updateCheckoutTotals()" style="width:100%;padding:10px 12px;background:var(--up-card);color:var(--up-silver);border:1px solid var(--up-border);font-family:'Barlow Condensed',sans-serif;font-size:15px;letter-spacing:1px;">
+            <option value="pickup">Local Orders Only (Porch Pickup) — FREE</option>
+            <option value="local">Huntington Area (Meet Locally) — $5.00</option>
+            <option value="usps" selected>USPS Shipping — calculated below</option>
+          </select>
+        </div>
+      </div>
       <div class="ts-section-lbl">Order Summary</div>
       ${rows}
       <div class="ts-order-row"><span>Subtotal</span><span>$${sub.toFixed(2)}</span></div>
-      <div class="ts-order-row"><span>Shipping</span><span>$${ship.toFixed(2)}</span></div>
-      <div class="ts-order-row total"><span>Total</span><span>$${grand.toFixed(2)}</span></div>
+      <div class="ts-order-row"><span>Shipping</span><span id="co-ship-display">$${ship.toFixed(2)}</span></div>
+      <div class="ts-order-row total"><span>Total</span><span id="co-total-display">$${grand.toFixed(2)}</span></div>
       <div class="ts-section-lbl">Payment</div>
       <div id="co-paypal"></div>
       <p style="font-size:11px;color:var(--up-mist);text-align:center;margin-top:8px;">Secure payment via PayPal. Credit/debit cards accepted through PayPal Guest Checkout.</p>
@@ -1579,6 +1616,7 @@ async function sendOrderEmail(details) {
     address:       `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
     notes:          v('co-notes'),
     order_items:    lineItems,
+    shipping_method: document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
     total:         `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
     paypal_id:      details.id || '',
   };
