@@ -916,12 +916,22 @@ body {
 // ═══════════════════════════════════════════════════════
 const KV_API    = 'https://up-store-api.h-m-ward1846.workers.dev';
 // EmailJS — read keys from localStorage (written by admin on login)
-let EMAILJS_SERVICE_ID           = localStorage.getItem('upEmailjsService')             || '';
-let EMAILJS_ORDER_CONFIRM_ID     = localStorage.getItem('upEmailjsOrderConfirmTemplate') || '';
-let EMAILJS_NEW_ORDER_ID         = localStorage.getItem('upEmailjsNewOrderTemplate')     || '';
-(function initEmailJS() {
-  const key = localStorage.getItem('upEmailjsKey') || '';
-  if (key && typeof emailjs !== 'undefined') emailjs.init(key);
+let EMAILJS_SERVICE_ID       = '';
+let EMAILJS_ORDER_CONFIRM_ID = '';
+let EMAILJS_NEW_ORDER_ID     = '';
+(async function initEmailJS() {
+  try {
+    const res = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
+    if (!res.ok) return;
+    const { config } = await res.json();
+    if (!config) return;
+    EMAILJS_SERVICE_ID       = config.emailjsServiceId              || '';
+    EMAILJS_ORDER_CONFIRM_ID = config.emailjsOrderConfirmTemplateId || '';
+    EMAILJS_NEW_ORDER_ID     = config.emailjsNewOrderTemplateId     || '';
+    if (config.emailjsPublicKey && typeof emailjs !== 'undefined') {
+      emailjs.init(config.emailjsPublicKey);
+    }
+  } catch(e) { console.warn('EmailJS config load failed:', e); }
 })();
 
 // ── Product catalog — maps admin type → mockup files + graphic placement ──
