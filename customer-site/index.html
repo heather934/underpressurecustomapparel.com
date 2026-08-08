@@ -3032,7 +3032,7 @@ function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")
 // ═══════════════════════════════════════════════════
 //  KV SYNC LAYER
 // ═══════════════════════════════════════════════════
-const KV_API = 'https://up-store-api.h-m-ward1846.workers.dev';
+const KV_API = 'https://up-store-api.h-m-ward1864.workers.dev';
 
 async function kvSet(key, data) {
   try {
@@ -4314,12 +4314,42 @@ function maskSecret(val) {
 
 var isAdminMode = false;
 document.addEventListener('DOMContentLoaded', function() {
-  loadTeams();
-  loadReviews();
-  loadDiscountCodes();
-  renderUP();
-  buildCarousel();
-  buildSearchIndex();
+  // Load teams from KV so dynamic stores show on fresh browsers
+  (async function() {
+    try {
+      const res = await fetch(`${KV_API}/data/teams`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length) {
+          teams = data;
+        }
+      }
+    } catch(e) {}
+    // Merge in built-in seeds if missing
+    const seeds = [
+      { key:'builtin-rampage', name:'River City Rampage', subdomain:'rivercityrampage', color:'#1a6b2f',
+        logo:'https://www.jotform.com/uploads/erinncarver/form_files/Rampage%20Team%20Store.69f3a5692118e6.96454585.png',
+        desc:'Custom baseball & softball apparel for the Rampage family', url:'/rampage', products:[] },
+      { key:'builtin-romecoc', name:'Rome CoC Youth T-Shirts', subdomain:'romecoc', color:'#7c3aed',
+        logo:'https://www.jotform.com/uploads/erinncarver/form_files/Camp%20Shirts.69d92cc3c7e966.84511775.png',
+        desc:'Faith-inspired graphic tees — portions benefit Rome Church of Christ Youth Ministries', url:'/rome', products:[] }
+    ];
+    seeds.forEach(seed => { if (!teams.find(t => t.key === seed.key)) teams.unshift(seed); });
+    // Load access states from KV
+    try {
+      const ar = await fetch(`${KV_API}/data/storeAccess`);
+      if (ar.ok) { const d = await ar.json(); if (d && typeof d === 'object') storeAccess = d; }
+    } catch(e) {}
+    try {
+      const cr = await fetch(`${KV_API}/data/storeCodes`);
+      if (cr.ok) { const d = await cr.json(); if (d && typeof d === 'object') storeCodes = d; }
+    } catch(e) {}
+    loadReviews();
+    loadDiscountCodes();
+    renderUP();
+    buildCarousel();
+    buildSearchIndex();
+  })();
 });
 </script>
 </body>
