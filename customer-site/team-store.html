@@ -1600,7 +1600,7 @@ function showSuccess(details) {
       <div class="ts-success-title">Order Placed!</div>
       <div class="ts-success-msg">
         Thank you, ${details.payer?.name?.given_name||''}! Your order has been received.<br>
-        Confirmation sent to <strong>${details.payer?.email_address||''}</strong>.<br><br>
+        You'll receive a confirmation email from Erin shortly.<br><br>
         Custom items ship in 7–10 business days.
       </div>
       <button class="ts-submit-btn" onclick="closeCheckout()" style="max-width:200px;">Continue Shopping</button>
@@ -1629,15 +1629,7 @@ async function sendOrderEmail(details) {
     total:         `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
     paypal_id:      details.id || '',
   };
-  // Email to customer
-  if (EMAILJS_ORDER_CONFIRM_ID) {
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_CONFIRM_ID, {
-      ...sharedParams,
-      to_email:  v('co-email'),
-      reply_to: 'erin@underpressurecustomapparel.com'
-    }).catch(e => console.warn('Customer email failed:', e));
-  }
-  // Email to Erin
+  // Email to Erin only — her Gmail auto-reply handles customer confirmation
   if (EMAILJS_NEW_ORDER_ID) {
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_ID, {
       ...sharedParams,
