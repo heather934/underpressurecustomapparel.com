@@ -1,6 +1,9 @@
 # Under Pressure Custom Apparel — Cloudflare Pages _redirects
 # Place this file in customer-site/ (repo root for this Pages project)
 
+# ── Old /store URL → root ────────────────────────────────────────────
+/store           /                                301
+
 # ── Team stores — dynamic renderer ───────────────────────────────────
 # Each team route rewrites to team-store.html with ?team= query param.
 # Add a new line here whenever Erin creates a new team store in the admin.
@@ -8,5 +11,3 @@
 
 /rampage        /team-store.html?team=rampage   200
 /rome           /team-store.html?team=rome       200
-
-
