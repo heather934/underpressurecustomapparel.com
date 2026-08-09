@@ -12,7 +12,7 @@
 // Falls back to localStorage if KV is unavailable (e.g. during local dev).
 (async function loadCredsFromKV() {
   try {
-    const res = await fetch('/api/config');
+    const res = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
     if (!res.ok) return;
     const { config } = await res.json();
     if (!config) return;
@@ -3032,7 +3032,7 @@ function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")
 // ═══════════════════════════════════════════════════
 //  KV SYNC LAYER
 // ═══════════════════════════════════════════════════
-const KV_API = 'https://up-store-api.h-m-ward1864.workers.dev';
+const KV_API = 'https://up-store-api.h-m-ward1846.workers.dev';
 
 async function kvSet(key, data) {
   try {
