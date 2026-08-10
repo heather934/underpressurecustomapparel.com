@@ -2941,6 +2941,9 @@ function renderPayPal(){
 }
 function payWithPayPal(amount){
   if(!validateCustomer()) return;
+  // Open PayPal FIRST — must be the first executable line in this gesture handler
+  // or the browser's popup blocker will block it (async calls below would delay it).
+  window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`,'_blank','noopener,noreferrer');
   const orderItems=cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}));
   logProductionOrder({
     store:'UP Sportswear',
@@ -2950,7 +2953,6 @@ function payWithPayPal(amount){
     items:orderItems
   });
   sendOrderEmails({id:'PAYPAL-DIRECT'}, orderItems);
-  window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`,'_blank','noopener,noreferrer');
   cart=[];updateCartUI();
   document.getElementById("checkoutContent").innerHTML=`
     <div class="success-screen">
