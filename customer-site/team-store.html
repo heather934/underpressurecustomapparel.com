@@ -1575,6 +1575,28 @@ function payWithPayPal(amount) {
     });
     localStorage.setItem('productionOrders', JSON.stringify(existing));
   } catch(e) {}
+  // Save cart to KV so the IPN email includes order details
+  try {
+    const v = id => document.getElementById(id)?.value || '';
+    const lineItems = cart.map(i =>
+      `${i.label}${i.designName?' ('+i.designName+')':''} — ${i.color}, ${i.size} x ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`
+    ).join('\n');
+    fetch(`${KV_API}/api/save-cart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: v('co-email'),
+        customer_name: `${v('co-first')} ${v('co-last')}`,
+        phone: v('co-phone'),
+        address: `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
+        notes: v('co-notes'),
+        order_items: lineItems,
+        shipping_method: document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
+        total: `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
+        store_name: teamData?.name || 'Team Store',
+      })
+    }).catch(e => console.warn('Cart save failed:', e));
+  } catch(e) {}
   window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`, '_blank', 'noopener,noreferrer');
   cart = []; updateCartUI();
   document.getElementById('tsCheckoutContent').innerHTML = `
