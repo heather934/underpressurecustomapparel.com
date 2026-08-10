@@ -5,11 +5,13 @@
 /                /customer-index.html              200
 /store           /customer-index.html              200
 
-# ── Dynamic team store renderer ──────────────────────────────────────
-# Rewrites /team-store?team=anything to team-store.html
-# Query string passes through automatically — no per-store lines needed.
-/team-store      /team-store.html                  200
+# ── Dynamic team stores ──────────────────────────────────────────────
+# NOTE: Do NOT add a /team-store rule here. Cloudflare Pages already
+# serves team-store.html at the clean path /team-store automatically.
+# Adding a rewrite creates an infinite redirect loop (ERR_TOO_MANY_REDIRECTS).
+# Every admin-created store works at:
+#   underpressurecustomapparel.com/team-store?team=<subdomain>
 
 # ── Legacy named routes (kept for old links) ─────────────────────────
-/rampage         /team-store.html?team=rampage      200
-/rome            /team-store.html?team=rome         200
+/rampage         /team-store?team=rampage          200
+/rome            /team-store?team=rome             200
