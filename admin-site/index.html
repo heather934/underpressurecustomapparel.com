@@ -4936,7 +4936,8 @@ function submitCodeGate() {
     setTimeout(() => { err.style.display='none'; document.getElementById('gateCodeInput').style.borderColor=''; }, 2500);
   }
 }
-document.getElementById('codeGateModal').addEventListener('click', function(e){ if(e.target===this) closeCodeGate(); });
+const _cgm = document.getElementById('codeGateModal');
+if (_cgm) _cgm.addEventListener('click', function(e){ if(e.target===this) closeCodeGate(); });
 
 // ══════════════════════════════════════════════════════
 //  PRODUCTION BOARD
@@ -8295,11 +8296,21 @@ async function sendStoreOrderConfirmation(txnId) {
 
   if (!order.email) { showToast('No customer email on file for this order.'); return; }
 
-  const serviceId  = localStorage.getItem('upEmailjsService')              || '';
-  const templateId = localStorage.getItem('upEmailjsOrderConfirmTemplate')  || '';
+  if (typeof emailjs === 'undefined') {
+    showToast('EmailJS not loaded — please refresh and try again.');
+    return;
+  }
+
+  // Use the same globals the rest of the admin panel uses — populated from
+  // app_config KV at boot, not from the Integrations localStorage keys.
+  const serviceId  = (typeof EMAILJS_SERVICE_ID !== 'undefined' ? EMAILJS_SERVICE_ID : '')
+                     || localStorage.getItem('upEmailjsService') || '';
+  const templateId = (typeof EMAILJS_ORDER_CONFIRM_TEMPLATE_ID !== 'undefined' ? EMAILJS_ORDER_CONFIRM_TEMPLATE_ID : '')
+                     || localStorage.getItem('upEmailjsOrderConfirmTemplate') || '';
 
   if (!serviceId || !templateId) {
-    showToast('Order confirmation template not set — configure it in Admin → Integrations.');
+    showToast('EmailJS not configured — check app_config in KV has emailjsOrderConfirmTemplateId.');
+    console.warn('sendStoreOrderConfirmation: serviceId=', serviceId, 'templateId=', templateId);
     return;
   }
 
