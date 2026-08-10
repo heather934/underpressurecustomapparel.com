@@ -8293,26 +8293,37 @@ function renderStoreOrders() {
 async function sendStoreOrderConfirmation(txnId) {
   const order = kvOrdersList.find(o => o.txnId === txnId);
   if (!order) { showToast('Order not found.'); return; }
-
   if (!order.email) { showToast('No customer email on file for this order.'); return; }
 
+  // Fetch credentials fresh from Worker KV every time — no dependency on
+  // globals or localStorage so it works regardless of page init state.
+  let serviceId = '', templateId = '', publicKey = '';
+  try {
+    const cfgRes = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
+    const cfgData = await cfgRes.json();
+    const cfg = cfgData.config || cfgData;
+    serviceId  = cfg.emailjsServiceId             || '';
+    templateId = cfg.emailjsOrderConfirmTemplateId || '';
+    publicKey  = cfg.emailjsPublicKey             || '';
+  } catch(e) {
+    showToast('Could not load email config — check Worker is running.');
+    console.error('sendStoreOrderConfirmation: config fetch failed', e);
+    return;
+  }
+
+  if (!serviceId || !templateId || !publicKey) {
+    showToast('EmailJS not configured in KV — check app_config has emailjsServiceId and emailjsOrderConfirmTemplateId.');
+    console.warn('sendStoreOrderConfirmation: missing config', { serviceId, templateId, publicKey });
+    return;
+  }
+
   if (typeof emailjs === 'undefined') {
-    showToast('EmailJS not loaded — please refresh and try again.');
+    showToast('EmailJS SDK not loaded — please refresh and try again.');
     return;
   }
 
-  // Use the same globals the rest of the admin panel uses — populated from
-  // app_config KV at boot, not from the Integrations localStorage keys.
-  const serviceId  = (typeof EMAILJS_SERVICE_ID !== 'undefined' ? EMAILJS_SERVICE_ID : '')
-                     || localStorage.getItem('upEmailjsService') || '';
-  const templateId = (typeof EMAILJS_ORDER_CONFIRM_TEMPLATE_ID !== 'undefined' ? EMAILJS_ORDER_CONFIRM_TEMPLATE_ID : '')
-                     || localStorage.getItem('upEmailjsOrderConfirmTemplate') || '';
-
-  if (!serviceId || !templateId) {
-    showToast('EmailJS not configured — check app_config in KV has emailjsOrderConfirmTemplateId.');
-    console.warn('sendStoreOrderConfirmation: serviceId=', serviceId, 'templateId=', templateId);
-    return;
-  }
+  // Re-init emailjs with the public key in case it wasn't initialized
+  try { emailjs.init(publicKey); } catch(e) {}
 
   if (order.confirmationSent) {
     const again = confirm(`A confirmation was already sent to ${order.email} on ${order.confirmationSentAt ? new Date(order.confirmationSentAt).toLocaleString() : 'an earlier date'}.\n\nSend again?`);
