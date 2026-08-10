@@ -3865,7 +3865,7 @@ function submitCodeGate() {
     setTimeout(() => { err.style.display='none'; document.getElementById('gateCodeInput').style.borderColor=''; }, 2500);
   }
 }
-document.getElementById('codeGateModal').addEventListener('click', function(e){ if(e.target===this) closeCodeGate(); });
+document.getElementById('codeGateModal')?.addEventListener('click', function(e){ if(e.target===this) closeCodeGate(); });
 
 // ══════════════════════════════════════════════════════
 //  PRODUCTION BOARD
