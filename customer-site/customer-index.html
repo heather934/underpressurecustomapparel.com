@@ -3220,7 +3220,7 @@ function renderTeamCards() {
   }
   grid.innerHTML = `<div class="team-cards-grid">${teams.map((t, i) => {
     const subdomain = t.subdomain || slugify(t.name);
-    const url = `https://${subdomain}.underpressure.com`;
+    const url = t.url || `https://underpressurecustomapparel.com/team-store?team=${subdomain}`;
     const color = t.color || '#1565ff';
     const color2 = t.color2 || '';
     const bannerBg = color2 ? `linear-gradient(90deg,${color},${color2})` : color;
@@ -3235,7 +3235,7 @@ function renderTeamCards() {
           ${logoHTML}
           <div class="team-card-name">${t.name}</div>
           <div class="team-card-desc">${t.desc || 'Custom team apparel — powered by Under Pressure'}</div>
-          <div class="team-card-url">${subdomain}.underpressure.com</div>
+          <div class="team-card-url">underpressurecustomapparel.com/team-store?team=${subdomain}</div>
           <div class="team-card-cta" style="background:${bannerBg}">Shop ${t.name}</div>
         </div>
         <div class="team-card-arrow">→</div>
@@ -3618,7 +3618,7 @@ function buildCarousel() {
         const color2 = t.color2 || '';
         const bannerBg = color2 ? `linear-gradient(90deg,${color},${color2})` : color;
         const colorStyle = `--team-color:${color};--team-color2:${color2||color};--team-banner-bg:${bannerBg};text-decoration:none;position:relative;`;
-        const url = t.url || `https://${t.subdomain || slugify(t.name)}.underpressure.com`;
+        const url = t.url || `https://underpressurecustomapparel.com/team-store?team=${t.subdomain || slugify(t.name)}`;
         const stateForCard = getStoreState(t.key);
         const cardHref = stateForCard === 'code'
           ? `javascript:openCodeGate('${url}','${t.key}')`
