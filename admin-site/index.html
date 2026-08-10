@@ -4943,6 +4943,10 @@ document.getElementById('codeGateModal').addEventListener('click', function(e){ 
 // ══════════════════════════════════════════════════════
 var productionOrders = [];
 
+// KV-backed store orders (loaded from /data/orders-list on demand)
+var kvOrdersList = [];
+var kvOrdersLoaded = false;
+
 function loadProductionOrders() {
   try { productionOrders = JSON.parse(localStorage.getItem("productionOrders") || "[]"); }
   catch(e) { productionOrders = []; }
@@ -7918,6 +7922,7 @@ function renderInvoiceAdmin() {
       <div id="adminNavList">
         <div class="admin-nav-item" id="anav-dashboard" onclick="renderAdminPanel('dashboard')">📊 <span class="admin-nav-item-label">Dashboard</span></div>
         <div class="admin-nav-item" id="anav-production" onclick="renderAdminPanel('production')">📦 <span class="admin-nav-item-label">Orders</span></div>
+        <div class="admin-nav-item" id="anav-storeorders" onclick="renderAdminPanel('storeorders')">📬 <span class="admin-nav-item-label">Store Orders</span></div>
         <div class="admin-nav-item" id="anav-purchaselist" onclick="renderAdminPanel('purchaselist')">🛒 <span class="admin-nav-item-label">Purchase List</span></div>
         <div class="admin-nav-item" id="anav-teams" onclick="renderAdminPanel('teams')">🏆 <span class="admin-nav-item-label">Team Stores</span></div>
         <div class="admin-nav-item" id="anav-customers" onclick="renderAdminPanel('customers')">👥 <span class="admin-nav-item-label">Customers</span></div>
@@ -8170,6 +8175,214 @@ function deleteDiscountCode(idx) {
   });
 }
 
+// ══════════════════════════════════════════════════════════════════════
+//  STORE ORDERS — reads from KV orders-list, populated by IPN Worker
+// ══════════════════════════════════════════════════════════════════════
+
+async function loadKvOrders() {
+  const data = await kvGet('orders-list');
+  kvOrdersList = Array.isArray(data) ? data : [];
+  kvOrdersLoaded = true;
+}
+
+// renderAdminPanel sets innerHTML synchronously; for storeorders we hand it
+// an async wrapper so we can await the KV fetch before painting.
+async function renderStoreOrdersAsync(container) {
+  if (!kvOrdersLoaded) {
+    container.innerHTML = `
+      <div class="cm-section-head">
+        <div class="cm-section-title" style="color:#4d9fff;">Store <span style="color:#4ade80;">Orders</span></div>
+      </div>
+      <div style="text-align:center;padding:60px 24px;font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--up-mist);letter-spacing:2px;text-transform:uppercase;">
+        ⏳ Loading orders…
+      </div>`;
+    await loadKvOrders();
+  }
+  container.innerHTML = renderStoreOrders();
+}
+
+function renderStoreOrders() {
+  const orders = kvOrdersList;
+  const sentCount = orders.filter(o => o.confirmationSent).length;
+
+  const header = `
+    <div class="cm-section-head">
+      <div class="cm-section-title" style="color:#4d9fff;">Store <span style="color:#4ade80;">Orders</span></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;">
+          ${orders.length} order${orders.length !== 1 ? 's' : ''} · ${sentCount} confirmed
+        </span>
+        <button class="btn-prod-export" onclick="kvOrdersLoaded=false;renderAdminPanel('storeorders')">🔄 Refresh</button>
+      </div>
+    </div>
+    <p style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--up-mist);letter-spacing:1px;margin-bottom:20px;">
+      Orders from team stores paid via PayPal. <strong>Send Order Received</strong> emails the customer a confirmation.
+      <strong>Add to Production Board</strong> moves it to the fulfillment tracker.
+    </p>`;
+
+  if (!orders.length) {
+    return header + `
+      <div style="text-align:center;padding:60px 24px;font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--up-mist);letter-spacing:2px;text-transform:uppercase;">
+        No store orders yet — orders will appear here after PayPal payment is confirmed.
+      </div>`;
+  }
+
+  const cardsHTML = orders.map(o => {
+    const date = o.receivedAt
+      ? new Date(o.receivedAt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' })
+      : '—';
+    loadProductionOrders();
+    const alreadyOnBoard = productionOrders.some(p => p._kvTxnId === o.txnId);
+    const confirmed = !!o.confirmationSent;
+    const accentColor = confirmed ? '#4ade80' : '#4d9fff';
+
+    const itemLines = (o.orderItems || '').split('\n').filter(Boolean);
+    const itemsHTML = itemLines.length
+      ? itemLines.map(line => `<div style="font-size:12px;color:var(--up-silver);padding:3px 0;border-bottom:1px solid var(--up-border);">${line}</div>`).join('')
+      : `<div style="font-size:12px;color:var(--up-mist);font-style:italic;">Item details not captured (order placed before pending-cart fix)</div>`;
+
+    const confirmedBadge = confirmed
+      ? `<span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:#4ade80;">✓ Confirmed ${o.confirmationSentAt ? new Date(o.confirmationSentAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}</span>`
+      : '';
+
+    return `
+      <div style="background:var(--up-card);border:1px solid var(--up-border);border-top:3px solid ${accentColor};padding:20px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--up-white);">
+              ${o.customerName || o.payerName || '(name unknown)'}
+            </div>
+            <div style="font-size:11px;color:var(--up-mist);letter-spacing:1px;margin-top:2px;">
+              ${o.email || o.payerEmail || '—'}${o.phone ? ' · ' + o.phone : ''}
+            </div>
+            ${o.address ? `<div style="font-size:11px;color:var(--up-mist);margin-top:2px;">📍 ${o.address}</div>` : ''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#4ade80;">${o.total || ('$' + o.amount)}</div>
+            <div style="font-size:10px;color:var(--up-mist);letter-spacing:1.5px;text-transform:uppercase;">${o.storeName || 'Team Store'}</div>
+            <div style="font-size:10px;color:var(--up-mist);margin-top:2px;">${date}</div>
+          </div>
+        </div>
+
+        ${o.shippingMethod ? `<div style="font-size:11px;color:var(--up-sky);margin-bottom:8px;letter-spacing:1px;">🚚 ${o.shippingMethod}</div>` : ''}
+
+        <div style="margin-bottom:14px;">${itemsHTML}</div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          ${o.email ? `
+            <button onclick="sendStoreOrderConfirmation('${o.txnId}')"
+              style="padding:8px 16px;background:${confirmed ? 'rgba(74,222,128,.1)' : 'rgba(21,101,255,.12)'};border:1px solid ${confirmed ? '#4ade80' : '#1565ff'};color:${confirmed ? '#4ade80' : '#4d9fff'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
+              ${confirmed ? '✅ Resend Confirmation' : '📧 Send Order Received'}
+            </button>` : ''}
+          <button onclick="addKvOrderToProductionBoard('${o.txnId}')"
+            style="padding:8px 16px;background:${alreadyOnBoard ? 'rgba(74,222,128,.08)' : 'rgba(167,139,250,.12)'};border:1px solid ${alreadyOnBoard ? 'rgba(74,222,128,.3)' : 'rgba(167,139,250,.3)'};color:${alreadyOnBoard ? '#4ade80' : '#a78bfa'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
+            ${alreadyOnBoard ? '✓ On Board' : '📋 Add to Production Board'}
+          </button>
+          ${confirmedBadge}
+          <span style="margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-border);letter-spacing:1px;" title="PayPal Transaction ID">TXN ${o.txnId || '—'}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  return header + cardsHTML;
+}
+
+// Send order-received confirmation email to the customer using the
+// emailjsOrderConfirmTemplate configured in Integrations.
+async function sendStoreOrderConfirmation(txnId) {
+  const order = kvOrdersList.find(o => o.txnId === txnId);
+  if (!order) { showToast('Order not found.'); return; }
+
+  if (!order.email) { showToast('No customer email on file for this order.'); return; }
+
+  const serviceId  = localStorage.getItem('upEmailjsService')              || '';
+  const templateId = localStorage.getItem('upEmailjsOrderConfirmTemplate')  || '';
+
+  if (!serviceId || !templateId) {
+    showToast('Order confirmation template not set — configure it in Admin → Integrations.');
+    return;
+  }
+
+  if (order.confirmationSent) {
+    const again = confirm(`A confirmation was already sent to ${order.email} on ${order.confirmationSentAt ? new Date(order.confirmationSentAt).toLocaleString() : 'an earlier date'}.\n\nSend again?`);
+    if (!again) return;
+  }
+
+  const params = {
+    to_email:       order.email,
+    customer_name:  order.customerName || order.payerName || '',
+    order_items:    order.orderItems   || '',
+    shipping_method:order.shippingMethod || '',
+    total:          order.total        || ('$' + order.amount),
+    store_name:     order.storeName    || 'Under Pressure Custom Apparel',
+    paypal_id:      order.txnId        || '',
+    address:        order.address      || '',
+    notes:          order.notes        || '',
+    reply_to:       'erin@underpressurecustomapparel.com',
+  };
+
+  try {
+    await emailjs.send(serviceId, templateId, params);
+    // Update local state
+    order.confirmationSent   = true;
+    order.confirmationSentAt = new Date().toISOString();
+    // Persist back to KV (fire-and-forget)
+    kvSet('orders-list', kvOrdersList).catch(e => console.warn('KV orders-list update failed:', e));
+    showToast(`✅ Confirmation sent to ${order.email}!`);
+    renderAdminPanel('storeorders');
+  } catch (err) {
+    console.error('Confirmation email failed:', err);
+    showToast('Failed to send — check EmailJS settings in Integrations.');
+  }
+}
+
+// Push a KV order onto the production board (localStorage) for fulfillment tracking.
+function addKvOrderToProductionBoard(txnId) {
+  const order = kvOrdersList.find(o => o.txnId === txnId);
+  if (!order) { showToast('Order not found.'); return; }
+
+  loadProductionOrders();
+
+  if (productionOrders.some(p => p._kvTxnId === txnId)) {
+    showToast('This order is already on the Production Board.');
+    return;
+  }
+
+  // Parse order items from the multi-line string
+  // Format: "Product Name (Design) — Color, Size x Qty = $Price"
+  const rawLines = (order.orderItems || '').split('\n').filter(Boolean);
+  const items = rawLines.length
+    ? rawLines.map(line => {
+        // Try to extract color, size, qty from "— Color, Size x Qty = $Price"
+        const afterDash = line.split('—')[1] || '';
+        const parts     = afterDash.split('=')[0].trim().split(',').map(s => s.trim());
+        const qtyMatch  = afterDash.match(/x\s*(\d+)/i);
+        return {
+          name:  (line.split('—')[0] || line).trim(),
+          color: parts[0] || '',
+          size:  parts[1] ? parts[1].replace(/x\s*\d+/i, '').trim() : '',
+          qty:   qtyMatch ? parseInt(qtyMatch[1]) : 1,
+        };
+      })
+    : [{ name: 'Team Store Order', color: '', size: '', qty: 1 }];
+
+  productionOrders.unshift({
+    id:        Date.now(),
+    timestamp: order.receivedAt || new Date().toISOString(),
+    store:     order.storeName  || 'Team Store',
+    customer:  order.customerName || order.payerName || '',
+    phone:     order.phone     || '',
+    email:     order.email     || order.payerEmail || '',
+    items,
+    completed: false,
+    _kvTxnId:  txnId,   // link back to KV record so we can detect duplicates
+  });
+
+  saveProductionOrders();
+  showToast('📋 Order added to Production Board!');
+  renderAdminPanel('storeorders');
+}
+
 function renderAdminPanel(tab) {
   // Activate overlay if not already shown
   const overlay = document.getElementById('adminOverlay');
@@ -8197,6 +8410,7 @@ function renderAdminPanel(tab) {
       case 'invoices':     content.innerHTML = renderInvoiceAdmin();    break;
       case 'discounts':    content.innerHTML = renderDiscountAdmin();   break;
 
+      case 'storeorders':   content.innerHTML = ''; renderStoreOrdersAsync(content); break;
       case 'integrations': content.innerHTML = renderIntegrations();   break;
       default:             content.innerHTML = renderDashboard();       break;
     }
@@ -8357,6 +8571,13 @@ async function loadFromKV() {
   if (kvCodes) {
     storeCodes = kvCodes;
     localStorage.setItem('storeCodes', JSON.stringify(storeCodes));
+  }
+
+  // Load store orders list (populated by the IPN Worker on each PayPal payment)
+  const kvOrders = await kvGet('orders-list');
+  if (kvOrders && Array.isArray(kvOrders)) {
+    kvOrdersList = kvOrders;
+    kvOrdersLoaded = true;
   }
 }
 
