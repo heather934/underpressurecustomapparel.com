@@ -3097,7 +3097,7 @@ function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")
 // ═══════════════════════════════════════════════════
 //  KV SYNC LAYER
 // ═══════════════════════════════════════════════════
-const KV_API = 'https://up-store-api.h-m-ward1846.workers.dev';
+const KV_API = 'https://up-store-api.h-m-ward1864.workers.dev';
 
 async function kvSet(key, data) {
   try {
@@ -5273,12 +5273,12 @@ function renderProductionAdmin() {
                 <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
                   <button class="btn-reorder" onclick="reorderOrder(${o.id})" title="Duplicate as new order">↺ Reorder</button>
                   ${o.email ? `<button class="btn-add-note" onclick="markOrderReady(${o.id})" title="${o.readyNotified?'Already notified — click to resend':'Email the customer that their order is ready'}">${o.readyNotified?'✓ Ready (Sent)':'📦 Mark Ready'}</button>` : ''}
-                  <button class="btn-add-note" onclick="showNoteInput(${o.id})">${"${orderNotes[o.id]?'✏ Edit Note':'+ Note'}"}</button>
+                  <button class="btn-add-note" onclick="showNoteInput(${o.id})">${orderNotes[o.id]?'✏ Edit Note':'+ Note'}</button>
                   <button class="cm-btn-del" onclick="deleteProductionOrder(${o.id})" title="Remove" aria-label="Remove order from production board" style="padding:3px 8px;">✕</button>
                 </div>
-                ${"{orderNotes[o.id] ? `<div class='order-note-wrap' style='margin-top:6px;'><div class='order-note-text'>${orderNotes[o.id]}</div><button class='btn-deadline-del' onclick='deleteNote(${o.id})' aria-label='Delete order note' style='font-size:10px;'>✕</button></div>` : ''}"}
+                ${orderNotes[o.id] ? `<div class='order-note-wrap' style='margin-top:6px;'><div class='order-note-text'>${orderNotes[o.id]}</div><button class='btn-deadline-del' onclick='deleteNote(${o.id})' aria-label='Delete order note' style='font-size:10px;'>✕</button></div>` : ''}
                 <div class="note-input-wrap" id="noteinput-${o.id}" style="display:none;margin-top:6px;">
-                  <input class="note-input" id="noteval-${o.id}" placeholder="Add note..." value="${"${orderNotes[o.id]||''}"}">
+                  <input class="note-input" id="noteval-${o.id}" placeholder="Add note..." value="${orderNotes[o.id]||''}">
                   <button class="btn-save-up" style="padding:6px 10px;font-size:11px;" onclick="saveNote(${o.id})">Save</button>
                 </div>
               </td>` : ''}
@@ -8299,7 +8299,7 @@ async function sendStoreOrderConfirmation(txnId) {
   // globals or localStorage so it works regardless of page init state.
   let serviceId = '', templateId = '', publicKey = '';
   try {
-    const cfgRes = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
+    const cfgRes = await fetch('https://up-store-api.h-m-ward1864.workers.dev/api/config');
     const cfgData = await cfgRes.json();
     const cfg = cfgData.config || cfgData;
     serviceId  = cfg.emailjsServiceId             || '';
