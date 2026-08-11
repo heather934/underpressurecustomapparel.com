@@ -3097,7 +3097,7 @@ function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")
 // ═══════════════════════════════════════════════════
 //  KV SYNC LAYER
 // ═══════════════════════════════════════════════════
-const KV_API = 'https://up-store-api.h-m-ward1864.workers.dev';
+const KV_API = 'https://up-store-api.h-m-ward1846.workers.dev';
 
 async function kvSet(key, data) {
   try {
@@ -3881,7 +3881,7 @@ const MOCKUP_VIEWS = {
   mensshorts:  { front:'/products/mens-shorts-front.png',      side:'/products/mens-shorts-side.png' },
   womensshorts:{ front:'/products/womens-shorts.png' },
 };
-const CUSTOMER_ORIGIN = 'https://underpressurecustomapparel.com';
+const CUSTOMER_ORIGIN = 'https://admin.underpressurecustomapparel.com';
 
 let tmProductInstances = []; // saved instances
 let tmInstPlacement = 'front';
@@ -8299,7 +8299,7 @@ async function sendStoreOrderConfirmation(txnId) {
   // globals or localStorage so it works regardless of page init state.
   let serviceId = '', templateId = '', publicKey = '';
   try {
-    const cfgRes = await fetch('https://up-store-api.h-m-ward1864.workers.dev/api/config');
+    const cfgRes = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
     const cfgData = await cfgRes.json();
     const cfg = cfgData.config || cfgData;
     serviceId  = cfg.emailjsServiceId             || '';
