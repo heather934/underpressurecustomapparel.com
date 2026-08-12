@@ -989,6 +989,23 @@ const PRODUCT_CATALOG = {
   bag:        { label: 'Bag / Backpack',        category: 'extras',  icon: '🎒', views: [], placeholder: true },
 };
 
+// Backward-compat: a product's design(s) live either in the current
+// designs{front,back,side} shape or, for older team stores not yet re-saved
+// in the admin, as flat designId/designName/designUrl/placement fields.
+// Read through this rather than migrating stored data.
+function getProductDesigns(product) {
+  if (product.designs) return product.designs;
+  if (product.designId || product.designUrl) {
+    return {
+      [product.placement || 'front']: {
+        designId: product.designId, designName: product.designName, designUrl: product.designUrl,
+        graphicLeft: product.graphicLeft, graphicTop: product.graphicTop, graphicWidth: product.graphicWidth,
+      }
+    };
+  }
+  return {};
+}
+
 const CATEGORY_LABELS = {
   all:     'All',
   tops:    'T-Shirts & Tops',
@@ -1224,28 +1241,29 @@ function renderGrid(products) {
     grid.innerHTML = '<div class="ts-empty">No products in this category.</div>';
     return;
   }
-  grid.innerHTML = products.map(p => renderCard(p)).join('');
+  grid.innerHTML = products.map((p, i) => renderCard(p, i)).join('');
 }
 
 // ═══════════════════════════════════════════════════════
 //  PRODUCT CARD
 // ═══════════════════════════════════════════════════════
-function renderCard(product) {
+function renderCard(product, index) {
   const meta    = PRODUCT_CATALOG[product.type];
   if (!meta) return '';
 
-  const cardId  = `${product.type}-${product.designId || 'no-design'}`;
+  const cardId  = product.instanceId || `${product.type}-${index}`;
   const colors  = product.colors && product.colors.length ? product.colors : ['Black','Navy','White'];
   const sizes   = product.sizes  && product.sizes.length  ? product.sizes  : ['S','M','L','XL','2XL'];
   const firstColor = colors[0];
   const colorHex   = getColorHex(firstColor);
 
-  // Determine placement view early so cardStates can use it
-  const placementView = product.placement || meta.graphicView || 'front';
+  const designs = getProductDesigns(product);
+  // Default to a view that actually carries a design when one exists.
+  const defaultView = meta.views.find(v => designs[v.key])?.key || meta.graphicView || meta.views[0]?.key || 'front';
 
   // Init card state
   if (!cardStates[cardId]) {
-    cardStates[cardId] = { color: firstColor, view: placementView, qty: 1, size: '' };
+    cardStates[cardId] = { color: firstColor, view: defaultView, qty: 1, size: '' };
   }
   const state = cardStates[cardId];
 
@@ -1262,17 +1280,33 @@ function renderCard(product) {
   // Color tint layer
   const tintStyle = hasMockup ? `background-color:${colorHex};mask-image:url('${mockupSrc}');-webkit-mask-image:url('${mockupSrc}');` : '';
 
-  // Design overlay
-  const designUrl   = product.designUrl || '';
-  const designName  = product.designName || '';
-  // Use Erin's custom position if saved, otherwise fall back to catalog defaults
-  const gLeft  = product.graphicLeft  || meta.graphicLeft  || '50%';
-  const gTop   = product.graphicTop   || meta.graphicTop   || '40%';
-  const gWidth = product.graphicWidth || meta.graphicWidth || '35%';
-  const showDesign  = hasMockup && designUrl && state.view === placementView;
-  const designStyle = showDesign
-    ? `top:${gTop};left:${gLeft};width:${gWidth};`
-    : 'display:none;';
+  // One design overlay per placement that actually has a design — only the
+  // one matching the active view is visible; toggling views swaps which.
+  const overlaysHTML = hasMockup ? meta.views.map(v => {
+    const d = designs[v.key];
+    if (!d || !d.designUrl) return '';
+    const gLeft  = d.graphicLeft  || meta.graphicLeft  || '50%';
+    const gTop   = d.graphicTop   || meta.graphicTop   || '40%';
+    const gWidth = d.graphicWidth || meta.graphicWidth || '35%';
+    const visible = v.key === state.view;
+    return `<div class="ts-card-design" id="tsdesign-${cardId}-${v.key}"
+        style="position:absolute;top:${gTop};left:${gLeft};width:${gWidth};transform:translate(-50%,-50%);pointer-events:none;${visible?'':'display:none;'}">
+        <img src="${d.designUrl}" alt="${d.designName||''}"
+          style="width:100%;height:auto;object-fit:contain;"
+          onerror="this.parentElement.style.display='none'">
+      </div>`;
+  }).join('') : '';
+
+  // Label/cart use front's design when present, else whichever placement has one.
+  const primaryView   = designs.front ? 'front' : Object.keys(designs)[0];
+  const designName    = primaryView ? (designs[primaryView].designName || '') : '';
+  const designUrl     = primaryView ? (designs[primaryView].designUrl  || '') : '';
+  // The one non-front placement this type supports (back, or side for bottoms).
+  const secondaryKey     = meta.views.find(v => v.key !== 'front' && designs[v.key])?.key || '';
+  const secondaryDesign  = secondaryKey ? designs[secondaryKey] : null;
+  const designSummary = ['front', secondaryKey].filter(Boolean).filter(v => designs[v]?.designName)
+    .map(v => `${v==='front'?'Front':(meta.views.find(mv=>mv.key===v)?.label||'Back')}: ${designs[v].designName}`)
+    .join(' · ');
 
   // Swatch dots
   const swatchHTML = colors.map(c => {
@@ -1281,7 +1315,7 @@ function renderCard(product) {
     return `<div class="ts-swatch${c === state.color ? ' active' : ''}"
       style="background:${hex};${isLight ? 'border:1px solid #555;' : ''}"
       title="${c}"
-      onclick="setCardColor('${cardId}','${product.type}','${product.designId||''}','${c}',this)"
+      onclick="setCardColor('${cardId}','${c}',this)"
       data-card="${cardId}"></div>`;
   }).join('');
 
@@ -1292,14 +1326,14 @@ function renderCard(product) {
   ).join('');
 
   return `
-    <div class="ts-card" id="tscard-${cardId}" data-placement="${placementView}">
+    <div class="ts-card" id="tscard-${cardId}">
       <!-- PREVIEWER -->
       <div class="ts-card-previewer">
         ${hasViews ? `
           <div class="ts-card-view-toggle">
             ${meta.views.map(v => `
               <button class="ts-card-view-btn${v.key === state.view ? ' active' : ''}"
-                onclick="setCardView('${cardId}','${product.type}','${product.designId||''}','${v.key}',this.closest('.ts-card-view-toggle'))">
+                onclick="setCardView('${cardId}','${product.type}','${v.key}',this.closest('.ts-card-view-toggle'))">
                 ${v.label}
               </button>`).join('')}
           </div>` : ''}
@@ -1308,12 +1342,7 @@ function renderCard(product) {
           <img class="ts-card-mockup" id="tsmock-${cardId}"
             src="${mockupSrc}" alt="${meta.label}" loading="lazy">
           <div class="ts-card-tint" id="tstint-${cardId}" style="${tintStyle}"></div>
-          <div class="ts-card-design" id="tsdesign-${cardId}"
-            style="position:absolute;${designStyle}transform:translate(-50%,-50%);pointer-events:none;">
-            <img src="${designUrl}" alt="${designName}"
-              style="width:100%;height:auto;object-fit:contain;"
-              onerror="this.parentElement.style.display='none'">
-          </div>
+          ${overlaysHTML}
         ` : `
           <div class="ts-card-placeholder">
             <div class="ts-card-placeholder-icon">${meta.icon}</div>
@@ -1327,7 +1356,7 @@ function renderCard(product) {
         <div class="ts-card-labels">
           <div>
             <div class="ts-card-name">${meta.label}</div>
-            ${designName ? `<div class="ts-card-design-name">${designName}</div>` : ''}
+            ${designSummary ? `<div class="ts-card-design-name">${designSummary}</div>` : ''}
           </div>
           <div class="ts-card-price">$${unitPrice.toFixed(2)}</div>
         </div>
@@ -1350,7 +1379,7 @@ function renderCard(product) {
         <!-- ADD TO CART -->
         <button class="ts-add-btn" id="tsaddbtn-${cardId}"
           style="background:${teamData?.color||'var(--up-blue)'};"
-          onclick="addToCart('${cardId}','${product.type}','${product.designId||''}','${encodeURIComponent(designName)}','${encodeURIComponent(designUrl)}','${encodeURIComponent(meta.label)}',${unitPrice})">
+          onclick="addToCart('${cardId}','${product.type}','${encodeURIComponent(designName)}','${encodeURIComponent(designUrl)}','${encodeURIComponent(secondaryDesign?.designName||'')}','${encodeURIComponent(secondaryDesign?.designUrl||'')}','${encodeURIComponent(meta.label)}',${unitPrice})">
           Add to Cart
         </button>
       </div>
@@ -1360,7 +1389,7 @@ function renderCard(product) {
 // ═══════════════════════════════════════════════════════
 //  CARD INTERACTIONS
 // ═══════════════════════════════════════════════════════
-function setCardColor(cardId, prodType, designId, colorName, dotEl) {
+function setCardColor(cardId, colorName, dotEl) {
   cardStates[cardId].color = colorName;
   const hex = getColorHex(colorName);
 
@@ -1377,7 +1406,7 @@ function setCardColor(cardId, prodType, designId, colorName, dotEl) {
   if (lbl) lbl.textContent = colorName;
 }
 
-function setCardView(cardId, prodType, designId, viewKey, toggleEl) {
+function setCardView(cardId, prodType, viewKey, toggleEl) {
   const meta = PRODUCT_CATALOG[prodType];
   if (!meta) return;
   cardStates[cardId].view = viewKey;
@@ -1397,12 +1426,11 @@ function setCardView(cardId, prodType, designId, viewKey, toggleEl) {
     tint.style.webkitMaskImage = `url('${resolvedSrc}')`;
   }
 
-  // Show/hide design overlay based on saved placement
-  const placementView = cardEl?.dataset?.placement || meta.graphicView || 'front';
-  const design = document.getElementById('tsdesign-' + cardId);
-  if (design) {
-    design.style.display = (viewKey === placementView) ? '' : 'none';
-  }
+  // Show only the design overlay for this placement (each view has its own).
+  meta.views.forEach(v => {
+    const design = document.getElementById(`tsdesign-${cardId}-${v.key}`);
+    if (design) design.style.display = (v.key === viewKey) ? '' : 'none';
+  });
 
   // Update toggle buttons
   if (toggleEl) {
@@ -1429,22 +1457,28 @@ function changeCardQty(cardId, delta) {
 // ═══════════════════════════════════════════════════════
 //  CART
 // ═══════════════════════════════════════════════════════
-function addToCart(cardId, prodType, designId, designNameEnc, designUrlEnc, labelEnc, unitPrice) {
+function addToCart(cardId, prodType, frontNameEnc, frontUrlEnc, backNameEnc, backUrlEnc, labelEnc, unitPrice) {
   const state = cardStates[cardId];
   if (!state) return;
   if (!state.size) { showToast('Please select a size'); return; }
 
-  const designName = decodeURIComponent(designNameEnc);
-  const designUrl  = decodeURIComponent(designUrlEnc);
-  const label      = decodeURIComponent(labelEnc);
-  const qty        = state.qty || 1;
+  const frontDesignName = decodeURIComponent(frontNameEnc);
+  const frontDesignUrl  = decodeURIComponent(frontUrlEnc);
+  const backDesignName  = decodeURIComponent(backNameEnc);
+  const backDesignUrl   = decodeURIComponent(backUrlEnc);
+  const label            = decodeURIComponent(labelEnc);
+  const qty              = state.qty || 1;
 
   cart.push({
     id:         Date.now(),
     type:       prodType,
     label,
-    designName,
-    designUrl,
+    // Flat fields = front's design (or whichever exists) — kept as-is so the
+    // EmailJS templates already consuming these don't need changes.
+    designName: frontDesignName,
+    designUrl:  frontDesignUrl,
+    frontDesignName, frontDesignUrl,
+    backDesignName, backDesignUrl,
     color:      state.color,
     size:       state.size,
     qty,
@@ -1504,7 +1538,7 @@ function renderCartItems() {
       <div class="ts-cart-item-info">
         <div class="ts-cart-item-name">${item.label}</div>
         <div class="ts-cart-item-meta">
-          ${item.designName ? item.designName + ' · ' : ''}${item.color} · ${item.size} · Qty ${item.qty}
+          ${[item.frontDesignName, item.backDesignName].filter(Boolean).join(' / ')}${item.frontDesignName||item.backDesignName ? ' · ' : ''}${item.color} · ${item.size} · Qty ${item.qty}
         </div>
       </div>
       <div class="ts-cart-item-price">$${(item.unitPrice * item.qty).toFixed(2)}</div>
@@ -1546,11 +1580,14 @@ function openCheckout() {
   const ship  = getShipping(qty);
   const grand = sub + ship;
 
-  const rows = cart.map(i => `
+  const rows = cart.map(i => {
+    const designs = [i.frontDesignName, i.backDesignName].filter(Boolean).join(' / ');
+    return `
     <div class="ts-order-row">
-      <span>${i.label} ${i.designName?'('+i.designName+')':''} — ${i.color}, ${i.size} × ${i.qty}</span>
+      <span>${i.label} ${designs?'('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty}</span>
       <span>$${(i.unitPrice * i.qty).toFixed(2)}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   document.getElementById('tsCheckoutContent').innerHTML = `
     <div class="ts-modal-head">
@@ -1623,7 +1660,11 @@ function payWithPayPal(amount) {
       customer: `${document.getElementById('co-first')?.value||''} ${document.getElementById('co-last')?.value||''}`.trim(),
       phone: document.getElementById('co-phone')?.value || '',
       email: document.getElementById('co-email')?.value || '',
-      items: cart.map(i => ({ name: i.label, size: i.size||'', color: i.color||'', qty: i.qty })),
+      items: cart.map(i => ({
+        name: i.label, size: i.size||'', color: i.color||'', qty: i.qty,
+        graphicName: i.frontDesignName||'', graphicImg: i.frontDesignUrl||'',
+        graphicNameBack: i.backDesignName||'', graphicImgBack: i.backDesignUrl||'',
+      })),
       completed: false
     });
     localStorage.setItem('productionOrders', JSON.stringify(existing));
@@ -1631,9 +1672,10 @@ function payWithPayPal(amount) {
   // Save cart to KV so the IPN email includes order details
   try {
     const v = id => document.getElementById(id)?.value || '';
-    const lineItems = cart.map(i =>
-      `${i.label}${i.designName?' ('+i.designName+')':''} — ${i.color}, ${i.size} x ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`
-    ).join('\n');
+    const lineItems = cart.map(i => {
+      const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
+      return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} x ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`;
+    }).join('\n');
     fetch(`${KV_API}/api/save-cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1691,9 +1733,11 @@ async function sendOrderEmail(details) {
     return;
   }
   const v = id => document.getElementById(id)?.value || '';
-  const lineItems = cart.map(i =>
-    `${i.label}${i.designName?' ('+i.designName+')':''} — ${i.color}, ${i.size} × ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`
-  ).join('\n');
+  const designSummary = i => [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
+  const lineItems = cart.map(i => {
+    const designs = designSummary(i);
+    return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`;
+  }).join('\n');
   const customerName    = `${v('co-first')} ${v('co-last')}`.trim();
   const customerEmail   = v('co-email');
   const customerPhone   = v('co-phone');
@@ -1707,19 +1751,22 @@ async function sendOrderEmail(details) {
   // shipping_address/shipping_method/color/design_name/size per item (the template
   // repeats customer info on every line item rather than showing it once), and
   // {{cost.shipping}}/{{cost.tax}}.
-  const orders = cart.map(i => ({
-    image_url:        i.designUrl || '',
-    name:              `${i.label}${i.designName?' ('+i.designName+')':''} — ${i.color}, ${i.size}`,
-    units:             i.qty,
-    price:             i.unitPrice.toFixed(2),
-    customer_email:    customerEmail,
-    customer_phone:    customerPhone,
-    shipping_address:  shippingAddress,
-    shipping_method:   shippingMethod,
-    color:             i.color || '',
-    design_name:       i.designName || '',
-    size:              i.size || '',
-  }));
+  const orders = cart.map(i => {
+    const designs = designSummary(i);
+    return {
+      image_url:        i.designUrl || '',
+      name:              `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size}`,
+      units:             i.qty,
+      price:             i.unitPrice.toFixed(2),
+      customer_email:    customerEmail,
+      customer_phone:    customerPhone,
+      shipping_address:  shippingAddress,
+      shipping_method:   shippingMethod,
+      color:             i.color || '',
+      design_name:       designs || '',
+      size:              i.size || '',
+    };
+  });
   // Field names are duplicated under both this file's original naming and the
   // customer_*/shipping_address/order_total naming used elsewhere, since both
   // checkout flows send to the same EmailJS templates and the template's actual

@@ -2018,6 +2018,9 @@ nav { position: relative; }
 .tm-sizes-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
 .tm-size-chip{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border:1px solid var(--up-border);color:var(--up-mist);cursor:pointer;background:var(--up-navy);transition:all .15s;user-select:none;}
 .tm-size-chip.selected{border-color:var(--up-blue);color:var(--up-sky);background:rgba(21,101,255,.12);}
+.tm-type-chip-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.tm-type-chip{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;padding:6px 12px;border:1px solid var(--up-border);color:var(--up-mist);cursor:pointer;background:var(--up-navy);transition:all .15s;user-select:none;}
+.tm-type-chip.selected{border-color:var(--up-blue);color:var(--up-sky);background:rgba(21,101,255,.12);}
 .tm-design-select{background:var(--up-card);border:1px solid rgba(167,139,250,.4);color:var(--up-white);padding:7px 10px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;outline:none;width:100%;cursor:pointer;}
 .tm-design-select:focus{border-color:var(--up-sky);}
 .tm-gal-upload-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
@@ -3590,31 +3593,27 @@ function teamFormHTML(t) {
             <label>Product Name (shown to customer)</label>
             <input id="tm-inew-name" placeholder="e.g. Rampage Script Tee" maxlength="60">
           </div>
-          <div class="tm-inst-field">
-            <label>Product Type</label>
-            <select id="tm-inew-type" onchange="tmInstTypeChanged()">
-              <option value="">— Choose type —</option>
-              ${TM_PRODUCT_CATALOG.map(p => `<option value="${p.type}">${p.icon} ${p.label}</option>`).join('')}
-            </select>
+          <div class="tm-inst-field full">
+            <label>Product Type(s) <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— pick more than one to add the same design to several products at once, each still gets its own card</span></label>
+            <div class="tm-type-chip-wrap" id="tm-inew-types">
+              ${TM_PRODUCT_CATALOG.map(p => `<span class="tm-type-chip" data-type="${p.type}" onclick="tmToggleTypeChip(this)">${p.icon} ${p.label}</span>`).join('')}
+            </div>
           </div>
           <div class="tm-inst-field">
             <label>Price</label>
             <input id="tm-inew-price" placeholder="e.g. $25">
           </div>
-          <div class="tm-inst-field">
-            <label>Design</label>
-            <select id="tm-inew-design" onchange="tmInstDesignChanged()">
-              <option value="">— Choose design —</option>
-              ${(t?.designs||[]).map(d => `<option value="${d.id}" data-url="${d.url}">${d.name}</option>`).join('')}
-            </select>
-          </div>
-          <div class="tm-inst-field">
-            <label>Design Placement</label>
-            <div class="tm-placement-toggle" id="tm-inew-placement-toggle">
+          <div class="tm-inst-field full" id="tm-inew-design-wrap" style="display:none;">
+            <label>Editing Design For: <span id="tm-inew-view-label" style="color:var(--up-sky);">Front</span></label>
+            <div class="tm-placement-toggle" id="tm-inew-placement-toggle" style="margin-bottom:8px;">
               <button class="tm-placement-btn active" data-view="front" onclick="tmInstSetPlacement('front',this)">Front</button>
               <button class="tm-placement-btn" data-view="back" onclick="tmInstSetPlacement('back',this)">Back</button>
               <button class="tm-placement-btn" data-view="side" onclick="tmInstSetPlacement('side',this)">Side</button>
             </div>
+            <select id="tm-inew-design" onchange="tmInstDesignChanged()">
+              <option value="">— No design on this side —</option>
+              ${(t?.designs||[]).map(d => `<option value="${d.id}" data-url="${d.url}">${d.name}</option>`).join('')}
+            </select>
           </div>
 
           <!-- DRAG POSITIONER -->
@@ -3914,10 +3913,33 @@ const MOCKUP_VIEWS = {
 const CUSTOMER_ORIGIN = 'https://admin.underpressurecustomapparel.com';
 
 let tmProductInstances = []; // saved instances
-let tmInstPlacement = 'front';
+let tmInstDesigns = {};      // designs staged for the product currently being built: { front:{...}, back:{...}, side:{...} }
+let tmInstActiveView = 'front'; // which placement the design form is currently editing
 let tmInstDesignLeft = 50;
 let tmInstDesignTop  = 40;
 let tmInstDesignWidth = 35;
+
+// Backward-compat: older team stores stored a single flat design (designId/
+// designName/designUrl/placement/graphicLeft/graphicTop/graphicWidth) instead
+// of the current designs{front,back,side} shape. Read through this helper
+// rather than migrating stored data, so untouched stores keep working as-is
+// until Erin next edits and re-saves them.
+function getInstanceDesigns(inst) {
+  if (inst.designs) return inst.designs;
+  if (inst.designId || inst.designUrl) {
+    return {
+      [inst.placement || 'front']: {
+        designId: inst.designId, designName: inst.designName, designUrl: inst.designUrl,
+        graphicLeft: inst.graphicLeft, graphicTop: inst.graphicTop, graphicWidth: inst.graphicWidth,
+      }
+    };
+  }
+  return {};
+}
+
+function getSelectedTypes() {
+  return Array.from(document.querySelectorAll('#tm-inew-types .tm-type-chip.selected')).map(c => c.dataset.type);
+}
 
 function initProductInstances(existing) {
   tmProductInstances = existing ? existing.map(p => ({...p})) : [];
@@ -3932,14 +3954,26 @@ function renderInstList() {
     return;
   }
   list.innerHTML = tmProductInstances.map((inst, i) => {
+    const designs = getInstanceDesigns(inst);
+    const thumbView = designs.front ? 'front' : Object.keys(designs)[0];
     const mockupSrc = inst.type && MOCKUP_VIEWS[inst.type]
-      ? CUSTOMER_ORIGIN + (MOCKUP_VIEWS[inst.type][inst.placement] || MOCKUP_VIEWS[inst.type].front || Object.values(MOCKUP_VIEWS[inst.type])[0])
+      ? CUSTOMER_ORIGIN + (MOCKUP_VIEWS[inst.type][thumbView] || MOCKUP_VIEWS[inst.type].front || Object.values(MOCKUP_VIEWS[inst.type])[0])
       : '';
+    const designSummary = ['front','back','side']
+      .filter(v => designs[v]?.designName)
+      .map(v => `${v.charAt(0).toUpperCase()+v.slice(1)}: ${escHtml(designs[v].designName)}`)
+      .join(' · ') || 'No design';
     return `<div class="tm-inst-card" style="${inst.featured ? 'border-color:rgba(255,200,0,.4);background:rgba(255,200,0,.04);' : ''}">
-      ${mockupSrc ? `<img class="tm-inst-card-thumb" src="${mockupSrc}" alt="${inst.label}" onerror="this.style.display='none'">` : `<div style="width:40px;height:40px;background:var(--up-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">${TM_PRODUCT_CATALOG.find(p=>p.type===inst.type)?.icon||'👕'}</div>`}
+      ${mockupSrc ? `<img class="tm-inst-card-thumb" src="${mockupSrc}" alt="${escHtml(inst.label)}" onerror="this.style.display='none'">` : `<div style="width:40px;height:40px;background:var(--up-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">${TM_PRODUCT_CATALOG.find(p=>p.type===inst.type)?.icon||'👕'}</div>`}
       <div class="tm-inst-card-info">
-        <div class="tm-inst-card-name">${inst.featured ? '&#11088; ' : ''}${inst.label||inst.type}</div>
-        <div class="tm-inst-card-meta">${inst.designName||'No design'} · ${inst.placement||'front'} · ${(inst.colors||[]).length} colors · ${inst.price||''}</div>
+        <div class="tm-inst-card-name">${inst.featured ? '&#11088; ' : ''}${escHtml(inst.label||inst.type)}</div>
+        <div class="tm-inst-card-meta">${designSummary} · ${(inst.colors||[]).length} colors · ${escHtml(inst.price||'')}</div>
+      </div>
+      <div style="display:flex;gap:2px;flex-shrink:0;">
+        <button onclick="tmMoveInstance(${i},-1)" ${i===0?'disabled':''} title="Move left" aria-label="Move product earlier in the list"
+          style="background:transparent;border:1px solid var(--up-border);color:var(--up-mist);width:24px;height:24px;cursor:pointer;font-size:11px;${i===0?'opacity:.3;cursor:default;':''}">◀</button>
+        <button onclick="tmMoveInstance(${i},1)" ${i===tmProductInstances.length-1?'disabled':''} title="Move right" aria-label="Move product later in the list"
+          style="background:transparent;border:1px solid var(--up-border);color:var(--up-mist);width:24px;height:24px;cursor:pointer;font-size:11px;${i===tmProductInstances.length-1?'opacity:.3;cursor:default;':''}">▶</button>
       </div>
       <button onclick="tmToggleFeaturedProduct(${i})" title="${inst.featured ? 'Remove from homepage feature' : 'Feature on homepage'}"
         style="background:${inst.featured ? 'rgba(255,200,0,.15)' : 'transparent'};border:1px solid ${inst.featured ? 'rgba(255,200,0,.4)' : 'var(--up-border)'};color:${inst.featured ? '#ffc800' : 'var(--up-mist)'};padding:5px 9px;cursor:pointer;font-size:14px;transition:all .2s;flex-shrink:0;" title="Feature on homepage">&#11088;</button>
@@ -3958,22 +3992,49 @@ function tmToggleFeaturedProduct(i) {
   tmProductInstances[i].featured = !tmProductInstances[i].featured;
   renderInstList();
 }
+function tmMoveInstance(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= tmProductInstances.length) return;
+  [tmProductInstances[i], tmProductInstances[j]] = [tmProductInstances[j], tmProductInstances[i]];
+  renderInstList();
+}
 
-function tmInstTypeChanged() {
-  const type = document.getElementById('tm-inew-type')?.value;
-  const cat = TM_PRODUCT_CATALOG.find(p => p.type === type);
-  // Set default price
+function tmToggleTypeChip(el) {
+  el.classList.toggle('selected');
+  tmInstTypesChanged();
+}
+
+function tmInstTypesChanged() {
+  const types = getSelectedTypes();
+  const primaryType = types[0] || '';
+  const cat = TM_PRODUCT_CATALOG.find(p => p.type === primaryType);
+
   const priceEl = document.getElementById('tm-inew-price');
   if (priceEl && !priceEl.value && cat) priceEl.value = cat.defaultPrice;
-  // Show colors/sizes
+
   const colWrap = document.getElementById('tm-inew-colors-wrap');
   const sizWrap = document.getElementById('tm-inew-sizes-wrap');
-  if (colWrap) colWrap.style.display = type ? '' : 'none';
-  if (sizWrap) sizWrap.style.display = type ? '' : 'none';
-  // Update placement buttons — remove Side if no side view
-  const views = type ? MOCKUP_VIEWS[type] : {};
-  const hasSide = views && views.side;
-  const hasBack = views && views.back;
+  const designWrap = document.getElementById('tm-inew-design-wrap');
+  if (colWrap) colWrap.style.display = types.length ? '' : 'none';
+  if (sizWrap) sizWrap.style.display = types.length ? '' : 'none';
+  if (designWrap) designWrap.style.display = types.length ? '' : 'none';
+
+  if (!types.length) {
+    // Back to nothing selected — fully reset for whatever product comes next.
+    tmInstDesigns = {};
+    tmInstActiveView = 'front';
+    const posWrap = document.getElementById('tm-positioner-wrap');
+    if (posWrap) posWrap.style.display = 'none';
+    return;
+  }
+
+  // Placement toggle (and the positioner preview) reflect the FIRST selected
+  // type's mockup views — with multiple types selected, one design/position
+  // is set once and reused across all of them (see tmAddProductInstance),
+  // so this is inherently an approximation for the others.
+  const views = MOCKUP_VIEWS[primaryType] || {};
+  const hasSide = !!views.side;
+  const hasBack = !!views.back;
   const toggle = document.getElementById('tm-inew-placement-toggle');
   if (toggle) {
     toggle.querySelectorAll('.tm-placement-btn').forEach(btn => {
@@ -3982,9 +4043,41 @@ function tmInstTypeChanged() {
       if (v === 'back') btn.style.display = hasBack ? '' : 'none';
     });
   }
-  // Reset placement to front
-  tmInstSetPlacement('front', document.querySelector('.tm-placement-btn[data-view="front"]'));
   updatePositioner();
+}
+
+// Reads whatever design/position is currently in the form and stages it
+// into tmInstDesigns under the view being edited (or clears that view if no
+// design is chosen) — called before switching views and before saving the
+// product, so nothing typed is lost when Erin flips between Front/Back/Side.
+function captureCurrentViewDesign() {
+  const designEl = document.getElementById('tm-inew-design');
+  const designId = designEl?.value || '';
+  if (!designId) { delete tmInstDesigns[tmInstActiveView]; return; }
+  const design = tmDesigns.find(d => d.id === designId) || null;
+  tmInstDesigns[tmInstActiveView] = {
+    designId,
+    designName: design?.name || '',
+    designUrl:  design?.url  || '',
+    graphicLeft:  tmInstDesignLeft.toFixed(1)  + '%',
+    graphicTop:   tmInstDesignTop.toFixed(1)   + '%',
+    graphicWidth: tmInstDesignWidth.toFixed(1) + '%',
+  };
+}
+
+// Loads whatever was already staged for a view back into the design select
+// and position state — the inverse of captureCurrentViewDesign.
+function loadViewIntoForm(view) {
+  const saved = tmInstDesigns[view];
+  const designEl = document.getElementById('tm-inew-design');
+  if (designEl) designEl.value = saved?.designId || '';
+  tmInstDesignLeft  = saved ? parseFloat(saved.graphicLeft)  : 50;
+  tmInstDesignTop   = saved ? parseFloat(saved.graphicTop)   : 40;
+  tmInstDesignWidth = saved ? parseFloat(saved.graphicWidth) : 35;
+  const slider = document.getElementById('tm-pos-size-slider');
+  if (slider) slider.value = tmInstDesignWidth;
+  const sizeLbl = document.getElementById('tm-pos-size-label');
+  if (sizeLbl) sizeLbl.textContent = tmInstDesignWidth + '%';
 }
 
 function tmInstDesignChanged() {
@@ -3992,14 +4085,18 @@ function tmInstDesignChanged() {
 }
 
 function tmInstSetPlacement(view, btn) {
-  tmInstPlacement = view;
+  captureCurrentViewDesign(); // save whatever's set for the view we're leaving
+  tmInstActiveView = view;
   document.querySelectorAll('.tm-placement-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  const lbl = document.getElementById('tm-inew-view-label');
+  if (lbl) lbl.textContent = view.charAt(0).toUpperCase() + view.slice(1);
+  loadViewIntoForm(view);
   updatePositioner();
 }
 
 function updatePositioner() {
-  const type      = document.getElementById('tm-inew-type')?.value;
+  const type      = getSelectedTypes()[0] || '';
   const designSel = document.getElementById('tm-inew-design');
   const designOpt = designSel?.options[designSel.selectedIndex];
   const designUrl = designOpt?.dataset?.url || '';
@@ -4010,7 +4107,7 @@ function updatePositioner() {
   wrap.style.display = 'flex';
 
   const views  = MOCKUP_VIEWS[type] || {};
-  const src    = views[tmInstPlacement] || views.front || Object.values(views)[0] || '';
+  const src    = views[tmInstActiveView] || views.front || Object.values(views)[0] || '';
   const fullSrc = src ? CUSTOMER_ORIGIN + src : '';
 
   const mockup = document.getElementById('tm-pos-mockup');
@@ -4104,42 +4201,41 @@ function initDragPositioner() {
 
 function tmAddProductInstance() {
   const nameEl   = document.getElementById('tm-inew-name');
-  const typeEl   = document.getElementById('tm-inew-type');
   const priceEl  = document.getElementById('tm-inew-price');
   const designEl = document.getElementById('tm-inew-design');
 
   const name  = nameEl?.value.trim();
-  const type  = typeEl?.value;
   const price = priceEl?.value.trim();
-  const designOpt = designEl?.options[designEl.selectedIndex];
-  const designId  = designEl?.value || '';
-  const design    = tmDesigns.find(d => d.id === designId) || null;
+  const types = getSelectedTypes();
 
-  if (!name)  { showToast('Enter a product name'); return; }
-  if (!type)  { showToast('Choose a product type'); return; }
+  if (!name)        { showToast('Enter a product name'); return; }
+  if (!types.length) { showToast('Choose at least one product type'); return; }
+
+  captureCurrentViewDesign(); // save whatever's set for the view currently on screen
 
   // Collect colors
   const colors = Array.from(document.querySelectorAll('#tm-inew-colors .tm-color-dot.selected')).map(d => d.dataset.color);
   // Collect sizes
   const sizes  = Array.from(document.querySelectorAll('#tm-inew-sizes .tm-size-chip.selected')).map(s => s.dataset.size);
 
-  const cat = TM_PRODUCT_CATALOG.find(p => p.type === type);
+  types.forEach(type => {
+    const cat = TM_PRODUCT_CATALOG.find(p => p.type === type);
+    const views = MOCKUP_VIEWS[type] || {};
+    // Only keep the staged placements this type's mockup actually supports —
+    // e.g. a staged back design is dropped for a type with no back view.
+    const designs = {};
+    Object.keys(tmInstDesigns).forEach(v => { if (views[v]) designs[v] = tmInstDesigns[v]; });
 
-  tmProductInstances.push({
-    instanceId:    'inst-' + Date.now(),
-    type,
-    label:         name,
-    icon:          cat?.icon || '👕',
-    price:         price || cat?.defaultPrice || '$25',
-    designId,
-    designName:    design?.name || '',
-    designUrl:     design?.url  || '',
-    placement:     tmInstPlacement,
-    graphicLeft:   tmInstDesignLeft.toFixed(1) + '%',
-    graphicTop:    tmInstDesignTop.toFixed(1)  + '%',
-    graphicWidth:  tmInstDesignWidth.toFixed(1) + '%',
-    colors:        colors.length ? colors : ['Black','Navy','White','Sport Grey','Red'],
-    sizes:         sizes.length  ? sizes  : ['S','M','L','XL','2XL'],
+    tmProductInstances.push({
+      instanceId: 'inst-' + Date.now() + '-' + type,
+      type,
+      label:      types.length > 1 ? `${name} — ${cat?.label || type}` : name,
+      icon:       cat?.icon || '👕',
+      price:      price || cat?.defaultPrice || '$25',
+      designs,
+      colors:     colors.length ? colors : ['Black','Navy','White','Sport Grey','Red'],
+      sizes:      sizes.length  ? sizes  : ['S','M','L','XL','2XL'],
+    });
   });
 
   renderInstList();
@@ -4147,19 +4243,26 @@ function tmAddProductInstance() {
   // Reset form
   if (nameEl)   nameEl.value   = '';
   if (priceEl)  priceEl.value  = '';
-  if (typeEl)   { typeEl.value = ''; tmInstTypeChanged(); }
+  document.querySelectorAll('#tm-inew-types .tm-type-chip.selected').forEach(c => c.classList.remove('selected'));
   if (designEl) designEl.value = '';
+  tmInstDesigns = {};
+  tmInstActiveView = 'front';
   tmInstDesignLeft = 50; tmInstDesignTop = 40; tmInstDesignWidth = 35;
   document.getElementById('tm-pos-size-slider') && (document.getElementById('tm-pos-size-slider').value = 35);
   document.getElementById('tm-positioner-wrap') && (document.getElementById('tm-positioner-wrap').style.display = 'none');
   document.getElementById('tm-inew-colors-wrap') && (document.getElementById('tm-inew-colors-wrap').style.display = 'none');
   document.getElementById('tm-inew-sizes-wrap')  && (document.getElementById('tm-inew-sizes-wrap').style.display  = 'none');
+  document.getElementById('tm-inew-design-wrap') && (document.getElementById('tm-inew-design-wrap').style.display = 'none');
+  document.querySelectorAll('.tm-placement-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.tm-placement-btn[data-view="front"]')?.classList.add('active');
+  const viewLbl = document.getElementById('tm-inew-view-label');
+  if (viewLbl) viewLbl.textContent = 'Front';
   // Reset all color dots and size chips to default
   document.querySelectorAll('#tm-inew-colors .tm-color-dot').forEach(d => d.classList.remove('selected'));
   document.querySelectorAll('#tm-inew-sizes .tm-size-chip').forEach(s => {
     s.classList.toggle('selected', ['S','M','L','XL','2XL'].includes(s.dataset.size));
   });
-  showToast(`"${name}" added!`);
+  showToast(`${types.length > 1 ? types.length + ' products' : '"' + name + '"'} added!`);
 }
 
 function tmToggleProduct(type, labelEl) {
@@ -5020,12 +5123,12 @@ function saveProductionOrders() {
 
 // Auto-log orders when submitted via cart checkout
 function logProductionOrder(orderData) {
-  // Enrich items with graphicName/graphicImg from saved team store products.
-  // Items arriving from /rampage already have graphicImg set —
-  // this enrichment only runs for items that are missing it (e.g. UP Sportswear cart).
+  // Enrich items with graphic info from saved team store products.
+  // Items arriving already carrying a front and/or back graphic (e.g. from
+  // team-store checkout) are left as-is — this only fills in the gap for
+  // items missing it (e.g. UP Sportswear cart, or an older checkout path).
   const enrichedItems = (orderData.items || []).map(item => {
-    // Already enriched (came from team store template direct write)
-    if (item.graphicImg) return item;
+    if (item.graphicImg || item.graphicImgBack) return item;
 
     // Try to match against admin-managed team store products
     const team = teams.find(t => t.name === orderData.store);
@@ -5037,7 +5140,17 @@ function logProductionOrder(orderData) {
           item.name.toLowerCase().includes(p.type.toLowerCase())
         )
       );
-      if (match) return { ...item, graphicName: match.graphicName || item.name, graphicImg: match.img || '' };
+      if (match) {
+        const designs = getInstanceDesigns(match);
+        const front = designs.front, back = designs.back;
+        return {
+          ...item,
+          graphicName:     front?.designName || item.name,
+          graphicImg:      front?.designUrl  || '',
+          graphicNameBack: back?.designName  || '',
+          graphicImgBack:  back?.designUrl   || '',
+        };
+      }
     }
 
     // Fallback: use item name as graphic name, no image
@@ -5308,7 +5421,7 @@ function renderProductionAdmin() {
             <td class="prod-td" style="border-right:1px solid var(--up-border);text-align:center;${o.completed?'':''}">
               <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${o.completed?'var(--up-mist)':'#a78bfa'};">${graphicsThisLine}</span>
               <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:var(--up-mist);text-transform:uppercase;">${locsLabel}</div>
-              ${(item.graphicImg || item.graphicName) ? `<button onclick="openPrintSheet(${JSON.stringify({orderId:o.id,customer:o.customer,store:o.store,date:o.timestamp,itemName:item.name,color:item.color||'',size:item.size||'',qty:item.qty||1,playerName:item.playerName||'',playerNumber:item.playerNumber||'',graphicName:item.graphicName||'',graphicImg:item.graphicImg||''}).replace(/"/g,'&quot;')})" style="margin-top:5px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:#a78bfa;padding:4px 10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;display:block;width:100%;transition:all .2s;" onmouseover="this.style.background='rgba(167,139,250,.3)'" onmouseout="this.style.background='rgba(167,139,250,.15)'">🖨 Print Sheet</button>` : ''}
+              ${(item.graphicImg || item.graphicName || item.graphicImgBack || item.graphicNameBack) ? `<button onclick="openPrintSheet(${JSON.stringify({orderId:o.id,customer:o.customer,store:o.store,date:o.timestamp,itemName:item.name,color:item.color||'',size:item.size||'',qty:item.qty||1,playerName:item.playerName||'',playerNumber:item.playerNumber||'',graphicName:item.graphicName||'',graphicImg:item.graphicImg||'',graphicNameBack:item.graphicNameBack||'',graphicImgBack:item.graphicImgBack||''}).replace(/"/g,'&quot;')})" style="margin-top:5px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:#a78bfa;padding:4px 10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;display:block;width:100%;transition:all .2s;" onmouseover="this.style.background='rgba(167,139,250,.3)'" onmouseout="this.style.background='rgba(167,139,250,.15)'">🖨 Print Sheet</button>` : ''}
             </td>
             ${itemIdx === 0 ? `
               <td class="prod-td" rowspan="${o.items.length}" style="vertical-align:middle;text-align:center;min-width:120px;">
@@ -5404,8 +5517,10 @@ function openPrintSheet(data) {
   .sheet-date{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:#5a7296;text-align:right;}
   .graphic-name{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:#060810;margin-bottom:4px;line-height:1;}
   .graphic-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:#5a7296;text-transform:uppercase;margin-bottom:24px;}
-  .graphic-img-wrap{border:2px solid #e5e7eb;padding:24px;text-align:center;margin-bottom:24px;background:#f9fafb;min-height:260px;display:flex;align-items:center;justify-content:center;}
-  .graphic-img-wrap img{max-width:100%;max-height:400px;object-fit:contain;}
+  .graphic-img-row{display:flex;gap:16px;margin-bottom:24px;}
+  .graphic-img-wrap{flex:1;border:2px solid #e5e7eb;padding:24px;text-align:center;background:#f9fafb;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+  .graphic-img-wrap img{max-width:100%;max-height:360px;object-fit:contain;}
+  .graphic-img-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:#5a7296;text-transform:uppercase;order:-1;}
   .no-img{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;}
   .order-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#e5e7eb;border:1px solid #e5e7eb;margin-bottom:24px;}
   .order-cell{background:#fff;padding:14px 16px;}
@@ -5437,13 +5552,22 @@ function openPrintSheet(data) {
   </div>
 
   <div class="graphic-name">${escHtml(data.graphicName || data.itemName)}</div>
-  <div class="graphic-sub">${escHtml(data.itemName)}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + escHtml(data.graphicName) : ''}</div>
+  <div class="graphic-sub">${escHtml(data.itemName)}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + escHtml(data.graphicName) : ''}${data.graphicNameBack ? ' · Back: ' + escHtml(data.graphicNameBack) : ''}</div>
   <div class="locations-badge">🎨 ${getGraphicLocations ? getGraphicLocations(data.itemName) : 1} print location${getGraphicLocations && getGraphicLocations(data.itemName) > 1 ? 's' : ''}</div>
 
-  <div class="graphic-img-wrap">
-    ${data.graphicImg
-      ? `<img src="${escHtml(data.graphicImg)}" alt="${escHtml(data.graphicName||data.itemName||'')}" onerror="this.parentElement.innerHTML='<div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImg)}">`
-      : `<div class="no-img">No graphic image on file<br><span style="font-size:11px;margin-top:6px;display:block;">Add a design image URL in the team store admin</span></div>`}
+  <div class="graphic-img-row">
+    <div class="graphic-img-wrap">
+      <div class="graphic-img-label">Front</div>
+      ${data.graphicImg
+        ? `<img src="${escHtml(data.graphicImg)}" alt="${escHtml(data.graphicName||data.itemName||'')}" onerror="this.parentElement.innerHTML='<div class=graphic-img-label>Front</div><div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImg)}">`
+        : `<div class="no-img">No graphic image on file<br><span style="font-size:11px;margin-top:6px;display:block;">Add a design image URL in the team store admin</span></div>`}
+    </div>
+    ${data.graphicImgBack || data.graphicNameBack ? `<div class="graphic-img-wrap">
+      <div class="graphic-img-label">Back</div>
+      ${data.graphicImgBack
+        ? `<img src="${escHtml(data.graphicImgBack)}" alt="${escHtml(data.graphicNameBack||'')}" onerror="this.parentElement.innerHTML='<div class=graphic-img-label>Back</div><div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImgBack)}">`
+        : `<div class="no-img">No graphic image on file</div>`}
+    </div>` : ''}
   </div>
 
   <div class="order-grid">
