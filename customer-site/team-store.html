@@ -1727,7 +1727,7 @@ async function sendOrderEmail(details) {
   const sharedParams = {
     name:             customerName,
     orders,
-    cost:             { shipping: shippingCost.toFixed(2), tax: '0.00' },
+    cost:             { shipping: shippingCost.toFixed(2), tax: '0.00', total: (cartTotal()+shippingCost).toFixed(2) },
     store_name:       teamData?.name || 'Team Store',
     customer_name:    customerName,
     email:            customerEmail,

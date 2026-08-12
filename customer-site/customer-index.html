@@ -3020,7 +3020,7 @@ function sendOrderEmails(details, orderItems) {
   const sharedParams = {
     name:         customerName,
     orders,
-    cost:         { shipping: t.ship.toFixed(2), tax: t.tax.toFixed(2) },
+    cost:         { shipping: t.ship.toFixed(2), tax: t.tax.toFixed(2), total: t.grand.toFixed(2) },
     order_id:     details.id || 'N/A',
     customer_name: customerName,
     customer_email: customerEmail,
