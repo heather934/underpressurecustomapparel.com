@@ -6491,7 +6491,7 @@ function renderCustomers() {
   real.forEach(o => {
     const key = (o.email || o.phone || o.customer || '').toLowerCase();
     if (!key) return;
-    if (!customers[key]) customers[key] = { name:o.customer, email:o.email||'', phone:o.phone||'', orders:[], totalSpend:0, stores:new Set() };
+    if (!customers[key]) customers[key] = { key, name:o.customer, email:o.email||'', phone:o.phone||'', orders:[], totalSpend:0, stores:new Set() };
     customers[key].orders.push(o);
     customers[key].stores.add(o.store);
     customers[key].totalSpend += (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
@@ -6509,19 +6509,19 @@ function renderCustomers() {
       const rev = (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
       return `<div class="customer-order-row">
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);width:90px;">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
-        <span style="flex:1;font-size:12px;color:var(--up-silver);">${o.store}</span>
+        <span style="flex:1;font-size:12px;color:var(--up-silver);">${escHtml(o.store)}</span>
         <span style="font-size:12px;color:var(--up-mist);">${(o.items||[]).reduce((s,i)=>s+(parseInt(i.qty)||1),0)} items</span>
         ${rev>0?`<span style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:#4ade80;margin-left:10px;">$${rev.toFixed(2)}</span>`:''}
-        <button class="btn-reorder" style="margin-left:8px;" onclick="reorderFromCustomer(${idx},event)">↺ Reorder</button>
+        <button class="btn-reorder" style="margin-left:8px;" onclick="reorderFromCustomer(${jsAttr(c.key)},${idx},event)">↺ Reorder</button>
       </div>`;
     }).join('');
 
     return `<div class="customer-card" id="ccard-${idx}" onclick="toggleCustomerCard(${idx})">
       <div class="customer-card-head">
-        <div class="customer-avatar" style="background:${storeColors[idx%4]}">${initials}</div>
+        <div class="customer-avatar" style="background:${storeColors[idx%4]}">${escHtml(initials)}</div>
         <div style="flex:1;">
-          <div class="customer-name">${c.name}</div>
-          <div class="customer-contact">${[c.email,c.phone].filter(Boolean).join(' · ')}</div>
+          <div class="customer-name">${escHtml(c.name)}</div>
+          <div class="customer-contact">${escHtml([c.email,c.phone].filter(Boolean).join(' · '))}</div>
         </div>
         <div style="text-align:right;">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#4ade80;">$${c.totalSpend.toFixed(2)}</div>
@@ -6540,7 +6540,7 @@ function renderCustomers() {
         <div id="reorder-confirm-${idx}" class="reorder-confirm"></div>
       </div>
     </div>`;
-  }).join('') : `<div class="dash-empty">No customers found${customerSearch?' matching "'+customerSearch+'"':' — orders will populate this list automatically'}.</div>`;
+  }).join('') : `<div class="dash-empty">No customers found${customerSearch?' matching "'+escHtml(customerSearch)+'"':' — orders will populate this list automatically'}.</div>`;
 
   return `
     <div class="cm-section-head">
@@ -6549,7 +6549,7 @@ function renderCustomers() {
       <button class="btn-prod-export" onclick="exportCustomerCSV()">⬇ Export CSV</button>
     </div>
     <div class="customer-search-bar">
-      <input class="customer-search" placeholder="🔍 Search by name, email, or phone..." value="${customerSearch}"
+      <input class="customer-search" placeholder="🔍 Search by name, email, or phone..." value="${escHtml(customerSearch)}"
         oninput="customerSearch=this.value;renderAdminPanel('customers')">
     </div>
     ${cardsHTML}`;
@@ -6564,19 +6564,21 @@ function toggleCustomerCard(idx) {
   }
 }
 
-function reorderFromCustomer(idx, e) {
+// Looks up a customer's orders directly by their stable key (email/phone/name,
+// lowercased) rather than a positional index — the card grid can be filtered by
+// customerSearch, so an index into a freshly-rebuilt, unfiltered customer list
+// would silently point at the wrong customer whenever a search is active.
+function getCustomerOrdersByKey(key) {
+  loadProductionOrders();
+  return productionOrders.filter(o => !o._storeRegistration
+    && (o.email||o.phone||o.customer||'').toLowerCase() === key);
+}
+
+function reorderFromCustomer(key, idx, e) {
   e.stopPropagation();
-  const real = productionOrders.filter(o=>!o._storeRegistration);
-  const customers = {};
-  real.forEach(o=>{
-    const key=(o.email||o.phone||o.customer||'').toLowerCase();
-    if(!key)return;
-    if(!customers[key])customers[key]={name:o.customer,orders:[]};
-    customers[key].orders.push(o);
-  });
-  const customer = Object.values(customers).sort((a,b)=>b.orders.length-a.orders.length)[idx];
-  if (!customer) return;
-  const lastOrder = customer.orders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+  const orders = getCustomerOrdersByKey(key);
+  if (!orders.length) return;
+  const lastOrder = orders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
   const confirmEl = document.getElementById('reorder-confirm-'+idx);
   if (!confirmEl) return;
   confirmEl.innerHTML = `
@@ -6584,24 +6586,16 @@ function reorderFromCustomer(idx, e) {
       ↺ Duplicate last order (${new Date(lastOrder.timestamp).toLocaleDateString()}) into a new production entry?
     </div>
     <div style="display:flex;gap:8px;">
-      <button class="btn-reorder" style="background:var(--up-blue);color:#fff;border-color:var(--up-blue);" onclick="confirmReorder(${idx})">✓ Yes, Reorder</button>
+      <button class="btn-reorder" style="background:var(--up-blue);color:#fff;border-color:var(--up-blue);" onclick="confirmReorder(${jsAttr(key)})">✓ Yes, Reorder</button>
       <button class="btn-cancel-a" onclick="this.closest('.reorder-confirm').classList.remove('show');this.closest('.reorder-confirm').innerHTML=''">Cancel</button>
     </div>`;
   confirmEl.classList.add('show');
 }
 
-function confirmReorder(idx) {
-  const real = productionOrders.filter(o=>!o._storeRegistration);
-  const customers = {};
-  real.forEach(o=>{
-    const key=(o.email||o.phone||o.customer||'').toLowerCase();
-    if(!key)return;
-    if(!customers[key])customers[key]={name:o.customer,orders:[]};
-    customers[key].orders.push(o);
-  });
-  const customer = Object.values(customers).sort((a,b)=>b.orders.length-a.orders.length)[idx];
-  if (!customer) return;
-  const lastOrder = customer.orders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+function confirmReorder(key) {
+  const orders = getCustomerOrdersByKey(key);
+  if (!orders.length) return;
+  const lastOrder = orders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
   const newOrder = {
     ...lastOrder,
     id: Date.now(),
@@ -6612,7 +6606,7 @@ function confirmReorder(idx) {
   productionOrders.unshift(newOrder);
   saveProductionOrders();
   renderAdminPanel('production');
-  showToast(`Reorder created for ${customer.name}!`);
+  showToast(`Reorder created for ${lastOrder.customer}!`);
 }
 
 function exportCustomerCSV() {
@@ -6629,7 +6623,13 @@ function exportCustomerCSV() {
   });
   const rows=[['Name','Email','Phone','Total Orders','Total Spent','Stores']];
   Object.values(customers).forEach(c=>rows.push([c.name,c.email,c.phone,c.orders,'$'+c.spend.toFixed(2),[...c.stores].join('; ')]));
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv=rows.map(r=>r.map(v=>`"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`UP-Customers-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;a.click();
