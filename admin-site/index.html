@@ -5528,7 +5528,9 @@ function renderPurchaseList() {
         const sizes = Object.keys(sizeData).filter(k => k !== '_total' && k !== '_colors');
         const sorted = sortSizes([...sizes]);
         const total = sizeData._total || 0;
-        const cardId = 'pcard-' + storeName.replace(/\s/g,'') + '-' + cardIdx;
+        // Strip to alphanumerics so a store/item name with quotes or other
+        // punctuation can't break the id attribute or the onclick JS string below.
+        const cardId = 'pcard-' + storeName.replace(/[^a-zA-Z0-9]/g,'') + '-' + cardIdx;
         const statusKey = storeName + '::' + itemName;
         const currentStatus = purchaseStatuses[statusKey] || 'need';
         const statusClass = currentStatus==='have'?'have':currentStatus==='part'?'part':'need';
@@ -5566,7 +5568,7 @@ function renderPurchaseList() {
               <td style="padding:6px 14px;white-space:nowrap;">
                 <div style="display:flex;align-items:center;gap:8px;">
                   <div style="width:11px;height:11px;border-radius:50%;background:${colorHex(color)};border:1px solid rgba(255,255,255,.2);flex-shrink:0;"></div>
-                  <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${color}</span>
+                  <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${escHtml(color)}</span>
                   <span style="font-size:11px;color:var(--up-mist);margin-left:2px;">×${ct}</span>
                 </div>
               </td>${cells}
@@ -5604,7 +5606,7 @@ function renderPurchaseList() {
         return `<div class="purchase-item-card" id="${cardId}" style="border-left:3px solid ${borderColor};">
           <div class="purchase-item-header" onclick="togglePurchaseCard('${cardId}')">
             <div style="flex:1;">
-              <div class="purchase-item-name">${itemName}
+              <div class="purchase-item-name">${escHtml(itemName)}
                 <span class="status-badge ${statusClass}" style="margin-left:8px;">${statusLabel}</span>
               </div>
             </div>
@@ -5617,7 +5619,7 @@ function renderPurchaseList() {
           <div class="item-status-wrap">
             <span class="item-status-label">Stock Status:</span>
             <select class="item-status-select ${statusClass}"
-              onchange="setPurchaseStatus('${statusKey.replace(/'/g,"\\'")}', this.value, this)">
+              onchange="setPurchaseStatus(${jsAttr(statusKey)}, this.value, this)">
               <option value="need" ${currentStatus==='need'?'selected':''}>🔴 Need to Order</option>
               <option value="part" ${currentStatus==='part'?'selected':''}>⚠️ Partially In Stock</option>
               <option value="have" ${currentStatus==='have'?'selected':''}>✅ In Stock</option>
@@ -5630,7 +5632,7 @@ function renderPurchaseList() {
 
     return `<div class="purchase-store-group">
       <div class="purchase-store-label" style="background:${storeColor}20;border-left:3px solid ${storeColor};">
-        <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${storeName}</span>
+        <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${escHtml(storeName)}</span>
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);">
           ${Object.keys(storeData).length} item type${Object.keys(storeData).length !== 1 ? 's' : ''} · ${storeTotal} total pieces needed
         </span>
@@ -5900,7 +5902,13 @@ function exportPurchaseCSV() {
     });
   });
 
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r => r.map(v => `"${csvSafe(v).replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
