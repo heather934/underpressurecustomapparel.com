@@ -8219,6 +8219,11 @@ async function renderStoreOrdersAsync(container) {
       </div>`;
     await loadKvOrders();
   }
+  // The admin may have switched tabs while the KV fetch was in flight —
+  // only paint if Store Orders is still the active tab, otherwise this
+  // would silently overwrite whatever tab they navigated to.
+  const navEl = document.getElementById('anav-storeorders');
+  if (navEl && !navEl.classList.contains('active')) return;
   container.innerHTML = renderStoreOrders();
 }
 
@@ -8259,7 +8264,7 @@ function renderStoreOrders() {
 
     const itemLines = (o.orderItems || '').split('\n').filter(Boolean);
     const itemsHTML = itemLines.length
-      ? itemLines.map(line => `<div style="font-size:12px;color:var(--up-silver);padding:3px 0;border-bottom:1px solid var(--up-border);">${line}</div>`).join('')
+      ? itemLines.map(line => `<div style="font-size:12px;color:var(--up-silver);padding:3px 0;border-bottom:1px solid var(--up-border);">${escHtml(line)}</div>`).join('')
       : `<div style="font-size:12px;color:var(--up-mist);font-style:italic;">Item details not captured (order placed before pending-cart fix)</div>`;
 
     const confirmedBadge = confirmed
@@ -8271,36 +8276,36 @@ function renderStoreOrders() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
           <div>
             <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--up-white);">
-              ${o.customerName || o.payerName || '(name unknown)'}
+              ${escHtml(o.customerName || o.payerName) || '(name unknown)'}
             </div>
             <div style="font-size:11px;color:var(--up-mist);letter-spacing:1px;margin-top:2px;">
-              ${o.email || o.payerEmail || '—'}${o.phone ? ' · ' + o.phone : ''}
+              ${escHtml(o.email || o.payerEmail) || '—'}${o.phone ? ' · ' + escHtml(o.phone) : ''}
             </div>
-            ${o.address ? `<div style="font-size:11px;color:var(--up-mist);margin-top:2px;">📍 ${o.address}</div>` : ''}
+            ${o.address ? `<div style="font-size:11px;color:var(--up-mist);margin-top:2px;">📍 ${escHtml(o.address)}</div>` : ''}
           </div>
           <div style="text-align:right;flex-shrink:0;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#4ade80;">${o.total || ('$' + o.amount)}</div>
-            <div style="font-size:10px;color:var(--up-mist);letter-spacing:1.5px;text-transform:uppercase;">${o.storeName || 'Team Store'}</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#4ade80;">${escHtml(o.total || ('$' + o.amount))}</div>
+            <div style="font-size:10px;color:var(--up-mist);letter-spacing:1.5px;text-transform:uppercase;">${escHtml(o.storeName) || 'Team Store'}</div>
             <div style="font-size:10px;color:var(--up-mist);margin-top:2px;">${date}</div>
           </div>
         </div>
 
-        ${o.shippingMethod ? `<div style="font-size:11px;color:var(--up-sky);margin-bottom:8px;letter-spacing:1px;">🚚 ${o.shippingMethod}</div>` : ''}
+        ${o.shippingMethod ? `<div style="font-size:11px;color:var(--up-sky);margin-bottom:8px;letter-spacing:1px;">🚚 ${escHtml(o.shippingMethod)}</div>` : ''}
 
         <div style="margin-bottom:14px;">${itemsHTML}</div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           ${o.email ? `
-            <button onclick="sendStoreOrderConfirmation('${o.txnId}')"
+            <button onclick="sendStoreOrderConfirmation(${jsAttr(o.txnId)})"
               style="padding:8px 16px;background:${confirmed ? 'rgba(74,222,128,.1)' : 'rgba(21,101,255,.12)'};border:1px solid ${confirmed ? '#4ade80' : '#1565ff'};color:${confirmed ? '#4ade80' : '#4d9fff'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
               ${confirmed ? '✅ Resend Confirmation' : '📧 Send Order Received'}
             </button>` : ''}
-          <button onclick="addKvOrderToProductionBoard('${o.txnId}')"
+          <button onclick="addKvOrderToProductionBoard(${jsAttr(o.txnId)})"
             style="padding:8px 16px;background:${alreadyOnBoard ? 'rgba(74,222,128,.08)' : 'rgba(167,139,250,.12)'};border:1px solid ${alreadyOnBoard ? 'rgba(74,222,128,.3)' : 'rgba(167,139,250,.3)'};color:${alreadyOnBoard ? '#4ade80' : '#a78bfa'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
             ${alreadyOnBoard ? '✓ On Board' : '📋 Add to Production Board'}
           </button>
           ${confirmedBadge}
-          <span style="margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-border);letter-spacing:1px;" title="PayPal Transaction ID">TXN ${o.txnId || '—'}</span>
+          <span style="margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-border);letter-spacing:1px;" title="PayPal Transaction ID">TXN ${escHtml(o.txnId) || '—'}</span>
         </div>
       </div>`;
   }).join('');
