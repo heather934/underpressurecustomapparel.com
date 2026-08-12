@@ -2993,7 +2993,20 @@ function sendOrderEmails(details, orderItems) {
 
   const t = calcOrderTotals();
   const itemsSummary = orderItems.map(i => `${i.name} × ${i.qty}${i.size?` (Size: ${i.size})`:''}${i.color?` (Color: ${i.color})`:''}`).join('\n');
+  // EmailJS's "New Order Made" template (Erin's copy) uses its own e-commerce
+  // shape: top-level {{name}}/{{order_id}}, an {{#orders}} loop of
+  // {{image_url}}/{{name}}/{{units}}/{{price}}, and {{cost.shipping}}/{{cost.tax}}.
+  // No product image URL exists in this cart's data, so image_url is left blank.
+  const orders = orderItems.map(i => ({
+    image_url: '',
+    name:      `${i.name}${i.size?' — Size: '+i.size:''}${i.color?', '+i.color:''}`,
+    units:     i.qty,
+    price:     (i.salePrice || 0).toFixed(2),
+  }));
   const sharedParams = {
+    name:         `${customerInfo.first} ${customerInfo.last}`,
+    orders,
+    cost:         { shipping: t.ship.toFixed(2), tax: t.tax.toFixed(2) },
     order_id:     details.id || 'N/A',
     customer_name: `${customerInfo.first} ${customerInfo.last}`,
     customer_email: customerInfo.email || '',
