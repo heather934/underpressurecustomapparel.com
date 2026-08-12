@@ -5530,6 +5530,7 @@ function renderPurchaseList() {
       <div class="cm-section-head">
         <div class="cm-section-title" style="color:#fbbf24">Purchase <span style="color:var(--up-sky)">List</span></div>
       </div>
+      ${renderPurchaseLogSection()}
       <div class="purchase-empty">
         📦 No pending orders yet — purchase list will populate automatically as customers check out.
       </div>`;
@@ -5715,6 +5716,8 @@ function renderPurchaseList() {
         <button class="btn-print-list" onclick="window.print()">🖨 Print</button>
       </div>
     </div>
+
+    ${renderPurchaseLogSection()}
 
     <div class="purchase-summary-bar">
       <div class="purchase-summary-card" style="border-top:3px solid var(--hs-red);">
@@ -5922,6 +5925,135 @@ function setPurchaseStatus(key, value, selectEl) {
 function togglePurchaseCard(id) {
   const card = document.getElementById(id);
   if (card) card.classList.toggle('collapsed');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  PURCHASE LOG — a standalone "what did you buy" ledger, independent
+//  of any specific pending item. Unlike the per-item spend/receipt
+//  fields below (which only exist once there's a matching pending
+//  order), this is always available — including when the Purchase
+//  List is empty — since restocking often happens ahead of orders.
+// ══════════════════════════════════════════════════════════════════
+function loadPurchaseLog() {
+  try { return JSON.parse(localStorage.getItem('purchaseLog') || '[]'); }
+  catch(e) { return []; }
+}
+function savePurchaseLog(log) {
+  localStorage.setItem('purchaseLog', JSON.stringify(log));
+}
+
+function renderPurchaseLogSection() {
+  const log = loadPurchaseLog();
+  const total = log.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+
+  const rows = log.map(e => `
+    <tr class="cost-row">
+      <td class="cost-td" style="white-space:nowrap;">${new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+      <td class="cost-td">${escHtml(e.description)}</td>
+      <td class="cost-td"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#4ade80;">$${(parseFloat(e.amount)||0).toFixed(2)}</span></td>
+      <td class="cost-td">${e.receiptUrl
+        ? `<a href="${escHtml(e.receiptUrl)}" target="_blank" rel="noopener" title="View receipt"><img src="${escHtml(e.receiptUrl)}" alt="Receipt" style="width:32px;height:32px;object-fit:cover;border:1px solid var(--up-border);"></a>`
+        : '<span style="color:var(--up-mist);">—</span>'}</td>
+      <td class="cost-td" style="text-align:center;">
+        <button class="cm-btn-del" onclick="deletePurchaseLogEntry(${e.id})" aria-label="Remove purchase log entry" style="padding:4px 10px;">✕</button>
+      </td>
+    </tr>`).join('');
+
+  return `
+    <div class="disc-add-form" style="margin-bottom:20px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:#fbbf24;text-transform:uppercase;margin-bottom:14px;">📝 Log a Purchase</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr auto auto;gap:10px;align-items:end;">
+        <div class="df">
+          <label>What did you buy?</label>
+          <input id="pl-desc" type="text" placeholder="e.g. Bella+Canvas 3001 tees, Navy/Red"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:100%;">
+        </div>
+        <div class="df">
+          <label>Amount ($)</label>
+          <input id="pl-amount" type="number" min="0" step="0.01" placeholder="0.00"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Bebas Neue',sans-serif;font-size:18px;outline:none;width:100%;">
+        </div>
+        <label class="btn-upload-file" title="Take a photo of the receipt or upload one from your device">
+          📷 Receipt
+          <input type="file" accept="image/*" capture="environment" onchange="stagePurchaseLogReceipt(this)">
+        </label>
+        <button class="btn-save-up" onclick="addPurchaseLogEntry()">+ Log Purchase</button>
+      </div>
+      <input type="hidden" id="pl-receipt-url" value="">
+      <div id="pl-receipt-preview" style="display:none;align-items:center;gap:8px;margin-top:10px;">
+        <img src="" alt="Receipt preview" style="width:36px;height:36px;object-fit:cover;border:1px solid var(--up-border);">
+        <button onclick="clearPurchaseLogReceipt()" style="background:none;border:none;color:var(--up-mist);cursor:pointer;font-size:12px;">✕ Remove receipt</button>
+      </div>
+      <div id="pl-status" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);margin-top:8px;"></div>
+    </div>
+    ${log.length ? `
+      <div class="cm-table-wrap" style="margin-bottom:6px;">
+        <table class="prod-table">
+          <thead class="prod-thead"><tr><th>Date</th><th>Description</th><th>Amount</th><th>Receipt</th><th style="width:40px;"></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;color:var(--up-mist);text-transform:uppercase;margin-bottom:20px;">
+        Total logged: <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#4ade80;">$${total.toFixed(2)}</span>
+      </div>
+    ` : ''}`;
+}
+
+async function stagePurchaseLogReceipt(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select an image file for the receipt.');
+    fileInput.value = '';
+    return;
+  }
+  const statusEl = document.getElementById('pl-status');
+  if (statusEl) statusEl.textContent = 'Uploading receipt…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('filename', file.name);
+    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
+    const urlInput = document.getElementById('pl-receipt-url');
+    if (urlInput) urlInput.value = data.url;
+    const preview = document.getElementById('pl-receipt-preview');
+    if (preview) { preview.style.display = 'flex'; preview.querySelector('img').src = data.url; }
+    if (statusEl) statusEl.textContent = `✓ Receipt attached: ${file.name}`;
+  } catch (e) {
+    if (statusEl) statusEl.textContent = `⚠ ${e.message}`;
+  }
+  fileInput.value = '';
+}
+
+function clearPurchaseLogReceipt() {
+  const urlInput = document.getElementById('pl-receipt-url');
+  if (urlInput) urlInput.value = '';
+  const preview = document.getElementById('pl-receipt-preview');
+  if (preview) preview.style.display = 'none';
+  const statusEl = document.getElementById('pl-status');
+  if (statusEl) statusEl.textContent = '';
+}
+
+function addPurchaseLogEntry() {
+  const desc = document.getElementById('pl-desc')?.value.trim();
+  const amount = parseFloat(document.getElementById('pl-amount')?.value);
+  const receiptUrl = document.getElementById('pl-receipt-url')?.value || '';
+  if (!desc) { showToast('Enter what you bought'); return; }
+  if (isNaN(amount) || amount <= 0) { showToast('Enter a valid amount'); return; }
+  const log = loadPurchaseLog();
+  log.unshift({ id: Date.now(), date: new Date().toISOString(), description: desc, amount, receiptUrl });
+  savePurchaseLog(log);
+  showToast('Purchase logged!');
+  renderAdminPanel('purchaselist');
+}
+
+function deletePurchaseLogEntry(id) {
+  const log = loadPurchaseLog().filter(e => e.id !== id);
+  savePurchaseLog(log);
+  renderAdminPanel('purchaselist');
+  showToast('Entry removed');
 }
 
 // purchaseSpend is keyed the same as purchaseStatuses (store::item) and stores
