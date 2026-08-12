@@ -3202,6 +3202,19 @@ function saveEdit(){
   saveUP();renderUP(upFilter);closeEditModal();showToast("Product updated!");
 }
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
+
+// Escapes a value for safe use inside HTML text/attributes — customer-typed
+// fields (names, player names, notes, etc.) flow into admin innerHTML unescaped
+// otherwise, which lets stored HTML/script run in the admin panel.
+function escHtml(v){
+  return String(v==null?'':v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// Builds a JS string literal safe to embed inside a double-quoted HTML attribute
+// (e.g. onclick="foo(${jsAttr(name)})") — handles quotes/backslashes AND HTML-escapes
+// the result so it can't break out of the surrounding attribute.
+function jsAttr(v){
+  return escHtml(JSON.stringify(String(v==null?'':v)));
+}
 // ══════════════════════════════════════════════════════
 //  TEAM STORES SYSTEM
 // ══════════════════════════════════════════════════════
@@ -5138,7 +5151,14 @@ function exportProductionCSV() {
       ]);
     });
   });
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection: a customer-typed name/note starting with
+  // =, +, -, @, tab or CR would otherwise run as a formula when opened in Excel/Sheets.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r => r.map(v => `"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `UP-Production-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
@@ -5218,7 +5238,7 @@ function renderProductionAdmin() {
             : 'var(--up-blue)';
           return [`<tr style="background:rgba(255,255,255,.02);">
             <td colspan="10" style="padding:8px 12px;border-bottom:1px solid var(--up-border);">
-              <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${o.store}</span>
+              <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${escHtml(o.store)}</span>
               <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);margin-left:10px;">
                 Store registered ${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} — awaiting first order
               </span>
@@ -5240,25 +5260,25 @@ function renderProductionAdmin() {
                 <input type="checkbox" class="prod-row-check" ${o.completed?'checked':''} onchange="toggleProductionComplete(${o.id})" title="Mark complete">
               </td>
               <td class="prod-td" rowspan="${o.items.length}" style="border-right:1px solid var(--up-border);vertical-align:middle;">
-                <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${o.store}</span>
+                <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${escHtml(o.store)}</span>
                 <div style="font-size:11px;color:var(--up-mist);margin-top:4px;">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
               </td>
               <td class="prod-td name-col" rowspan="${o.items.length}" style="border-right:1px solid var(--up-border);vertical-align:middle;">
-                ${o.customer}
-                <div style="font-size:11px;color:var(--up-mist);font-weight:300;">${o.phone||o.email||''}</div>
+                ${escHtml(o.customer)}
+                <div style="font-size:11px;color:var(--up-mist);font-weight:300;">${escHtml(o.phone||o.email||'')}</div>
               </td>` : ''}
             <td class="prod-td" style="border-right:1px solid var(--up-border);">
-              <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${item.name||'—'}</div>
-              ${item.color ? `<div style="font-size:11px;color:var(--up-mist);">${item.color}</div>` : ''}
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${escHtml(item.name)||'—'}</div>
+              ${item.color ? `<div style="font-size:11px;color:var(--up-mist);">${escHtml(item.color)}</div>` : ''}
             </td>
             <td class="prod-td name-col" style="border-right:1px solid var(--up-border);text-align:center;">
-              ${item.playerName||'<span style="color:var(--up-mist);font-weight:300;font-size:12px;">—</span>'}
+              ${item.playerName ? escHtml(item.playerName) : '<span style="color:var(--up-mist);font-weight:300;font-size:12px;">—</span>'}
             </td>
             <td class="prod-td num-col" style="border-right:1px solid var(--up-border);">
-              ${item.playerNumber || '<span style="color:var(--up-mist);">—</span>'}
+              ${item.playerNumber ? escHtml(item.playerNumber) : '<span style="color:var(--up-mist);">—</span>'}
             </td>
             <td class="prod-td size-col" style="border-right:1px solid var(--up-border);">
-              ${item.size||'—'}
+              ${escHtml(item.size)||'—'}
             </td>
             <td class="prod-td" style="border-right:1px solid var(--up-border);text-align:center;">
               <span style="font-size:18px;font-weight:700;">${qty}</span>
@@ -5276,9 +5296,9 @@ function renderProductionAdmin() {
                   <button class="btn-add-note" onclick="showNoteInput(${o.id})">${orderNotes[o.id]?'✏ Edit Note':'+ Note'}</button>
                   <button class="cm-btn-del" onclick="deleteProductionOrder(${o.id})" title="Remove" aria-label="Remove order from production board" style="padding:3px 8px;">✕</button>
                 </div>
-                ${orderNotes[o.id] ? `<div class='order-note-wrap' style='margin-top:6px;'><div class='order-note-text'>${orderNotes[o.id]}</div><button class='btn-deadline-del' onclick='deleteNote(${o.id})' aria-label='Delete order note' style='font-size:10px;'>✕</button></div>` : ''}
+                ${orderNotes[o.id] ? `<div class='order-note-wrap' style='margin-top:6px;'><div class='order-note-text'>${escHtml(orderNotes[o.id])}</div><button class='btn-deadline-del' onclick='deleteNote(${o.id})' aria-label='Delete order note' style='font-size:10px;'>✕</button></div>` : ''}
                 <div class="note-input-wrap" id="noteinput-${o.id}" style="display:none;margin-top:6px;">
-                  <input class="note-input" id="noteval-${o.id}" placeholder="Add note..." value="${orderNotes[o.id]||''}">
+                  <input class="note-input" id="noteval-${o.id}" placeholder="Add note..." value="${escHtml(orderNotes[o.id]||'')}">
                   <button class="btn-save-up" style="padding:6px 10px;font-size:11px;" onclick="saveNote(${o.id})">Save</button>
                 </div>
               </td>` : ''}
@@ -5303,12 +5323,12 @@ function renderProductionAdmin() {
     </div>
 
     <div class="prod-actions-bar">
-      <input class="prod-search" placeholder="🔍 Search by name, player, item..." value="${prodSearch}"
+      <input class="prod-search" placeholder="🔍 Search by name, player, item..." value="${escHtml(prodSearch)}"
         oninput="prodSearch=this.value;renderAdminPanel('production')">
       <button class="prod-filter-chip${prodFilterStatus==='all'?' on':''}" onclick="prodFilterStatus='all';renderAdminPanel('production')">All</button>
       <button class="prod-filter-chip${prodFilterStatus==='pending'?' on':''}" onclick="prodFilterStatus='pending';renderAdminPanel('production')">⏳ Pending</button>
       <button class="prod-filter-chip${prodFilterStatus==='completed'?' on':''}" onclick="prodFilterStatus='completed';renderAdminPanel('production')">✅ Completed</button>
-      ${stores.map(s => `<button class="prod-filter-chip${prodFilterStore===s?' on':''}" onclick="prodFilterStore='${s}';renderAdminPanel('production')">${s}</button>`).join('')}
+      ${stores.map(s => `<button class="prod-filter-chip${prodFilterStore===s?' on':''}" onclick="prodFilterStore=${jsAttr(s)};renderAdminPanel('production')">${escHtml(s)}</button>`).join('')}
       ${prodFilterStore!=='all'?`<button class="prod-filter-chip" onclick="prodFilterStore='all';renderAdminPanel('production')">✕ Clear</button>`:''}
     </div>
 
@@ -5351,7 +5371,7 @@ function openPrintSheet(data) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Print Sheet — ${data.graphicName || data.itemName}</title>
+<title>Print Sheet — ${escHtml(data.graphicName || data.itemName)}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;700&family=Barlow:wght@300;400&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -5388,42 +5408,42 @@ function openPrintSheet(data) {
       <div class="sheet-sub">DTF Print Sheet</div>
     </div>
     <div class="sheet-date">
-      <div>${data.store}</div>
+      <div>${escHtml(data.store)}</div>
       <div style="margin-top:4px;">${date}</div>
-      <div style="margin-top:4px;font-size:10px;">Order #${data.orderId}</div>
+      <div style="margin-top:4px;font-size:10px;">Order #${escHtml(data.orderId)}</div>
     </div>
   </div>
 
-  <div class="graphic-name">${data.graphicName || data.itemName}</div>
-  <div class="graphic-sub">${data.itemName}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + data.graphicName : ''}</div>
+  <div class="graphic-name">${escHtml(data.graphicName || data.itemName)}</div>
+  <div class="graphic-sub">${escHtml(data.itemName)}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + escHtml(data.graphicName) : ''}</div>
   <div class="locations-badge">🎨 ${getGraphicLocations ? getGraphicLocations(data.itemName) : 1} print location${getGraphicLocations && getGraphicLocations(data.itemName) > 1 ? 's' : ''}</div>
 
   <div class="graphic-img-wrap">
     ${data.graphicImg
-      ? `<img src="${data.graphicImg}" alt="${data.graphicName}" onerror="this.parentElement.innerHTML='<div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all>${data.graphicImg}</div>'">`
+      ? `<img src="${escHtml(data.graphicImg)}" alt="${escHtml(data.graphicName||data.itemName||'')}" onerror="this.parentElement.innerHTML='<div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImg)}">`
       : `<div class="no-img">No graphic image on file<br><span style="font-size:11px;margin-top:6px;display:block;">Add a design image URL in the team store admin</span></div>`}
   </div>
 
   <div class="order-grid">
     <div class="order-cell span2">
       <div class="order-label">Customer</div>
-      <div class="order-value">${data.customer}</div>
+      <div class="order-value">${escHtml(data.customer)}</div>
     </div>
     <div class="order-cell">
       <div class="order-label">Qty</div>
-      <div class="order-value" style="font-size:28px;">${data.qty}</div>
+      <div class="order-value" style="font-size:28px;">${escHtml(data.qty)}</div>
     </div>
     <div class="order-cell">
       <div class="order-label">Size</div>
-      <div class="order-value">${data.size || '—'}</div>
+      <div class="order-value">${escHtml(data.size) || '—'}</div>
     </div>
     <div class="order-cell">
       <div class="order-label">Color</div>
-      <div class="order-value">${data.color || '—'}</div>
+      <div class="order-value">${escHtml(data.color) || '—'}</div>
     </div>
     <div class="order-cell">
       <div class="order-label">Player</div>
-      <div class="order-value">${playerLine || '—'}</div>
+      <div class="order-value">${escHtml(playerLine) || '—'}</div>
     </div>
   </div>
 
