@@ -7914,9 +7914,9 @@ function renderInvoiceAdmin() {
     return `<div class="invoice-row">
       <div class="invoice-num-badge">${invoiceNum}</div>
       <div class="invoice-customer">
-        <div class="invoice-customer-name">${o.customer}</div>
+        <div class="invoice-customer-name">${escHtml(o.customer)}</div>
         <div class="invoice-customer-meta">
-          <span class="prod-store-badge" style="background:${storeColor};color:#fff;font-size:9px;">${o.store}</span>
+          <span class="prod-store-badge" style="background:${storeColor};color:#fff;font-size:9px;">${escHtml(o.store)}</span>
           <span style="margin-left:8px;">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
           <span style="margin-left:8px;">${(o.items||[]).reduce((s,i)=>s+(parseInt(i.qty)||1),0)} items</span>
           ${o.completed ? '<span style="color:#4ade80;margin-left:8px;">✅ Completed</span>' : '<span style="color:var(--up-mist);margin-left:8px;">⏳ Pending</span>'}
@@ -8038,8 +8038,8 @@ function generateInvoice(orderId) {
     const personalization = [item.playerName, item.playerNumber ? '#'+item.playerNumber : ''].filter(Boolean).join(' ');
     return `<tr>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;">
-        <strong>${item.name}</strong>
-        <div style="font-size:11px;color:#888;margin-top:2px;">${[item.color,item.size,personalization].filter(Boolean).join(' · ')}</div>
+        <strong>${escHtml(item.name)}</strong>
+        <div style="font-size:11px;color:#888;margin-top:2px;">${escHtml([item.color,item.size,personalization].filter(Boolean).join(' · '))}</div>
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;">${qty}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;">${unitPrice>0?'$'+unitPrice.toFixed(2):'—'}</td>
@@ -8081,8 +8081,8 @@ function generateInvoice(orderId) {
       </div>
     </div>
     <div class="inv-grid">
-      <div><div class="inv-label">Bill To</div><div class="inv-value">${o.customer}</div></div>
-      <div><div class="inv-label">Store / Team</div><div class="inv-value">${o.store}</div></div>
+      <div><div class="inv-label">Bill To</div><div class="inv-value">${escHtml(o.customer)}</div></div>
+      <div><div class="inv-label">Store / Team</div><div class="inv-value">${escHtml(o.store)}</div></div>
       <div><div class="inv-label">Order Date</div><div class="inv-value">${date}</div></div>
       <div><div class="inv-label">Status</div><div class="inv-value">${o.completed ? '✅ Completed' : '⏳ Pending'}</div></div>
     </div>
