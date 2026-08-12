@@ -2993,25 +2993,39 @@ function sendOrderEmails(details, orderItems) {
 
   const t = calcOrderTotals();
   const itemsSummary = orderItems.map(i => `${i.name} × ${i.qty}${i.size?` (Size: ${i.size})`:''}${i.color?` (Color: ${i.color})`:''}`).join('\n');
+  const customerName    = `${customerInfo.first} ${customerInfo.last}`;
+  const customerEmail   = customerInfo.email || '';
+  const customerPhone   = customerInfo.phone || '';
+  const shippingAddress = `${customerInfo.addr}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip}`;
   // EmailJS's "New Order Made" template (Erin's copy) uses its own e-commerce
-  // shape: top-level {{name}}/{{order_id}}, an {{#orders}} loop of
-  // {{image_url}}/{{name}}/{{units}}/{{price}}, and {{cost.shipping}}/{{cost.tax}}.
-  // No product image URL exists in this cart's data, so image_url is left blank.
+  // shape: top-level {{name}}/{{order_id}}, an {{#orders}} loop needing
+  // {{image_url}}/{{name}}/{{units}}/{{price}} plus customer_email/customer_phone/
+  // shipping_address/shipping_method/color/design_name/size per item (the template
+  // repeats customer info on every line item rather than showing it once), and
+  // {{cost.shipping}}/{{cost.tax}}. No product image URL or design name exists in
+  // this cart's data (catalog items, not custom uploads), so those are left blank.
   const orders = orderItems.map(i => ({
-    image_url: '',
-    name:      `${i.name}${i.size?' — Size: '+i.size:''}${i.color?', '+i.color:''}`,
-    units:     i.qty,
-    price:     (i.salePrice || 0).toFixed(2),
+    image_url:        '',
+    name:              `${i.name}${i.size?' — Size: '+i.size:''}${i.color?', '+i.color:''}`,
+    units:             i.qty,
+    price:             (i.salePrice || 0).toFixed(2),
+    customer_email:    customerEmail,
+    customer_phone:    customerPhone,
+    shipping_address:  shippingAddress,
+    shipping_method:   '',
+    color:             i.color || '',
+    design_name:       '',
+    size:              i.size || '',
   }));
   const sharedParams = {
-    name:         `${customerInfo.first} ${customerInfo.last}`,
+    name:         customerName,
     orders,
     cost:         { shipping: t.ship.toFixed(2), tax: t.tax.toFixed(2) },
     order_id:     details.id || 'N/A',
-    customer_name: `${customerInfo.first} ${customerInfo.last}`,
-    customer_email: customerInfo.email || '',
-    customer_phone: customerInfo.phone || '',
-    shipping_address: `${customerInfo.addr}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip}`,
+    customer_name: customerName,
+    customer_email: customerEmail,
+    customer_phone: customerPhone,
+    shipping_address: shippingAddress,
     order_items:  itemsSummary,
     order_total:  `$${t.grand.toFixed(2)}`,
     submitted_at: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
