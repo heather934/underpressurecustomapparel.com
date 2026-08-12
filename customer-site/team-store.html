@@ -1651,6 +1651,8 @@ function payWithPayPal(amount) {
     }).catch(e => console.warn('Cart save failed:', e));
   } catch(e) {}
   window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`, '_blank', 'noopener,noreferrer');
+  // Must send while cart/form fields are still intact — both get wiped out below.
+  sendOrderEmail({id:'PAYPAL-DIRECT'});
   cart = []; updateCartUI();
   document.getElementById('tsCheckoutContent').innerHTML = `
     <div class="ts-success">
@@ -1663,7 +1665,7 @@ function payWithPayPal(amount) {
            target="_blank" rel="noopener noreferrer" style="color:#4d9fff;">click here to pay</a>.<br><br>
         Questions? Call <strong>(304) 633-6401</strong>
       </div>
-      <button class="ts-submit-btn" onclick="sendOrderEmail({id:'PAYPAL-DIRECT'});closeCheckout();" style="max-width:200px;">Done</button>
+      <button class="ts-submit-btn" onclick="closeCheckout()" style="max-width:200px;">Done</button>
     </div>`;
   document.getElementById('tsCheckoutModal').classList.add('open');
 }
