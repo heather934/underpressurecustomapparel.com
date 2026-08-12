@@ -1692,17 +1692,42 @@ async function sendOrderEmail(details) {
   const lineItems = cart.map(i =>
     `${i.label}${i.designName?' ('+i.designName+')':''} — ${i.color}, ${i.size} × ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`
   ).join('\n');
+  const customerName    = `${v('co-first')} ${v('co-last')}`.trim();
   const customerEmail   = v('co-email');
   const customerPhone   = v('co-phone');
   const shippingAddress = `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`;
-  const orderTotal      = `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`;
+  const shippingMethod  = document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '';
+  const shippingCost    = getShipping(cartQty());
+  const orderTotal      = `$${(cartTotal()+shippingCost).toFixed(2)}`;
+  // EmailJS's "New Order Made" template (Erin's copy) uses its own e-commerce
+  // shape: top-level {{name}}/{{order_id}}, an {{#orders}} loop needing
+  // {{image_url}}/{{name}}/{{units}}/{{price}} plus customer_email/customer_phone/
+  // shipping_address/shipping_method/color/design_name/size per item (the template
+  // repeats customer info on every line item rather than showing it once), and
+  // {{cost.shipping}}/{{cost.tax}}.
+  const orders = cart.map(i => ({
+    image_url:        i.designUrl || '',
+    name:              `${i.label}${i.designName?' ('+i.designName+')':''} — ${i.color}, ${i.size}`,
+    units:             i.qty,
+    price:             i.unitPrice.toFixed(2),
+    customer_email:    customerEmail,
+    customer_phone:    customerPhone,
+    shipping_address:  shippingAddress,
+    shipping_method:   shippingMethod,
+    color:             i.color || '',
+    design_name:       i.designName || '',
+    size:              i.size || '',
+  }));
   // Field names are duplicated under both this file's original naming and the
   // customer_*/shipping_address/order_total naming used elsewhere, since both
   // checkout flows send to the same EmailJS templates and the template's actual
   // placeholder names weren't verifiable from here — unused keys are harmless.
   const sharedParams = {
+    name:             customerName,
+    orders,
+    cost:             { shipping: shippingCost.toFixed(2), tax: '0.00' },
     store_name:       teamData?.name || 'Team Store',
-    customer_name:    `${v('co-first')} ${v('co-last')}`,
+    customer_name:    customerName,
     email:            customerEmail,
     customer_email:   customerEmail,
     phone:            customerPhone,
@@ -1711,7 +1736,7 @@ async function sendOrderEmail(details) {
     shipping_address: shippingAddress,
     notes:            v('co-notes'),
     order_items:      lineItems,
-    shipping_method:  document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
+    shipping_method:  shippingMethod,
     total:            orderTotal,
     order_total:      orderTotal,
     order_id:         details.id || '',
