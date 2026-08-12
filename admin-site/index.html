@@ -1856,6 +1856,13 @@ nav { position: relative; }
 .item-status-select.need  { border-left:3px solid var(--hs-red);   color:var(--hs-red); }
 .item-status-select.have  { border-left:3px solid #4ade80;          color:#4ade80; }
 .item-status-select.part  { border-left:3px solid var(--accent);    color:var(--accent); }
+.item-spend-input {
+  background:var(--up-navy); border:1px solid var(--up-border);
+  color:var(--up-white); padding:5px 10px; width:90px;
+  font-family:'Bebas Neue',sans-serif; font-size:14px;
+  outline:none; transition:border-color .2s;
+}
+.item-spend-input:focus { border-color:var(--up-sky); }
 .status-badge {
   font-family:'Barlow Condensed',sans-serif; font-size:10px;
   font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:2px 8px;
@@ -3202,6 +3209,19 @@ function saveEdit(){
   saveUP();renderUP(upFilter);closeEditModal();showToast("Product updated!");
 }
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
+
+// Escapes a value for safe use inside HTML text/attributes — customer-typed
+// fields (names, player names, notes, etc.) flow into admin innerHTML unescaped
+// otherwise, which lets stored HTML/script run in the admin panel.
+function escHtml(v){
+  return String(v==null?'':v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// Builds a JS string literal safe to embed inside a double-quoted HTML attribute
+// (e.g. onclick="foo(${jsAttr(name)})") — handles quotes/backslashes AND HTML-escapes
+// the result so it can't break out of the surrounding attribute.
+function jsAttr(v){
+  return escHtml(JSON.stringify(String(v==null?'':v)));
+}
 // ══════════════════════════════════════════════════════
 //  TEAM STORES SYSTEM
 // ══════════════════════════════════════════════════════
@@ -3249,7 +3269,17 @@ function loadTeams() {
       seeded = true;
     }
   });
-  if (seeded) saveTeams();
+
+  // Backfill a stable key for any custom team store that's missing one.
+  // Without this, storeAccess/storeCodes (visibility, access codes) fall back to
+  // a key derived from array position — which shifts whenever any store is
+  // deleted or reordered, silently applying the wrong store's settings.
+  let backfilled = false;
+  teams.forEach((t, i) => {
+    if (!t.key) { t.key = 'team-' + Date.now() + '-' + i; backfilled = true; }
+  });
+
+  if (seeded || backfilled) saveTeams();
 }
 function saveTeams() { localStorage.setItem("upTeams", JSON.stringify(teams)); kvSet('teams', teams); }
 function saveHiddenStores() { localStorage.setItem("hiddenStores", JSON.stringify([...hiddenStores])); kvSet('hiddenStores', [...hiddenStores]); }
@@ -4276,6 +4306,11 @@ function saveCMTeam() {
 
   const isNew = cmTeamEditIdx === -1;
   if (!isNew && teams[cmTeamEditIdx]?.key) team.key = teams[cmTeamEditIdx].key;
+  // Assign a stable key up front — storeAccess/storeCodes settings are keyed
+  // off this, and without it they'd fall back to an array-position key that
+  // shifts (and silently applies to the wrong store) whenever any store is
+  // deleted or reordered.
+  if (!team.key) team.key = 'team-' + Date.now();
 
   if (!isNew) teams[cmTeamEditIdx] = team;
   else teams.push(team);
@@ -5138,7 +5173,14 @@ function exportProductionCSV() {
       ]);
     });
   });
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection: a customer-typed name/note starting with
+  // =, +, -, @, tab or CR would otherwise run as a formula when opened in Excel/Sheets.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r => r.map(v => `"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `UP-Production-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
@@ -5218,7 +5260,7 @@ function renderProductionAdmin() {
             : 'var(--up-blue)';
           return [`<tr style="background:rgba(255,255,255,.02);">
             <td colspan="10" style="padding:8px 12px;border-bottom:1px solid var(--up-border);">
-              <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${o.store}</span>
+              <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${escHtml(o.store)}</span>
               <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);margin-left:10px;">
                 Store registered ${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} — awaiting first order
               </span>
@@ -5240,25 +5282,25 @@ function renderProductionAdmin() {
                 <input type="checkbox" class="prod-row-check" ${o.completed?'checked':''} onchange="toggleProductionComplete(${o.id})" title="Mark complete">
               </td>
               <td class="prod-td" rowspan="${o.items.length}" style="border-right:1px solid var(--up-border);vertical-align:middle;">
-                <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${o.store}</span>
+                <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${escHtml(o.store)}</span>
                 <div style="font-size:11px;color:var(--up-mist);margin-top:4px;">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
               </td>
               <td class="prod-td name-col" rowspan="${o.items.length}" style="border-right:1px solid var(--up-border);vertical-align:middle;">
-                ${o.customer}
-                <div style="font-size:11px;color:var(--up-mist);font-weight:300;">${o.phone||o.email||''}</div>
+                ${escHtml(o.customer)}
+                <div style="font-size:11px;color:var(--up-mist);font-weight:300;">${escHtml(o.phone||o.email||'')}</div>
               </td>` : ''}
             <td class="prod-td" style="border-right:1px solid var(--up-border);">
-              <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${item.name||'—'}</div>
-              ${item.color ? `<div style="font-size:11px;color:var(--up-mist);">${item.color}</div>` : ''}
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${escHtml(item.name)||'—'}</div>
+              ${item.color ? `<div style="font-size:11px;color:var(--up-mist);">${escHtml(item.color)}</div>` : ''}
             </td>
             <td class="prod-td name-col" style="border-right:1px solid var(--up-border);text-align:center;">
-              ${item.playerName||'<span style="color:var(--up-mist);font-weight:300;font-size:12px;">—</span>'}
+              ${item.playerName ? escHtml(item.playerName) : '<span style="color:var(--up-mist);font-weight:300;font-size:12px;">—</span>'}
             </td>
             <td class="prod-td num-col" style="border-right:1px solid var(--up-border);">
-              ${item.playerNumber || '<span style="color:var(--up-mist);">—</span>'}
+              ${item.playerNumber ? escHtml(item.playerNumber) : '<span style="color:var(--up-mist);">—</span>'}
             </td>
             <td class="prod-td size-col" style="border-right:1px solid var(--up-border);">
-              ${item.size||'—'}
+              ${escHtml(item.size)||'—'}
             </td>
             <td class="prod-td" style="border-right:1px solid var(--up-border);text-align:center;">
               <span style="font-size:18px;font-weight:700;">${qty}</span>
@@ -5276,9 +5318,9 @@ function renderProductionAdmin() {
                   <button class="btn-add-note" onclick="showNoteInput(${o.id})">${orderNotes[o.id]?'✏ Edit Note':'+ Note'}</button>
                   <button class="cm-btn-del" onclick="deleteProductionOrder(${o.id})" title="Remove" aria-label="Remove order from production board" style="padding:3px 8px;">✕</button>
                 </div>
-                ${orderNotes[o.id] ? `<div class='order-note-wrap' style='margin-top:6px;'><div class='order-note-text'>${orderNotes[o.id]}</div><button class='btn-deadline-del' onclick='deleteNote(${o.id})' aria-label='Delete order note' style='font-size:10px;'>✕</button></div>` : ''}
+                ${orderNotes[o.id] ? `<div class='order-note-wrap' style='margin-top:6px;'><div class='order-note-text'>${escHtml(orderNotes[o.id])}</div><button class='btn-deadline-del' onclick='deleteNote(${o.id})' aria-label='Delete order note' style='font-size:10px;'>✕</button></div>` : ''}
                 <div class="note-input-wrap" id="noteinput-${o.id}" style="display:none;margin-top:6px;">
-                  <input class="note-input" id="noteval-${o.id}" placeholder="Add note..." value="${orderNotes[o.id]||''}">
+                  <input class="note-input" id="noteval-${o.id}" placeholder="Add note..." value="${escHtml(orderNotes[o.id]||'')}">
                   <button class="btn-save-up" style="padding:6px 10px;font-size:11px;" onclick="saveNote(${o.id})">Save</button>
                 </div>
               </td>` : ''}
@@ -5303,12 +5345,12 @@ function renderProductionAdmin() {
     </div>
 
     <div class="prod-actions-bar">
-      <input class="prod-search" placeholder="🔍 Search by name, player, item..." value="${prodSearch}"
+      <input class="prod-search" placeholder="🔍 Search by name, player, item..." value="${escHtml(prodSearch)}"
         oninput="prodSearch=this.value;renderAdminPanel('production')">
       <button class="prod-filter-chip${prodFilterStatus==='all'?' on':''}" onclick="prodFilterStatus='all';renderAdminPanel('production')">All</button>
       <button class="prod-filter-chip${prodFilterStatus==='pending'?' on':''}" onclick="prodFilterStatus='pending';renderAdminPanel('production')">⏳ Pending</button>
       <button class="prod-filter-chip${prodFilterStatus==='completed'?' on':''}" onclick="prodFilterStatus='completed';renderAdminPanel('production')">✅ Completed</button>
-      ${stores.map(s => `<button class="prod-filter-chip${prodFilterStore===s?' on':''}" onclick="prodFilterStore='${s}';renderAdminPanel('production')">${s}</button>`).join('')}
+      ${stores.map(s => `<button class="prod-filter-chip${prodFilterStore===s?' on':''}" onclick="prodFilterStore=${jsAttr(s)};renderAdminPanel('production')">${escHtml(s)}</button>`).join('')}
       ${prodFilterStore!=='all'?`<button class="prod-filter-chip" onclick="prodFilterStore='all';renderAdminPanel('production')">✕ Clear</button>`:''}
     </div>
 
@@ -5351,7 +5393,7 @@ function openPrintSheet(data) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Print Sheet — ${data.graphicName || data.itemName}</title>
+<title>Print Sheet — ${escHtml(data.graphicName || data.itemName)}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;700&family=Barlow:wght@300;400&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -5388,42 +5430,42 @@ function openPrintSheet(data) {
       <div class="sheet-sub">DTF Print Sheet</div>
     </div>
     <div class="sheet-date">
-      <div>${data.store}</div>
+      <div>${escHtml(data.store)}</div>
       <div style="margin-top:4px;">${date}</div>
-      <div style="margin-top:4px;font-size:10px;">Order #${data.orderId}</div>
+      <div style="margin-top:4px;font-size:10px;">Order #${escHtml(data.orderId)}</div>
     </div>
   </div>
 
-  <div class="graphic-name">${data.graphicName || data.itemName}</div>
-  <div class="graphic-sub">${data.itemName}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + data.graphicName : ''}</div>
+  <div class="graphic-name">${escHtml(data.graphicName || data.itemName)}</div>
+  <div class="graphic-sub">${escHtml(data.itemName)}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + escHtml(data.graphicName) : ''}</div>
   <div class="locations-badge">🎨 ${getGraphicLocations ? getGraphicLocations(data.itemName) : 1} print location${getGraphicLocations && getGraphicLocations(data.itemName) > 1 ? 's' : ''}</div>
 
   <div class="graphic-img-wrap">
     ${data.graphicImg
-      ? `<img src="${data.graphicImg}" alt="${data.graphicName}" onerror="this.parentElement.innerHTML='<div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all>${data.graphicImg}</div>'">`
+      ? `<img src="${escHtml(data.graphicImg)}" alt="${escHtml(data.graphicName||data.itemName||'')}" onerror="this.parentElement.innerHTML='<div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImg)}">`
       : `<div class="no-img">No graphic image on file<br><span style="font-size:11px;margin-top:6px;display:block;">Add a design image URL in the team store admin</span></div>`}
   </div>
 
   <div class="order-grid">
     <div class="order-cell span2">
       <div class="order-label">Customer</div>
-      <div class="order-value">${data.customer}</div>
+      <div class="order-value">${escHtml(data.customer)}</div>
     </div>
     <div class="order-cell">
       <div class="order-label">Qty</div>
-      <div class="order-value" style="font-size:28px;">${data.qty}</div>
+      <div class="order-value" style="font-size:28px;">${escHtml(data.qty)}</div>
     </div>
     <div class="order-cell">
       <div class="order-label">Size</div>
-      <div class="order-value">${data.size || '—'}</div>
+      <div class="order-value">${escHtml(data.size) || '—'}</div>
     </div>
     <div class="order-cell">
       <div class="order-label">Color</div>
-      <div class="order-value">${data.color || '—'}</div>
+      <div class="order-value">${escHtml(data.color) || '—'}</div>
     </div>
     <div class="order-cell">
       <div class="order-label">Player</div>
-      <div class="order-value">${playerLine || '—'}</div>
+      <div class="order-value">${escHtml(playerLine) || '—'}</div>
     </div>
   </div>
 
@@ -5488,6 +5530,7 @@ function renderPurchaseList() {
       <div class="cm-section-head">
         <div class="cm-section-title" style="color:#fbbf24">Purchase <span style="color:var(--up-sky)">List</span></div>
       </div>
+      ${renderPurchaseLogSection()}
       <div class="purchase-empty">
         📦 No pending orders yet — purchase list will populate automatically as customers check out.
       </div>`;
@@ -5503,14 +5546,20 @@ function renderPurchaseList() {
       : 'var(--up-blue)';
 
     const purchaseStatuses = JSON.parse(localStorage.getItem('purchaseStatuses') || '{}');
+    const purchaseSpend = JSON.parse(localStorage.getItem('purchaseSpend') || '{}');
 
       const itemCards = Object.entries(storeData).map(([itemName, sizeData], cardIdx) => {
         const sizes = Object.keys(sizeData).filter(k => k !== '_total' && k !== '_colors');
         const sorted = sortSizes([...sizes]);
         const total = sizeData._total || 0;
-        const cardId = 'pcard-' + storeName.replace(/\s/g,'') + '-' + cardIdx;
+        // Strip to alphanumerics so a store/item name with quotes or other
+        // punctuation can't break the id attribute or the onclick JS string below.
+        const cardId = 'pcard-' + storeName.replace(/[^a-zA-Z0-9]/g,'') + '-' + cardIdx;
         const statusKey = storeName + '::' + itemName;
         const currentStatus = purchaseStatuses[statusKey] || 'need';
+        const spendEntry = purchaseSpend[statusKey] || {};
+        const spendAmount = parseFloat(spendEntry.amount) || 0;
+        const receiptUrl = spendEntry.receiptUrl || '';
         const statusClass = currentStatus==='have'?'have':currentStatus==='part'?'part':'need';
         const statusLabel = currentStatus==='have'?'✅ In Stock':currentStatus==='part'?'⚠ Partially In Stock':'🔴 Need to Order';
         const borderColor = statusClass==='have'?'#4ade80':statusClass==='part'?'var(--accent)':'var(--hs-red)';
@@ -5546,7 +5595,7 @@ function renderPurchaseList() {
               <td style="padding:6px 14px;white-space:nowrap;">
                 <div style="display:flex;align-items:center;gap:8px;">
                   <div style="width:11px;height:11px;border-radius:50%;background:${colorHex(color)};border:1px solid rgba(255,255,255,.2);flex-shrink:0;"></div>
-                  <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${color}</span>
+                  <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${escHtml(color)}</span>
                   <span style="font-size:11px;color:var(--up-mist);margin-left:2px;">×${ct}</span>
                 </div>
               </td>${cells}
@@ -5584,7 +5633,7 @@ function renderPurchaseList() {
         return `<div class="purchase-item-card" id="${cardId}" style="border-left:3px solid ${borderColor};">
           <div class="purchase-item-header" onclick="togglePurchaseCard('${cardId}')">
             <div style="flex:1;">
-              <div class="purchase-item-name">${itemName}
+              <div class="purchase-item-name">${escHtml(itemName)}
                 <span class="status-badge ${statusClass}" style="margin-left:8px;">${statusLabel}</span>
               </div>
             </div>
@@ -5597,22 +5646,44 @@ function renderPurchaseList() {
           <div class="item-status-wrap">
             <span class="item-status-label">Stock Status:</span>
             <select class="item-status-select ${statusClass}"
-              onchange="setPurchaseStatus('${statusKey.replace(/'/g,"\\'")}', this.value, this)">
+              onchange="setPurchaseStatus(${jsAttr(statusKey)}, this.value, this)">
               <option value="need" ${currentStatus==='need'?'selected':''}>🔴 Need to Order</option>
               <option value="part" ${currentStatus==='part'?'selected':''}>⚠️ Partially In Stock</option>
               <option value="have" ${currentStatus==='have'?'selected':''}>✅ In Stock</option>
             </select>
           </div>
+          <div class="item-status-wrap" style="flex-wrap:wrap;">
+            <span class="item-status-label">Amount Spent:</span>
+            <span style="color:var(--up-mist);font-family:'Bebas Neue',sans-serif;font-size:14px;">$</span>
+            <input type="number" min="0" step="0.01" class="item-spend-input" placeholder="0.00"
+              value="${spendAmount ? spendAmount.toFixed(2) : ''}"
+              onchange="setPurchaseSpendAmount(${jsAttr(statusKey)}, this.value)">
+            <label class="btn-upload-file" style="padding:5px 9px;font-size:10px;" title="Take a photo of the receipt or upload one from your device">
+              📷 Receipt
+              <input type="file" accept="image/*" capture="environment"
+                onchange="uploadPurchaseReceipt(${jsAttr(statusKey)}, this)">
+            </label>
+            ${receiptUrl ? `
+              <a href="${escHtml(receiptUrl)}" target="_blank" rel="noopener" title="View receipt">
+                <img src="${escHtml(receiptUrl)}" alt="Receipt" style="width:28px;height:28px;object-fit:cover;border:1px solid var(--up-border);vertical-align:middle;">
+              </a>
+              <button onclick="removePurchaseReceipt(${jsAttr(statusKey)})" title="Remove receipt" aria-label="Remove receipt photo"
+                style="background:none;border:none;color:var(--up-mist);cursor:pointer;font-size:13px;padding:0 2px;">✕</button>
+            ` : ''}
+            <span class="purchase-receipt-status" id="pr-status-${cardId}" style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:var(--up-mist);"></span>
+          </div>
         </div>`;
       }).join('');
 
     const storeTotal = Object.values(storeData).reduce((s, d) => s + (d._total || 0), 0);
+    const storeSpend = Object.keys(storeData).reduce((s, itemName) =>
+      s + (parseFloat(purchaseSpend[storeName + '::' + itemName]?.amount) || 0), 0);
 
     return `<div class="purchase-store-group">
       <div class="purchase-store-label" style="background:${storeColor}20;border-left:3px solid ${storeColor};">
-        <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${storeName}</span>
+        <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${escHtml(storeName)}</span>
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);">
-          ${Object.keys(storeData).length} item type${Object.keys(storeData).length !== 1 ? 's' : ''} · ${storeTotal} total pieces needed
+          ${Object.keys(storeData).length} item type${Object.keys(storeData).length !== 1 ? 's' : ''} · ${storeTotal} total pieces needed${storeSpend > 0 ? ` · $${storeSpend.toFixed(2)} spent` : ''}
         </span>
       </div>
       ${itemCards}
@@ -5629,6 +5700,9 @@ function renderPurchaseList() {
   });
   const totalItemTypes = Object.keys(allStatuses).length;
 
+  const allSpend = JSON.parse(localStorage.getItem('purchaseSpend') || '{}');
+  const grandSpend = Object.values(allSpend).reduce((s, v) => s + (parseFloat(v?.amount) || 0), 0);
+
   return `
     <div class="cm-section-head">
       <div>
@@ -5642,6 +5716,8 @@ function renderPurchaseList() {
         <button class="btn-print-list" onclick="window.print()">🖨 Print</button>
       </div>
     </div>
+
+    ${renderPurchaseLogSection()}
 
     <div class="purchase-summary-bar">
       <div class="purchase-summary-card" style="border-top:3px solid var(--hs-red);">
@@ -5665,7 +5741,10 @@ function renderPurchaseList() {
         <div class="pgt-label">Grand Total — All Stores</div>
         <div style="font-size:12px;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;margin-top:2px;">Pending orders only · Complete orders excluded</div>
       </div>
-      <div class="pgt-value">${grandTotal} <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--up-mist);">PIECES</span></div>
+      <div style="display:flex;align-items:baseline;gap:20px;">
+        ${grandSpend > 0 ? `<div class="pgt-value" style="color:#4ade80;">$${grandSpend.toFixed(2)} <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--up-mist);">SPENT</span></div>` : ''}
+        <div class="pgt-value">${grandTotal} <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--up-mist);">PIECES</span></div>
+      </div>
     </div>
 
     <div class="cm-tip" style="margin-top:12px;">
@@ -5848,6 +5927,206 @@ function togglePurchaseCard(id) {
   if (card) card.classList.toggle('collapsed');
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  PURCHASE LOG — a standalone "what did you buy" ledger, independent
+//  of any specific pending item. Unlike the per-item spend/receipt
+//  fields below (which only exist once there's a matching pending
+//  order), this is always available — including when the Purchase
+//  List is empty — since restocking often happens ahead of orders.
+// ══════════════════════════════════════════════════════════════════
+function loadPurchaseLog() {
+  try { return JSON.parse(localStorage.getItem('purchaseLog') || '[]'); }
+  catch(e) { return []; }
+}
+function savePurchaseLog(log) {
+  localStorage.setItem('purchaseLog', JSON.stringify(log));
+}
+
+function renderPurchaseLogSection() {
+  const log = loadPurchaseLog();
+  const total = log.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+
+  const rows = log.map(e => `
+    <tr class="cost-row">
+      <td class="cost-td" style="white-space:nowrap;">${new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+      <td class="cost-td">${escHtml(e.description)}</td>
+      <td class="cost-td"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#4ade80;">$${(parseFloat(e.amount)||0).toFixed(2)}</span></td>
+      <td class="cost-td">${e.receiptUrl
+        ? `<a href="${escHtml(e.receiptUrl)}" target="_blank" rel="noopener" title="View receipt"><img src="${escHtml(e.receiptUrl)}" alt="Receipt" style="width:32px;height:32px;object-fit:cover;border:1px solid var(--up-border);"></a>`
+        : '<span style="color:var(--up-mist);">—</span>'}</td>
+      <td class="cost-td" style="text-align:center;">
+        <button class="cm-btn-del" onclick="deletePurchaseLogEntry(${e.id})" aria-label="Remove purchase log entry" style="padding:4px 10px;">✕</button>
+      </td>
+    </tr>`).join('');
+
+  return `
+    <div class="disc-add-form" style="margin-bottom:20px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:#fbbf24;text-transform:uppercase;margin-bottom:14px;">📝 Log a Purchase</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr auto auto;gap:10px;align-items:end;">
+        <div class="df">
+          <label>What did you buy?</label>
+          <input id="pl-desc" type="text" placeholder="e.g. Bella+Canvas 3001 tees, Navy/Red"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:100%;">
+        </div>
+        <div class="df">
+          <label>Amount ($)</label>
+          <input id="pl-amount" type="number" min="0" step="0.01" placeholder="0.00"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Bebas Neue',sans-serif;font-size:18px;outline:none;width:100%;">
+        </div>
+        <label class="btn-upload-file" title="Take a photo of the receipt or upload one from your device">
+          📷 Receipt
+          <input type="file" accept="image/*" capture="environment" onchange="stagePurchaseLogReceipt(this)">
+        </label>
+        <button class="btn-save-up" onclick="addPurchaseLogEntry()">+ Log Purchase</button>
+      </div>
+      <input type="hidden" id="pl-receipt-url" value="">
+      <div id="pl-receipt-preview" style="display:none;align-items:center;gap:8px;margin-top:10px;">
+        <img src="" alt="Receipt preview" style="width:36px;height:36px;object-fit:cover;border:1px solid var(--up-border);">
+        <button onclick="clearPurchaseLogReceipt()" style="background:none;border:none;color:var(--up-mist);cursor:pointer;font-size:12px;">✕ Remove receipt</button>
+      </div>
+      <div id="pl-status" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);margin-top:8px;"></div>
+    </div>
+    ${log.length ? `
+      <div class="cm-table-wrap" style="margin-bottom:6px;">
+        <table class="prod-table">
+          <thead class="prod-thead"><tr><th>Date</th><th>Description</th><th>Amount</th><th>Receipt</th><th style="width:40px;"></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;color:var(--up-mist);text-transform:uppercase;margin-bottom:20px;">
+        Total logged: <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#4ade80;">$${total.toFixed(2)}</span>
+      </div>
+    ` : ''}`;
+}
+
+async function stagePurchaseLogReceipt(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select an image file for the receipt.');
+    fileInput.value = '';
+    return;
+  }
+  const statusEl = document.getElementById('pl-status');
+  if (statusEl) statusEl.textContent = 'Uploading receipt…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('filename', file.name);
+    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
+    const urlInput = document.getElementById('pl-receipt-url');
+    if (urlInput) urlInput.value = data.url;
+    const preview = document.getElementById('pl-receipt-preview');
+    if (preview) { preview.style.display = 'flex'; preview.querySelector('img').src = data.url; }
+    if (statusEl) statusEl.textContent = `✓ Receipt attached: ${file.name}`;
+  } catch (e) {
+    if (statusEl) statusEl.textContent = `⚠ ${e.message}`;
+  }
+  fileInput.value = '';
+}
+
+function clearPurchaseLogReceipt() {
+  const urlInput = document.getElementById('pl-receipt-url');
+  if (urlInput) urlInput.value = '';
+  const preview = document.getElementById('pl-receipt-preview');
+  if (preview) preview.style.display = 'none';
+  const statusEl = document.getElementById('pl-status');
+  if (statusEl) statusEl.textContent = '';
+}
+
+function addPurchaseLogEntry() {
+  const desc = document.getElementById('pl-desc')?.value.trim();
+  const amount = parseFloat(document.getElementById('pl-amount')?.value);
+  const receiptUrl = document.getElementById('pl-receipt-url')?.value || '';
+  if (!desc) { showToast('Enter what you bought'); return; }
+  if (isNaN(amount) || amount <= 0) { showToast('Enter a valid amount'); return; }
+  const log = loadPurchaseLog();
+  log.unshift({ id: Date.now(), date: new Date().toISOString(), description: desc, amount, receiptUrl });
+  savePurchaseLog(log);
+  showToast('Purchase logged!');
+  renderAdminPanel('purchaselist');
+}
+
+function deletePurchaseLogEntry(id) {
+  const log = loadPurchaseLog().filter(e => e.id !== id);
+  savePurchaseLog(log);
+  renderAdminPanel('purchaselist');
+  showToast('Entry removed');
+}
+
+// purchaseSpend is keyed the same as purchaseStatuses (store::item) and stores
+// { amount, receiptUrl } so a dollar amount and a receipt photo can be tracked
+// independently — clearing the amount doesn't have to drop an attached receipt.
+function loadPurchaseSpend() {
+  try { return JSON.parse(localStorage.getItem('purchaseSpend') || '{}'); }
+  catch(e) { return {}; }
+}
+function savePurchaseSpend(spend) {
+  localStorage.setItem('purchaseSpend', JSON.stringify(spend));
+}
+
+function setPurchaseSpendAmount(key, value) {
+  const amount = parseFloat(value);
+  const spend = loadPurchaseSpend();
+  const entry = spend[key] || {};
+  if (!value.trim() || isNaN(amount) || amount <= 0) {
+    delete entry.amount;
+  } else {
+    entry.amount = amount;
+  }
+  if (entry.amount || entry.receiptUrl) spend[key] = entry;
+  else delete spend[key];
+  savePurchaseSpend(spend);
+  // Store/grand totals live in this render, so just re-render the panel.
+  renderAdminPanel('purchaselist');
+  showToast('Amount spent updated');
+}
+
+async function uploadPurchaseReceipt(key, fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select an image file for the receipt.');
+    fileInput.value = '';
+    return;
+  }
+  const statusEl = fileInput.closest('.item-status-wrap')?.querySelector('.purchase-receipt-status');
+  if (statusEl) statusEl.textContent = 'Uploading receipt…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('filename', file.name);
+    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
+    const spend = loadPurchaseSpend();
+    const entry = spend[key] || {};
+    entry.receiptUrl = data.url;
+    spend[key] = entry;
+    savePurchaseSpend(spend);
+    showToast('Receipt uploaded!');
+    renderAdminPanel('purchaselist');
+  } catch (e) {
+    if (statusEl) statusEl.textContent = '';
+    showToast(`⚠ Receipt upload failed: ${e.message}`);
+  }
+  fileInput.value = '';
+}
+
+function removePurchaseReceipt(key) {
+  const spend = loadPurchaseSpend();
+  const entry = spend[key];
+  if (!entry) return;
+  delete entry.receiptUrl;
+  if (entry.amount) spend[key] = entry;
+  else delete spend[key];
+  savePurchaseSpend(spend);
+  renderAdminPanel('purchaselist');
+  showToast('Receipt removed');
+}
+
 function exportPurchaseCSV() {
   loadProductionOrders();
   const realOrders = productionOrders.filter(o => !o._storeRegistration && !o.completed);
@@ -5866,21 +6145,31 @@ function exportPurchaseCSV() {
     });
   });
 
-  const rows = [['Store', 'Item', 'Size', 'Color', 'Quantity', 'Stock Status']];
+  const allStatuses2 = JSON.parse(localStorage.getItem('purchaseStatuses') || '{}');
+  const allSpend2 = loadPurchaseSpend();
+
+  const rows = [['Store', 'Item', 'Size', 'Color', 'Quantity', 'Stock Status', 'Amount Spent', 'Receipt']];
   Object.entries(breakdown).forEach(([store, items]) => {
     Object.entries(items).forEach(([item, data]) => {
       Object.entries(data).filter(([k]) => k !== '_colors').forEach(([key, qty]) => {
         const [size, color] = key.split('|');
         const statusKey2 = store + '::' + item;
-      const allStatuses2 = JSON.parse(localStorage.getItem('purchaseStatuses') || '{}');
-      const itemStatus = allStatuses2[statusKey2] || 'need';
-      const statusLabel = itemStatus==='have'?'In Stock':itemStatus==='part'?'Partially In Stock':'Need to Order';
-      rows.push([store, item, size, color, qty, statusLabel]);
+        const itemStatus = allStatuses2[statusKey2] || 'need';
+        const statusLabel = itemStatus==='have'?'In Stock':itemStatus==='part'?'Partially In Stock':'Need to Order';
+        const spendEntry2 = allSpend2[statusKey2] || {};
+        const amountSpent = spendEntry2.amount ? '$' + parseFloat(spendEntry2.amount).toFixed(2) : '';
+        rows.push([store, item, size, color, qty, statusLabel, amountSpent, spendEntry2.receiptUrl || '']);
       });
     });
   });
 
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r => r.map(v => `"${csvSafe(v).replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -5961,10 +6250,10 @@ function openCostModal() {
           const salePrice = getSalePrice(name);
           return `<tr>
             <td style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--up-white);">
-              ${name}
+              ${escHtml(name)}
             </td>
             <td style="text-align:right;">
-              <input class="cost-input" data-item="${name.replace(/"/g,'&quot;')}"
+              <input class="cost-input" data-item="${escHtml(name)}"
                 type="number" step="0.01" min="0"
                 value="${itemCosts[name] !== undefined ? itemCosts[name].toFixed(2) : ''}"
                 placeholder="0.00">
@@ -6158,7 +6447,7 @@ function buildStoreView(orders) {
     const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     const hasCost = totalCost > 0;
     return `<tr class="cost-row">
-      <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;">${store}</span></td>
+      <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;">${escHtml(store)}</span></td>
       <td class="cost-td"><div class="cost-revenue-val">$${d.revenue.toFixed(2)}</div></td>
       <td class="cost-td"><div class="cost-cost-val">${d.blankCost > 0 ? '$'+d.blankCost.toFixed(2) : '—'}</div></td>
       <td class="cost-td"><div style="color:#a78bfa;font-family:'Bebas Neue',sans-serif;font-size:16px;">${d.printCost > 0 ? '$'+d.printCost.toFixed(2) : '—'}</div></td>
@@ -6202,10 +6491,10 @@ function buildOrderView(orders) {
     const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     return `<tr class="cost-row">
       <td class="cost-td">
-        <div class="cost-name">${o.customer}</div>
+        <div class="cost-name">${escHtml(o.customer)}</div>
         <div class="cost-sub">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
       </td>
-      <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;font-size:9px;">${o.store}</span></td>
+      <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;font-size:9px;">${escHtml(o.store)}</span></td>
       <td class="cost-td"><div class="cost-revenue-val">$${rev.toFixed(2)}</div></td>
       <td class="cost-td"><div class="cost-cost-val">${blankCost > 0 ? '$'+blankCost.toFixed(2) : '—'}</div></td>
       <td class="cost-td"><div style="color:#a78bfa;font-family:'Bebas Neue',sans-serif;font-size:16px;">${printCost > 0 ? '$'+printCost.toFixed(2) : '—'}</div></td>
@@ -6255,7 +6544,7 @@ function buildProductView(orders) {
     const unitSale = d.qty > 0 && d.revenue > 0 ? '$'+(d.revenue/d.qty).toFixed(2) : '—';
     return `<tr class="cost-row">
       <td class="cost-td">
-        <div class="cost-name">${name}</div>
+        <div class="cost-name">${escHtml(name)}</div>
         <div class="cost-sub">Blank: ${unitBlank} · Print: ${unitPrint} · Total/unit: ${unitTotal} · Avg sale: ${unitSale}</div>
       </td>
       <td class="cost-td" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--up-sky);">${d.qty}</td>
@@ -6298,7 +6587,13 @@ function exportCostCSV() {
         profit!==''?(profit>=0?'+':'')+'$'+profit.toFixed(2):'', margin]);
     });
   });
-  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r=>r.map(v=>`"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=`UP-Cost-Analysis-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
@@ -6448,7 +6743,7 @@ function renderCustomers() {
   real.forEach(o => {
     const key = (o.email || o.phone || o.customer || '').toLowerCase();
     if (!key) return;
-    if (!customers[key]) customers[key] = { name:o.customer, email:o.email||'', phone:o.phone||'', orders:[], totalSpend:0, stores:new Set() };
+    if (!customers[key]) customers[key] = { key, name:o.customer, email:o.email||'', phone:o.phone||'', orders:[], totalSpend:0, stores:new Set() };
     customers[key].orders.push(o);
     customers[key].stores.add(o.store);
     customers[key].totalSpend += (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
@@ -6466,19 +6761,19 @@ function renderCustomers() {
       const rev = (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
       return `<div class="customer-order-row">
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);width:90px;">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
-        <span style="flex:1;font-size:12px;color:var(--up-silver);">${o.store}</span>
+        <span style="flex:1;font-size:12px;color:var(--up-silver);">${escHtml(o.store)}</span>
         <span style="font-size:12px;color:var(--up-mist);">${(o.items||[]).reduce((s,i)=>s+(parseInt(i.qty)||1),0)} items</span>
         ${rev>0?`<span style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:#4ade80;margin-left:10px;">$${rev.toFixed(2)}</span>`:''}
-        <button class="btn-reorder" style="margin-left:8px;" onclick="reorderFromCustomer(${idx},event)">↺ Reorder</button>
+        <button class="btn-reorder" style="margin-left:8px;" onclick="reorderFromCustomer(${jsAttr(c.key)},${idx},event)">↺ Reorder</button>
       </div>`;
     }).join('');
 
     return `<div class="customer-card" id="ccard-${idx}" onclick="toggleCustomerCard(${idx})">
       <div class="customer-card-head">
-        <div class="customer-avatar" style="background:${storeColors[idx%4]}">${initials}</div>
+        <div class="customer-avatar" style="background:${storeColors[idx%4]}">${escHtml(initials)}</div>
         <div style="flex:1;">
-          <div class="customer-name">${c.name}</div>
-          <div class="customer-contact">${[c.email,c.phone].filter(Boolean).join(' · ')}</div>
+          <div class="customer-name">${escHtml(c.name)}</div>
+          <div class="customer-contact">${escHtml([c.email,c.phone].filter(Boolean).join(' · '))}</div>
         </div>
         <div style="text-align:right;">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#4ade80;">$${c.totalSpend.toFixed(2)}</div>
@@ -6497,7 +6792,7 @@ function renderCustomers() {
         <div id="reorder-confirm-${idx}" class="reorder-confirm"></div>
       </div>
     </div>`;
-  }).join('') : `<div class="dash-empty">No customers found${customerSearch?' matching "'+customerSearch+'"':' — orders will populate this list automatically'}.</div>`;
+  }).join('') : `<div class="dash-empty">No customers found${customerSearch?' matching "'+escHtml(customerSearch)+'"':' — orders will populate this list automatically'}.</div>`;
 
   return `
     <div class="cm-section-head">
@@ -6506,7 +6801,7 @@ function renderCustomers() {
       <button class="btn-prod-export" onclick="exportCustomerCSV()">⬇ Export CSV</button>
     </div>
     <div class="customer-search-bar">
-      <input class="customer-search" placeholder="🔍 Search by name, email, or phone..." value="${customerSearch}"
+      <input class="customer-search" placeholder="🔍 Search by name, email, or phone..." value="${escHtml(customerSearch)}"
         oninput="customerSearch=this.value;renderAdminPanel('customers')">
     </div>
     ${cardsHTML}`;
@@ -6521,19 +6816,21 @@ function toggleCustomerCard(idx) {
   }
 }
 
-function reorderFromCustomer(idx, e) {
+// Looks up a customer's orders directly by their stable key (email/phone/name,
+// lowercased) rather than a positional index — the card grid can be filtered by
+// customerSearch, so an index into a freshly-rebuilt, unfiltered customer list
+// would silently point at the wrong customer whenever a search is active.
+function getCustomerOrdersByKey(key) {
+  loadProductionOrders();
+  return productionOrders.filter(o => !o._storeRegistration
+    && (o.email||o.phone||o.customer||'').toLowerCase() === key);
+}
+
+function reorderFromCustomer(key, idx, e) {
   e.stopPropagation();
-  const real = productionOrders.filter(o=>!o._storeRegistration);
-  const customers = {};
-  real.forEach(o=>{
-    const key=(o.email||o.phone||o.customer||'').toLowerCase();
-    if(!key)return;
-    if(!customers[key])customers[key]={name:o.customer,orders:[]};
-    customers[key].orders.push(o);
-  });
-  const customer = Object.values(customers).sort((a,b)=>b.orders.length-a.orders.length)[idx];
-  if (!customer) return;
-  const lastOrder = customer.orders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+  const orders = getCustomerOrdersByKey(key);
+  if (!orders.length) return;
+  const lastOrder = orders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
   const confirmEl = document.getElementById('reorder-confirm-'+idx);
   if (!confirmEl) return;
   confirmEl.innerHTML = `
@@ -6541,24 +6838,16 @@ function reorderFromCustomer(idx, e) {
       ↺ Duplicate last order (${new Date(lastOrder.timestamp).toLocaleDateString()}) into a new production entry?
     </div>
     <div style="display:flex;gap:8px;">
-      <button class="btn-reorder" style="background:var(--up-blue);color:#fff;border-color:var(--up-blue);" onclick="confirmReorder(${idx})">✓ Yes, Reorder</button>
+      <button class="btn-reorder" style="background:var(--up-blue);color:#fff;border-color:var(--up-blue);" onclick="confirmReorder(${jsAttr(key)})">✓ Yes, Reorder</button>
       <button class="btn-cancel-a" onclick="this.closest('.reorder-confirm').classList.remove('show');this.closest('.reorder-confirm').innerHTML=''">Cancel</button>
     </div>`;
   confirmEl.classList.add('show');
 }
 
-function confirmReorder(idx) {
-  const real = productionOrders.filter(o=>!o._storeRegistration);
-  const customers = {};
-  real.forEach(o=>{
-    const key=(o.email||o.phone||o.customer||'').toLowerCase();
-    if(!key)return;
-    if(!customers[key])customers[key]={name:o.customer,orders:[]};
-    customers[key].orders.push(o);
-  });
-  const customer = Object.values(customers).sort((a,b)=>b.orders.length-a.orders.length)[idx];
-  if (!customer) return;
-  const lastOrder = customer.orders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+function confirmReorder(key) {
+  const orders = getCustomerOrdersByKey(key);
+  if (!orders.length) return;
+  const lastOrder = orders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
   const newOrder = {
     ...lastOrder,
     id: Date.now(),
@@ -6569,7 +6858,7 @@ function confirmReorder(idx) {
   productionOrders.unshift(newOrder);
   saveProductionOrders();
   renderAdminPanel('production');
-  showToast(`Reorder created for ${customer.name}!`);
+  showToast(`Reorder created for ${lastOrder.customer}!`);
 }
 
 function exportCustomerCSV() {
@@ -6586,7 +6875,13 @@ function exportCustomerCSV() {
   });
   const rows=[['Name','Email','Phone','Total Orders','Total Spent','Stores']];
   Object.values(customers).forEach(c=>rows.push([c.name,c.email,c.phone,c.orders,'$'+c.spend.toFixed(2),[...c.stores].join('; ')]));
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv=rows.map(r=>r.map(v=>`"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`UP-Customers-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;a.click();
@@ -6596,10 +6891,6 @@ function exportCustomerCSV() {
 //  DEADLINE TRACKER
 // ══════════════════════════════════════════════════════
 var deadlines = [];
-var newDeadlineTitle = '';
-var newDeadlineStore = '';
-var newDeadlineDate = '';
-var newDeadlineNotes = '';
 
 function loadDeadlines() {
   try { deadlines = JSON.parse(localStorage.getItem('upDeadlines')||'[]'); } catch(e) { deadlines=[]; }
@@ -6657,7 +6948,11 @@ function addInventoryItem() {
   const size     = document.getElementById('inv-size')?.value.trim();
   const qty      = parseInt(document.getElementById('inv-qty')?.value) || 0;
   const unitCost = parseFloat(document.getElementById('inv-cost')?.value) || 0;
-  const reorderAt= parseInt(document.getElementById('inv-reorder')?.value) ?? 5;
+  // parseInt('') is NaN, and NaN ?? 5 stays NaN (?? only catches null/undefined) — so
+  // clearing this field used to silently store reorderAt: NaN, which then made every
+  // low-stock comparison against it false (the item could never trigger an alert).
+  const reorderAtParsed = parseInt(document.getElementById('inv-reorder')?.value);
+  const reorderAt = isNaN(reorderAtParsed) ? 5 : reorderAtParsed;
   if (!name) { showToast('Item name is required'); return; }
   loadInventory();
   inventoryItems.push({ id: Date.now(), name, color, size, qty, unitCost, reorderAt, addedAt: new Date().toISOString() });
@@ -6697,12 +6992,21 @@ function exportInventoryCSV() {
   loadInventory();
   const rows = [['Item','Color','Size','Qty On Hand','Unit Cost','Total Value','Reorder At','Status']];
   inventoryItems.forEach(i => {
-    const low = parseInt(i.qty) <= parseInt(i.reorderAt||0);
+    // Match the threshold logic used everywhere else (renderInventory, getLowStockCount):
+    // undefined/legacy reorderAt defaults to 5, not 0, so this agrees with the live table.
+    const reorderAt = parseInt(i.reorderAt ?? 5);
+    const low = parseInt(i.qty) <= reorderAt;
     rows.push([i.name, i.color||'—', i.size||'—', i.qty, '$'+(parseFloat(i.unitCost)||0).toFixed(2),
       '$'+((parseFloat(i.unitCost)||0)*(parseInt(i.qty)||0)).toFixed(2),
-      i.reorderAt ?? '—', low ? 'LOW STOCK' : 'OK']);
+      reorderAt, low ? 'LOW STOCK' : 'OK']);
   });
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r => r.map(v => `"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -6891,7 +7195,7 @@ function renderDeadlines() {
     <div class="deadline-form">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:12px;">+ Add New Deadline</div>
       <div class="deadline-form-grid">
-        <div class="f"><label>Order / Event *</label><input id="dl-title" class="deadline-input" placeholder="e.g. Rampage Spring Jackets" value="${newDeadlineTitle}"></div>
+        <div class="f"><label>Order / Event *</label><input id="dl-title" class="deadline-input" placeholder="e.g. Rampage Spring Jackets"></div>
         <div class="f"><label>Team / Store</label>
           <select id="dl-store" class="deadline-input">
             <option value="">General</option>
@@ -6900,10 +7204,10 @@ function renderDeadlines() {
             <option>UP Sportswear</option>
           </select>
         </div>
-        <div class="f"><label>Needed By *</label><input id="dl-date" type="date" class="deadline-input" value="${newDeadlineDate}"></div>
+        <div class="f"><label>Needed By *</label><input id="dl-date" type="date" class="deadline-input"></div>
         <button class="btn-deadline-add" onclick="addDeadline()">+ Add</button>
       </div>
-      <div class="f" style="margin-top:8px;"><label>Notes (optional)</label><input id="dl-notes" class="deadline-input" placeholder="Any special instructions..." value="${newDeadlineNotes}"></div>
+      <div class="f" style="margin-top:8px;"><label>Notes (optional)</label><input id="dl-notes" class="deadline-input" placeholder="Any special instructions..."></div>
     </div>
 
     <div class="deadline-list">
@@ -7095,9 +7399,14 @@ function applyDiscount() {
     const inputWrap = document.getElementById('discountInputWrap');
     const appliedMsg = document.getElementById('discountAppliedMsg');
 
+    // This checkout always submits orders as store 'UP Sportswear' (see logProductionOrder),
+    // so a code restricted to a different store (d.stores) must not match here — otherwise
+    // the "Valid For Store" restriction set in Admin → Discounts is silently unenforced and
+    // e.g. a Rampage-only code would work on the UP Sportswear storefront too.
     const match = discountCodes.find(d =>
       d.code.toUpperCase() === code &&
       d.active &&
+      (!d.stores || d.stores === 'all' || d.stores === 'UP Sportswear') &&
       (!d.maxUses || d.uses < d.maxUses) &&
       (!d.expiry || new Date(d.expiry) > new Date())
     );
@@ -7350,7 +7659,13 @@ function exportDiscountCSV() {
     d.active?'Yes':'No',
     d.createdAt ? new Date(d.createdAt).toLocaleDateString() : ''
   ]));
-  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r=>r.map(v=>`"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=`UP-DiscountCodes-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
@@ -7856,9 +8171,9 @@ function renderInvoiceAdmin() {
     return `<div class="invoice-row">
       <div class="invoice-num-badge">${invoiceNum}</div>
       <div class="invoice-customer">
-        <div class="invoice-customer-name">${o.customer}</div>
+        <div class="invoice-customer-name">${escHtml(o.customer)}</div>
         <div class="invoice-customer-meta">
-          <span class="prod-store-badge" style="background:${storeColor};color:#fff;font-size:9px;">${o.store}</span>
+          <span class="prod-store-badge" style="background:${storeColor};color:#fff;font-size:9px;">${escHtml(o.store)}</span>
           <span style="margin-left:8px;">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
           <span style="margin-left:8px;">${(o.items||[]).reduce((s,i)=>s+(parseInt(i.qty)||1),0)} items</span>
           ${o.completed ? '<span style="color:#4ade80;margin-left:8px;">✅ Completed</span>' : '<span style="color:var(--up-mist);margin-left:8px;">⏳ Pending</span>'}
@@ -7980,8 +8295,8 @@ function generateInvoice(orderId) {
     const personalization = [item.playerName, item.playerNumber ? '#'+item.playerNumber : ''].filter(Boolean).join(' ');
     return `<tr>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;">
-        <strong>${item.name}</strong>
-        <div style="font-size:11px;color:#888;margin-top:2px;">${[item.color,item.size,personalization].filter(Boolean).join(' · ')}</div>
+        <strong>${escHtml(item.name)}</strong>
+        <div style="font-size:11px;color:#888;margin-top:2px;">${escHtml([item.color,item.size,personalization].filter(Boolean).join(' · '))}</div>
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;">${qty}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;">${unitPrice>0?'$'+unitPrice.toFixed(2):'—'}</td>
@@ -8023,8 +8338,8 @@ function generateInvoice(orderId) {
       </div>
     </div>
     <div class="inv-grid">
-      <div><div class="inv-label">Bill To</div><div class="inv-value">${o.customer}</div></div>
-      <div><div class="inv-label">Store / Team</div><div class="inv-value">${o.store}</div></div>
+      <div><div class="inv-label">Bill To</div><div class="inv-value">${escHtml(o.customer)}</div></div>
+      <div><div class="inv-label">Store / Team</div><div class="inv-value">${escHtml(o.store)}</div></div>
       <div><div class="inv-label">Order Date</div><div class="inv-value">${date}</div></div>
       <div><div class="inv-label">Status</div><div class="inv-value">${o.completed ? '✅ Completed' : '⏳ Pending'}</div></div>
     </div>
@@ -8096,7 +8411,12 @@ function showConfirmModal({ title = 'DELETE', msg = '', icon = '🗑️', label 
   const okBtn = document.getElementById('confirmOkBtn');
   okBtn.textContent = label;
   _confirmCallback = onConfirm;
-  okBtn.onclick = () => { closeConfirmModal(); if (_confirmCallback) _confirmCallback(); };
+  // Capture the callback before closing — closeConfirmModal() nulls out
+  // _confirmCallback, so checking/calling it *after* closing (as this used
+  // to) meant the confirmed action never ran on any showConfirmModal use
+  // site (Remove Product, Remove Team Store, Remove Order, Delete Discount
+  // Code, etc.) — clicking the button only ever closed the dialog.
+  okBtn.onclick = () => { const cb = _confirmCallback; closeConfirmModal(); if (cb) cb(); };
   document.getElementById('confirmModal').classList.add('open');
   a11yOpenTrap(document.getElementById('confirmModal'));
 }
@@ -8199,12 +8519,19 @@ async function renderStoreOrdersAsync(container) {
       </div>`;
     await loadKvOrders();
   }
+  // The admin may have switched tabs while the KV fetch was in flight —
+  // only paint if Store Orders is still the active tab, otherwise this
+  // would silently overwrite whatever tab they navigated to.
+  const navEl = document.getElementById('anav-storeorders');
+  if (navEl && !navEl.classList.contains('active')) return;
   container.innerHTML = renderStoreOrders();
 }
 
 function renderStoreOrders() {
   const orders = kvOrdersList;
   const sentCount = orders.filter(o => o.confirmationSent).length;
+  loadProductionOrders();
+  const onBoardCount = productionOrders.filter(p => p._kvTxnId).length;
 
   const header = `
     <div class="cm-section-head">
@@ -8213,6 +8540,7 @@ function renderStoreOrders() {
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;">
           ${orders.length} order${orders.length !== 1 ? 's' : ''} · ${sentCount} confirmed
         </span>
+        ${onBoardCount > 0 ? `<button class="btn-prod-export" style="border-color:rgba(200,16,46,.35);color:var(--hs-red);" onclick="clearOnBoardStoreOrders()">🗑 Clear On-Board Orders (${onBoardCount})</button>` : ''}
         <button class="btn-prod-export" onclick="kvOrdersLoaded=false;renderAdminPanel('storeorders')">🔄 Refresh</button>
       </div>
     </div>
@@ -8239,7 +8567,7 @@ function renderStoreOrders() {
 
     const itemLines = (o.orderItems || '').split('\n').filter(Boolean);
     const itemsHTML = itemLines.length
-      ? itemLines.map(line => `<div style="font-size:12px;color:var(--up-silver);padding:3px 0;border-bottom:1px solid var(--up-border);">${line}</div>`).join('')
+      ? itemLines.map(line => `<div style="font-size:12px;color:var(--up-silver);padding:3px 0;border-bottom:1px solid var(--up-border);">${escHtml(line)}</div>`).join('')
       : `<div style="font-size:12px;color:var(--up-mist);font-style:italic;">Item details not captured (order placed before pending-cart fix)</div>`;
 
     const confirmedBadge = confirmed
@@ -8251,36 +8579,36 @@ function renderStoreOrders() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
           <div>
             <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--up-white);">
-              ${o.customerName || o.payerName || '(name unknown)'}
+              ${escHtml(o.customerName || o.payerName) || '(name unknown)'}
             </div>
             <div style="font-size:11px;color:var(--up-mist);letter-spacing:1px;margin-top:2px;">
-              ${o.email || o.payerEmail || '—'}${o.phone ? ' · ' + o.phone : ''}
+              ${escHtml(o.email || o.payerEmail) || '—'}${o.phone ? ' · ' + escHtml(o.phone) : ''}
             </div>
-            ${o.address ? `<div style="font-size:11px;color:var(--up-mist);margin-top:2px;">📍 ${o.address}</div>` : ''}
+            ${o.address ? `<div style="font-size:11px;color:var(--up-mist);margin-top:2px;">📍 ${escHtml(o.address)}</div>` : ''}
           </div>
           <div style="text-align:right;flex-shrink:0;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#4ade80;">${o.total || ('$' + o.amount)}</div>
-            <div style="font-size:10px;color:var(--up-mist);letter-spacing:1.5px;text-transform:uppercase;">${o.storeName || 'Team Store'}</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#4ade80;">${escHtml(o.total || ('$' + o.amount))}</div>
+            <div style="font-size:10px;color:var(--up-mist);letter-spacing:1.5px;text-transform:uppercase;">${escHtml(o.storeName) || 'Team Store'}</div>
             <div style="font-size:10px;color:var(--up-mist);margin-top:2px;">${date}</div>
           </div>
         </div>
 
-        ${o.shippingMethod ? `<div style="font-size:11px;color:var(--up-sky);margin-bottom:8px;letter-spacing:1px;">🚚 ${o.shippingMethod}</div>` : ''}
+        ${o.shippingMethod ? `<div style="font-size:11px;color:var(--up-sky);margin-bottom:8px;letter-spacing:1px;">🚚 ${escHtml(o.shippingMethod)}</div>` : ''}
 
         <div style="margin-bottom:14px;">${itemsHTML}</div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           ${o.email ? `
-            <button onclick="sendStoreOrderConfirmation('${o.txnId}')"
+            <button onclick="sendStoreOrderConfirmation(${jsAttr(o.txnId)})"
               style="padding:8px 16px;background:${confirmed ? 'rgba(74,222,128,.1)' : 'rgba(21,101,255,.12)'};border:1px solid ${confirmed ? '#4ade80' : '#1565ff'};color:${confirmed ? '#4ade80' : '#4d9fff'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
               ${confirmed ? '✅ Resend Confirmation' : '📧 Send Order Received'}
             </button>` : ''}
-          <button onclick="addKvOrderToProductionBoard('${o.txnId}')"
+          <button onclick="addKvOrderToProductionBoard(${jsAttr(o.txnId)})"
             style="padding:8px 16px;background:${alreadyOnBoard ? 'rgba(74,222,128,.08)' : 'rgba(167,139,250,.12)'};border:1px solid ${alreadyOnBoard ? 'rgba(74,222,128,.3)' : 'rgba(167,139,250,.3)'};color:${alreadyOnBoard ? '#4ade80' : '#a78bfa'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
             ${alreadyOnBoard ? '✓ On Board' : '📋 Add to Production Board'}
           </button>
           ${confirmedBadge}
-          <span style="margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-border);letter-spacing:1px;" title="PayPal Transaction ID">TXN ${o.txnId || '—'}</span>
+          <span style="margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-border);letter-spacing:1px;" title="PayPal Transaction ID">TXN ${escHtml(o.txnId) || '—'}</span>
         </div>
       </div>`;
   }).join('');
@@ -8403,6 +8731,30 @@ function addKvOrderToProductionBoard(txnId) {
   saveProductionOrders();
   showToast('📋 Order added to Production Board!');
   renderAdminPanel('storeorders');
+}
+
+// Removes every production-board entry that originated from a Store Order
+// (i.e. was pushed there via "Add to Production Board" — identified by
+// _kvTxnId) without touching the underlying Store Orders / KV data, so any
+// cleared order can simply be re-added from the Store Orders tab.
+function clearOnBoardStoreOrders() {
+  loadProductionOrders();
+  const onBoardCount = productionOrders.filter(p => p._kvTxnId).length;
+  if (!onBoardCount) { showToast('No on-board store orders to clear.'); return; }
+
+  showConfirmModal({
+    title: 'CLEAR ON-BOARD ORDERS',
+    msg: `Remove all ${onBoardCount} store order${onBoardCount!==1?'s':''} currently on the Production Board? This only removes them from the Production Board — the orders themselves stay in Store Orders and can be re-added anytime.`,
+    icon: '🗑️',
+    label: 'Clear',
+    onConfirm: () => {
+      loadProductionOrders();
+      productionOrders = productionOrders.filter(p => !p._kvTxnId);
+      saveProductionOrders();
+      renderAdminPanel('storeorders');
+      showToast(`Cleared ${onBoardCount} order${onBoardCount!==1?'s':''} from the Production Board.`);
+    }
+  });
 }
 
 function renderAdminPanel(tab) {
