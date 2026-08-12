@@ -6004,10 +6004,10 @@ function openCostModal() {
           const salePrice = getSalePrice(name);
           return `<tr>
             <td style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--up-white);">
-              ${name}
+              ${escHtml(name)}
             </td>
             <td style="text-align:right;">
-              <input class="cost-input" data-item="${name.replace(/"/g,'&quot;')}"
+              <input class="cost-input" data-item="${escHtml(name)}"
                 type="number" step="0.01" min="0"
                 value="${itemCosts[name] !== undefined ? itemCosts[name].toFixed(2) : ''}"
                 placeholder="0.00">
@@ -6201,7 +6201,7 @@ function buildStoreView(orders) {
     const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     const hasCost = totalCost > 0;
     return `<tr class="cost-row">
-      <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;">${store}</span></td>
+      <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;">${escHtml(store)}</span></td>
       <td class="cost-td"><div class="cost-revenue-val">$${d.revenue.toFixed(2)}</div></td>
       <td class="cost-td"><div class="cost-cost-val">${d.blankCost > 0 ? '$'+d.blankCost.toFixed(2) : '—'}</div></td>
       <td class="cost-td"><div style="color:#a78bfa;font-family:'Bebas Neue',sans-serif;font-size:16px;">${d.printCost > 0 ? '$'+d.printCost.toFixed(2) : '—'}</div></td>
@@ -6245,10 +6245,10 @@ function buildOrderView(orders) {
     const sc = o.store==='River City Rampage'?'#1a6b2f':o.store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
     return `<tr class="cost-row">
       <td class="cost-td">
-        <div class="cost-name">${o.customer}</div>
+        <div class="cost-name">${escHtml(o.customer)}</div>
         <div class="cost-sub">${new Date(o.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
       </td>
-      <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;font-size:9px;">${o.store}</span></td>
+      <td class="cost-td"><span class="prod-store-badge" style="background:${sc};color:#fff;font-size:9px;">${escHtml(o.store)}</span></td>
       <td class="cost-td"><div class="cost-revenue-val">$${rev.toFixed(2)}</div></td>
       <td class="cost-td"><div class="cost-cost-val">${blankCost > 0 ? '$'+blankCost.toFixed(2) : '—'}</div></td>
       <td class="cost-td"><div style="color:#a78bfa;font-family:'Bebas Neue',sans-serif;font-size:16px;">${printCost > 0 ? '$'+printCost.toFixed(2) : '—'}</div></td>
@@ -6298,7 +6298,7 @@ function buildProductView(orders) {
     const unitSale = d.qty > 0 && d.revenue > 0 ? '$'+(d.revenue/d.qty).toFixed(2) : '—';
     return `<tr class="cost-row">
       <td class="cost-td">
-        <div class="cost-name">${name}</div>
+        <div class="cost-name">${escHtml(name)}</div>
         <div class="cost-sub">Blank: ${unitBlank} · Print: ${unitPrint} · Total/unit: ${unitTotal} · Avg sale: ${unitSale}</div>
       </td>
       <td class="cost-td" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--up-sky);">${d.qty}</td>
@@ -6341,7 +6341,13 @@ function exportCostCSV() {
         profit!==''?(profit>=0?'+':'')+'$'+profit.toFixed(2):'', margin]);
     });
   });
-  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r=>r.map(v=>`"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=`UP-Cost-Analysis-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
