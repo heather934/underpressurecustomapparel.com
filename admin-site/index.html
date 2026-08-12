@@ -6645,10 +6645,6 @@ function exportCustomerCSV() {
 //  DEADLINE TRACKER
 // ══════════════════════════════════════════════════════
 var deadlines = [];
-var newDeadlineTitle = '';
-var newDeadlineStore = '';
-var newDeadlineDate = '';
-var newDeadlineNotes = '';
 
 function loadDeadlines() {
   try { deadlines = JSON.parse(localStorage.getItem('upDeadlines')||'[]'); } catch(e) { deadlines=[]; }
@@ -6953,7 +6949,7 @@ function renderDeadlines() {
     <div class="deadline-form">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:12px;">+ Add New Deadline</div>
       <div class="deadline-form-grid">
-        <div class="f"><label>Order / Event *</label><input id="dl-title" class="deadline-input" placeholder="e.g. Rampage Spring Jackets" value="${newDeadlineTitle}"></div>
+        <div class="f"><label>Order / Event *</label><input id="dl-title" class="deadline-input" placeholder="e.g. Rampage Spring Jackets"></div>
         <div class="f"><label>Team / Store</label>
           <select id="dl-store" class="deadline-input">
             <option value="">General</option>
@@ -6962,10 +6958,10 @@ function renderDeadlines() {
             <option>UP Sportswear</option>
           </select>
         </div>
-        <div class="f"><label>Needed By *</label><input id="dl-date" type="date" class="deadline-input" value="${newDeadlineDate}"></div>
+        <div class="f"><label>Needed By *</label><input id="dl-date" type="date" class="deadline-input"></div>
         <button class="btn-deadline-add" onclick="addDeadline()">+ Add</button>
       </div>
-      <div class="f" style="margin-top:8px;"><label>Notes (optional)</label><input id="dl-notes" class="deadline-input" placeholder="Any special instructions..." value="${newDeadlineNotes}"></div>
+      <div class="f" style="margin-top:8px;"><label>Notes (optional)</label><input id="dl-notes" class="deadline-input" placeholder="Any special instructions..."></div>
     </div>
 
     <div class="deadline-list">
