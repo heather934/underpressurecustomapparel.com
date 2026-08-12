@@ -6706,7 +6706,11 @@ function addInventoryItem() {
   const size     = document.getElementById('inv-size')?.value.trim();
   const qty      = parseInt(document.getElementById('inv-qty')?.value) || 0;
   const unitCost = parseFloat(document.getElementById('inv-cost')?.value) || 0;
-  const reorderAt= parseInt(document.getElementById('inv-reorder')?.value) ?? 5;
+  // parseInt('') is NaN, and NaN ?? 5 stays NaN (?? only catches null/undefined) — so
+  // clearing this field used to silently store reorderAt: NaN, which then made every
+  // low-stock comparison against it false (the item could never trigger an alert).
+  const reorderAtParsed = parseInt(document.getElementById('inv-reorder')?.value);
+  const reorderAt = isNaN(reorderAtParsed) ? 5 : reorderAtParsed;
   if (!name) { showToast('Item name is required'); return; }
   loadInventory();
   inventoryItems.push({ id: Date.now(), name, color, size, qty, unitCost, reorderAt, addedAt: new Date().toISOString() });
@@ -6746,12 +6750,21 @@ function exportInventoryCSV() {
   loadInventory();
   const rows = [['Item','Color','Size','Qty On Hand','Unit Cost','Total Value','Reorder At','Status']];
   inventoryItems.forEach(i => {
-    const low = parseInt(i.qty) <= parseInt(i.reorderAt||0);
+    // Match the threshold logic used everywhere else (renderInventory, getLowStockCount):
+    // undefined/legacy reorderAt defaults to 5, not 0, so this agrees with the live table.
+    const reorderAt = parseInt(i.reorderAt ?? 5);
+    const low = parseInt(i.qty) <= reorderAt;
     rows.push([i.name, i.color||'—', i.size||'—', i.qty, '$'+(parseFloat(i.unitCost)||0).toFixed(2),
       '$'+((parseFloat(i.unitCost)||0)*(parseInt(i.qty)||0)).toFixed(2),
-      i.reorderAt ?? '—', low ? 'LOW STOCK' : 'OK']);
+      reorderAt, low ? 'LOW STOCK' : 'OK']);
   });
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r => r.map(v => `"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
