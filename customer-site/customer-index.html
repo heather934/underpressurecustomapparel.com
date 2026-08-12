@@ -8,6 +8,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
+// EmailJS — populated once config loads below; guards check the sentinel default.
+let EMAILJS_SERVICE_ID              = 'YOUR_EMAILJS_SERVICE_ID';
+let EMAILJS_ORDER_CONFIRM_TEMPLATE_ID = '';
+let EMAILJS_NEW_ORDER_TEMPLATE_ID     = '';
+let EMAILJS_DESIGN_TEMPLATE_ID        = '';
+let EMAILJS_QUOTE_TEMPLATE_ID         = '';
+let EMAILJS_QUOTE_ERIN_TEMPLATE_ID    = '';
+
 // ── Load credentials from Cloudflare KV on page boot ──────────────────
 // Falls back to localStorage if KV is unavailable (e.g. during local dev).
 (async function loadCredsFromKV() {
@@ -28,6 +36,12 @@
     if (config.emailjsOrderReadyTemplateId)  localStorage.setItem('upEmailjsOrderReadyTemplate',  config.emailjsOrderReadyTemplateId);
     if (config.cfAccountId)   localStorage.setItem('upCfAccountId',    config.cfAccountId);
     if (config.cfImagesToken) localStorage.setItem('upCfImagesToken',  config.cfImagesToken);
+    EMAILJS_SERVICE_ID              = config.emailjsServiceId              || EMAILJS_SERVICE_ID;
+    EMAILJS_ORDER_CONFIRM_TEMPLATE_ID = config.emailjsOrderConfirmTemplateId || '';
+    EMAILJS_NEW_ORDER_TEMPLATE_ID     = config.emailjsNewOrderTemplateId     || '';
+    EMAILJS_DESIGN_TEMPLATE_ID        = config.emailjsDesignTemplateId       || '';
+    EMAILJS_QUOTE_TEMPLATE_ID         = config.emailjsQuoteTemplateId        || '';
+    EMAILJS_QUOTE_ERIN_TEMPLATE_ID    = config.emailjsQuoteErinTemplateId    || '';
     if (config.emailjsPublicKey && typeof emailjs !== 'undefined') {
       emailjs.init(config.emailjsPublicKey);
     }

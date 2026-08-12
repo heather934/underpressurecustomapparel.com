@@ -1692,24 +1692,43 @@ async function sendOrderEmail(details) {
   const lineItems = cart.map(i =>
     `${i.label}${i.designName?' ('+i.designName+')':''} — ${i.color}, ${i.size} × ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`
   ).join('\n');
+  const customerEmail   = v('co-email');
+  const customerPhone   = v('co-phone');
+  const shippingAddress = `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`;
+  const orderTotal      = `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`;
+  // Field names are duplicated under both this file's original naming and the
+  // customer_*/shipping_address/order_total naming used elsewhere, since both
+  // checkout flows send to the same EmailJS templates and the template's actual
+  // placeholder names weren't verifiable from here — unused keys are harmless.
   const sharedParams = {
-    store_name:    teamData?.name || 'Team Store',
-    customer_name: `${v('co-first')} ${v('co-last')}`,
-    email:          v('co-email'),
-    phone:          v('co-phone'),
-    address:       `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
-    notes:          v('co-notes'),
-    order_items:    lineItems,
-    shipping_method: document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
-    total:         `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
-    paypal_id:      details.id || '',
+    store_name:       teamData?.name || 'Team Store',
+    customer_name:    `${v('co-first')} ${v('co-last')}`,
+    email:            customerEmail,
+    customer_email:   customerEmail,
+    phone:            customerPhone,
+    customer_phone:   customerPhone,
+    address:          shippingAddress,
+    shipping_address: shippingAddress,
+    notes:            v('co-notes'),
+    order_items:      lineItems,
+    shipping_method:  document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
+    total:            orderTotal,
+    order_total:      orderTotal,
+    order_id:         details.id || '',
+    paypal_id:        details.id || '',
   };
-  // Email to Erin only — her Gmail auto-reply handles customer confirmation
+  if (EMAILJS_ORDER_CONFIRM_ID) {
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_CONFIRM_ID, {
+      ...sharedParams,
+      to_email: customerEmail,
+      reply_to: 'erin@underpressurecustomapparel.com'
+    }).catch(e => console.warn('Customer confirmation email failed:', e));
+  }
   if (EMAILJS_NEW_ORDER_ID) {
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_ID, {
       ...sharedParams,
       to_email: 'erin@underpressurecustomapparel.com',
-      reply_to:  v('co-email')
+      reply_to: customerEmail
     }).catch(e => console.warn('Erin email failed:', e));
   }
 }
