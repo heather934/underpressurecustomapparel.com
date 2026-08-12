@@ -8411,7 +8411,12 @@ function showConfirmModal({ title = 'DELETE', msg = '', icon = '🗑️', label 
   const okBtn = document.getElementById('confirmOkBtn');
   okBtn.textContent = label;
   _confirmCallback = onConfirm;
-  okBtn.onclick = () => { closeConfirmModal(); if (_confirmCallback) _confirmCallback(); };
+  // Capture the callback before closing — closeConfirmModal() nulls out
+  // _confirmCallback, so checking/calling it *after* closing (as this used
+  // to) meant the confirmed action never ran on any showConfirmModal use
+  // site (Remove Product, Remove Team Store, Remove Order, Delete Discount
+  // Code, etc.) — clicking the button only ever closed the dialog.
+  okBtn.onclick = () => { const cb = _confirmCallback; closeConfirmModal(); if (cb) cb(); };
   document.getElementById('confirmModal').classList.add('open');
   a11yOpenTrap(document.getElementById('confirmModal'));
 }
@@ -8525,6 +8530,8 @@ async function renderStoreOrdersAsync(container) {
 function renderStoreOrders() {
   const orders = kvOrdersList;
   const sentCount = orders.filter(o => o.confirmationSent).length;
+  loadProductionOrders();
+  const onBoardCount = productionOrders.filter(p => p._kvTxnId).length;
 
   const header = `
     <div class="cm-section-head">
@@ -8533,6 +8540,7 @@ function renderStoreOrders() {
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;">
           ${orders.length} order${orders.length !== 1 ? 's' : ''} · ${sentCount} confirmed
         </span>
+        ${onBoardCount > 0 ? `<button class="btn-prod-export" style="border-color:rgba(200,16,46,.35);color:var(--hs-red);" onclick="clearOnBoardStoreOrders()">🗑 Clear On-Board Orders (${onBoardCount})</button>` : ''}
         <button class="btn-prod-export" onclick="kvOrdersLoaded=false;renderAdminPanel('storeorders')">🔄 Refresh</button>
       </div>
     </div>
@@ -8723,6 +8731,30 @@ function addKvOrderToProductionBoard(txnId) {
   saveProductionOrders();
   showToast('📋 Order added to Production Board!');
   renderAdminPanel('storeorders');
+}
+
+// Removes every production-board entry that originated from a Store Order
+// (i.e. was pushed there via "Add to Production Board" — identified by
+// _kvTxnId) without touching the underlying Store Orders / KV data, so any
+// cleared order can simply be re-added from the Store Orders tab.
+function clearOnBoardStoreOrders() {
+  loadProductionOrders();
+  const onBoardCount = productionOrders.filter(p => p._kvTxnId).length;
+  if (!onBoardCount) { showToast('No on-board store orders to clear.'); return; }
+
+  showConfirmModal({
+    title: 'CLEAR ON-BOARD ORDERS',
+    msg: `Remove all ${onBoardCount} store order${onBoardCount!==1?'s':''} currently on the Production Board? This only removes them from the Production Board — the orders themselves stay in Store Orders and can be re-added anytime.`,
+    icon: '🗑️',
+    label: 'Clear',
+    onConfirm: () => {
+      loadProductionOrders();
+      productionOrders = productionOrders.filter(p => !p._kvTxnId);
+      saveProductionOrders();
+      renderAdminPanel('storeorders');
+      showToast(`Cleared ${onBoardCount} order${onBoardCount!==1?'s':''} from the Production Board.`);
+    }
+  });
 }
 
 function renderAdminPanel(tab) {
