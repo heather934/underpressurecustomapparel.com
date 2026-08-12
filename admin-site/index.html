@@ -7153,9 +7153,14 @@ function applyDiscount() {
     const inputWrap = document.getElementById('discountInputWrap');
     const appliedMsg = document.getElementById('discountAppliedMsg');
 
+    // This checkout always submits orders as store 'UP Sportswear' (see logProductionOrder),
+    // so a code restricted to a different store (d.stores) must not match here — otherwise
+    // the "Valid For Store" restriction set in Admin → Discounts is silently unenforced and
+    // e.g. a Rampage-only code would work on the UP Sportswear storefront too.
     const match = discountCodes.find(d =>
       d.code.toUpperCase() === code &&
       d.active &&
+      (!d.stores || d.stores === 'all' || d.stores === 'UP Sportswear') &&
       (!d.maxUses || d.uses < d.maxUses) &&
       (!d.expiry || new Date(d.expiry) > new Date())
     );
@@ -7408,7 +7413,13 @@ function exportDiscountCSV() {
     d.active?'Yes':'No',
     d.createdAt ? new Date(d.createdAt).toLocaleDateString() : ''
   ]));
-  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Guard against CSV/formula injection — see exportProductionCSV for details.
+  const csvSafe = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return s;
+  };
+  const csv = rows.map(r=>r.map(v=>`"${csvSafe(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=`UP-DiscountCodes-${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
