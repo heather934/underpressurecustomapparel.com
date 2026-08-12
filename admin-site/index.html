@@ -3262,7 +3262,17 @@ function loadTeams() {
       seeded = true;
     }
   });
-  if (seeded) saveTeams();
+
+  // Backfill a stable key for any custom team store that's missing one.
+  // Without this, storeAccess/storeCodes (visibility, access codes) fall back to
+  // a key derived from array position — which shifts whenever any store is
+  // deleted or reordered, silently applying the wrong store's settings.
+  let backfilled = false;
+  teams.forEach((t, i) => {
+    if (!t.key) { t.key = 'team-' + Date.now() + '-' + i; backfilled = true; }
+  });
+
+  if (seeded || backfilled) saveTeams();
 }
 function saveTeams() { localStorage.setItem("upTeams", JSON.stringify(teams)); kvSet('teams', teams); }
 function saveHiddenStores() { localStorage.setItem("hiddenStores", JSON.stringify([...hiddenStores])); kvSet('hiddenStores', [...hiddenStores]); }
@@ -4289,6 +4299,11 @@ function saveCMTeam() {
 
   const isNew = cmTeamEditIdx === -1;
   if (!isNew && teams[cmTeamEditIdx]?.key) team.key = teams[cmTeamEditIdx].key;
+  // Assign a stable key up front — storeAccess/storeCodes settings are keyed
+  // off this, and without it they'd fall back to an array-position key that
+  // shifts (and silently applies to the wrong store) whenever any store is
+  // deleted or reordered.
+  if (!team.key) team.key = 'team-' + Date.now();
 
   if (!isNew) teams[cmTeamEditIdx] = team;
   else teams.push(team);
