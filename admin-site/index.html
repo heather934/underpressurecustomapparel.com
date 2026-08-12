@@ -1856,6 +1856,13 @@ nav { position: relative; }
 .item-status-select.need  { border-left:3px solid var(--hs-red);   color:var(--hs-red); }
 .item-status-select.have  { border-left:3px solid #4ade80;          color:#4ade80; }
 .item-status-select.part  { border-left:3px solid var(--accent);    color:var(--accent); }
+.item-spend-input {
+  background:var(--up-navy); border:1px solid var(--up-border);
+  color:var(--up-white); padding:5px 10px; width:90px;
+  font-family:'Bebas Neue',sans-serif; font-size:14px;
+  outline:none; transition:border-color .2s;
+}
+.item-spend-input:focus { border-color:var(--up-sky); }
 .status-badge {
   font-family:'Barlow Condensed',sans-serif; font-size:10px;
   font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:2px 8px;
@@ -5538,6 +5545,7 @@ function renderPurchaseList() {
       : 'var(--up-blue)';
 
     const purchaseStatuses = JSON.parse(localStorage.getItem('purchaseStatuses') || '{}');
+    const purchaseSpend = JSON.parse(localStorage.getItem('purchaseSpend') || '{}');
 
       const itemCards = Object.entries(storeData).map(([itemName, sizeData], cardIdx) => {
         const sizes = Object.keys(sizeData).filter(k => k !== '_total' && k !== '_colors');
@@ -5548,6 +5556,9 @@ function renderPurchaseList() {
         const cardId = 'pcard-' + storeName.replace(/[^a-zA-Z0-9]/g,'') + '-' + cardIdx;
         const statusKey = storeName + '::' + itemName;
         const currentStatus = purchaseStatuses[statusKey] || 'need';
+        const spendEntry = purchaseSpend[statusKey] || {};
+        const spendAmount = parseFloat(spendEntry.amount) || 0;
+        const receiptUrl = spendEntry.receiptUrl || '';
         const statusClass = currentStatus==='have'?'have':currentStatus==='part'?'part':'need';
         const statusLabel = currentStatus==='have'?'✅ In Stock':currentStatus==='part'?'⚠ Partially In Stock':'🔴 Need to Order';
         const borderColor = statusClass==='have'?'#4ade80':statusClass==='part'?'var(--accent)':'var(--hs-red)';
@@ -5640,16 +5651,38 @@ function renderPurchaseList() {
               <option value="have" ${currentStatus==='have'?'selected':''}>✅ In Stock</option>
             </select>
           </div>
+          <div class="item-status-wrap" style="flex-wrap:wrap;">
+            <span class="item-status-label">Amount Spent:</span>
+            <span style="color:var(--up-mist);font-family:'Bebas Neue',sans-serif;font-size:14px;">$</span>
+            <input type="number" min="0" step="0.01" class="item-spend-input" placeholder="0.00"
+              value="${spendAmount ? spendAmount.toFixed(2) : ''}"
+              onchange="setPurchaseSpendAmount(${jsAttr(statusKey)}, this.value)">
+            <label class="btn-upload-file" style="padding:5px 9px;font-size:10px;" title="Take a photo of the receipt or upload one from your device">
+              📷 Receipt
+              <input type="file" accept="image/*" capture="environment"
+                onchange="uploadPurchaseReceipt(${jsAttr(statusKey)}, this)">
+            </label>
+            ${receiptUrl ? `
+              <a href="${escHtml(receiptUrl)}" target="_blank" rel="noopener" title="View receipt">
+                <img src="${escHtml(receiptUrl)}" alt="Receipt" style="width:28px;height:28px;object-fit:cover;border:1px solid var(--up-border);vertical-align:middle;">
+              </a>
+              <button onclick="removePurchaseReceipt(${jsAttr(statusKey)})" title="Remove receipt" aria-label="Remove receipt photo"
+                style="background:none;border:none;color:var(--up-mist);cursor:pointer;font-size:13px;padding:0 2px;">✕</button>
+            ` : ''}
+            <span class="purchase-receipt-status" id="pr-status-${cardId}" style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:var(--up-mist);"></span>
+          </div>
         </div>`;
       }).join('');
 
     const storeTotal = Object.values(storeData).reduce((s, d) => s + (d._total || 0), 0);
+    const storeSpend = Object.keys(storeData).reduce((s, itemName) =>
+      s + (parseFloat(purchaseSpend[storeName + '::' + itemName]?.amount) || 0), 0);
 
     return `<div class="purchase-store-group">
       <div class="purchase-store-label" style="background:${storeColor}20;border-left:3px solid ${storeColor};">
         <span class="prod-store-badge" style="background:${storeColor};color:#fff;">${escHtml(storeName)}</span>
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);">
-          ${Object.keys(storeData).length} item type${Object.keys(storeData).length !== 1 ? 's' : ''} · ${storeTotal} total pieces needed
+          ${Object.keys(storeData).length} item type${Object.keys(storeData).length !== 1 ? 's' : ''} · ${storeTotal} total pieces needed${storeSpend > 0 ? ` · $${storeSpend.toFixed(2)} spent` : ''}
         </span>
       </div>
       ${itemCards}
@@ -5665,6 +5698,9 @@ function renderPurchaseList() {
     else needCount++;
   });
   const totalItemTypes = Object.keys(allStatuses).length;
+
+  const allSpend = JSON.parse(localStorage.getItem('purchaseSpend') || '{}');
+  const grandSpend = Object.values(allSpend).reduce((s, v) => s + (parseFloat(v?.amount) || 0), 0);
 
   return `
     <div class="cm-section-head">
@@ -5702,7 +5738,10 @@ function renderPurchaseList() {
         <div class="pgt-label">Grand Total — All Stores</div>
         <div style="font-size:12px;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;margin-top:2px;">Pending orders only · Complete orders excluded</div>
       </div>
-      <div class="pgt-value">${grandTotal} <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--up-mist);">PIECES</span></div>
+      <div style="display:flex;align-items:baseline;gap:20px;">
+        ${grandSpend > 0 ? `<div class="pgt-value" style="color:#4ade80;">$${grandSpend.toFixed(2)} <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--up-mist);">SPENT</span></div>` : ''}
+        <div class="pgt-value">${grandTotal} <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--up-mist);">PIECES</span></div>
+      </div>
     </div>
 
     <div class="cm-tip" style="margin-top:12px;">
@@ -5885,6 +5924,77 @@ function togglePurchaseCard(id) {
   if (card) card.classList.toggle('collapsed');
 }
 
+// purchaseSpend is keyed the same as purchaseStatuses (store::item) and stores
+// { amount, receiptUrl } so a dollar amount and a receipt photo can be tracked
+// independently — clearing the amount doesn't have to drop an attached receipt.
+function loadPurchaseSpend() {
+  try { return JSON.parse(localStorage.getItem('purchaseSpend') || '{}'); }
+  catch(e) { return {}; }
+}
+function savePurchaseSpend(spend) {
+  localStorage.setItem('purchaseSpend', JSON.stringify(spend));
+}
+
+function setPurchaseSpendAmount(key, value) {
+  const amount = parseFloat(value);
+  const spend = loadPurchaseSpend();
+  const entry = spend[key] || {};
+  if (!value.trim() || isNaN(amount) || amount <= 0) {
+    delete entry.amount;
+  } else {
+    entry.amount = amount;
+  }
+  if (entry.amount || entry.receiptUrl) spend[key] = entry;
+  else delete spend[key];
+  savePurchaseSpend(spend);
+  // Store/grand totals live in this render, so just re-render the panel.
+  renderAdminPanel('purchaselist');
+  showToast('Amount spent updated');
+}
+
+async function uploadPurchaseReceipt(key, fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select an image file for the receipt.');
+    fileInput.value = '';
+    return;
+  }
+  const statusEl = fileInput.closest('.item-status-wrap')?.querySelector('.purchase-receipt-status');
+  if (statusEl) statusEl.textContent = 'Uploading receipt…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('filename', file.name);
+    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
+    const spend = loadPurchaseSpend();
+    const entry = spend[key] || {};
+    entry.receiptUrl = data.url;
+    spend[key] = entry;
+    savePurchaseSpend(spend);
+    showToast('Receipt uploaded!');
+    renderAdminPanel('purchaselist');
+  } catch (e) {
+    if (statusEl) statusEl.textContent = '';
+    showToast(`⚠ Receipt upload failed: ${e.message}`);
+  }
+  fileInput.value = '';
+}
+
+function removePurchaseReceipt(key) {
+  const spend = loadPurchaseSpend();
+  const entry = spend[key];
+  if (!entry) return;
+  delete entry.receiptUrl;
+  if (entry.amount) spend[key] = entry;
+  else delete spend[key];
+  savePurchaseSpend(spend);
+  renderAdminPanel('purchaselist');
+  showToast('Receipt removed');
+}
+
 function exportPurchaseCSV() {
   loadProductionOrders();
   const realOrders = productionOrders.filter(o => !o._storeRegistration && !o.completed);
@@ -5903,16 +6013,20 @@ function exportPurchaseCSV() {
     });
   });
 
-  const rows = [['Store', 'Item', 'Size', 'Color', 'Quantity', 'Stock Status']];
+  const allStatuses2 = JSON.parse(localStorage.getItem('purchaseStatuses') || '{}');
+  const allSpend2 = loadPurchaseSpend();
+
+  const rows = [['Store', 'Item', 'Size', 'Color', 'Quantity', 'Stock Status', 'Amount Spent', 'Receipt']];
   Object.entries(breakdown).forEach(([store, items]) => {
     Object.entries(items).forEach(([item, data]) => {
       Object.entries(data).filter(([k]) => k !== '_colors').forEach(([key, qty]) => {
         const [size, color] = key.split('|');
         const statusKey2 = store + '::' + item;
-      const allStatuses2 = JSON.parse(localStorage.getItem('purchaseStatuses') || '{}');
-      const itemStatus = allStatuses2[statusKey2] || 'need';
-      const statusLabel = itemStatus==='have'?'In Stock':itemStatus==='part'?'Partially In Stock':'Need to Order';
-      rows.push([store, item, size, color, qty, statusLabel]);
+        const itemStatus = allStatuses2[statusKey2] || 'need';
+        const statusLabel = itemStatus==='have'?'In Stock':itemStatus==='part'?'Partially In Stock':'Need to Order';
+        const spendEntry2 = allSpend2[statusKey2] || {};
+        const amountSpent = spendEntry2.amount ? '$' + parseFloat(spendEntry2.amount).toFixed(2) : '';
+        rows.push([store, item, size, color, qty, statusLabel, amountSpent, spendEntry2.receiptUrl || '']);
       });
     });
   });
