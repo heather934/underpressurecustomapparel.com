@@ -5304,6 +5304,22 @@ var prodFilterStore = 'all';
 var prodFilterStatus = 'all';
 var prodSearch = '';
 
+// Items checked for batch printing — keyed by `${orderId}_${itemIdx}`, value
+// is the same data shape openPrintSheet() takes. Persists across re-renders
+// (survives filtering) until Erin unchecks a row or prints.
+var prodPrintSelection = {};
+
+function toggleProdPrintSelect(key, dataJSON, checked) {
+  if (checked) {
+    let data = dataJSON;
+    if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) { return; } }
+    prodPrintSelection[key] = data;
+  } else {
+    delete prodPrintSelection[key];
+  }
+  renderAdminPanel('production');
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  GRAPHICS LOCATIONS — maps product type keywords → print locations
 //  Used to calculate total graphics needed across all pending orders.
@@ -5421,7 +5437,15 @@ function renderProductionAdmin() {
             <td class="prod-td" style="border-right:1px solid var(--up-border);text-align:center;${o.completed?'':''}">
               <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${o.completed?'var(--up-mist)':'#a78bfa'};">${graphicsThisLine}</span>
               <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:var(--up-mist);text-transform:uppercase;">${locsLabel}</div>
-              ${(item.graphicImg || item.graphicName || item.graphicImgBack || item.graphicNameBack) ? `<button onclick="openPrintSheet(${JSON.stringify({orderId:o.id,customer:o.customer,store:o.store,date:o.timestamp,itemName:item.name,color:item.color||'',size:item.size||'',qty:item.qty||1,playerName:item.playerName||'',playerNumber:item.playerNumber||'',graphicName:item.graphicName||'',graphicImg:item.graphicImg||'',graphicNameBack:item.graphicNameBack||'',graphicImgBack:item.graphicImgBack||''}).replace(/"/g,'&quot;')})" style="margin-top:5px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:#a78bfa;padding:4px 10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;display:block;width:100%;transition:all .2s;" onmouseover="this.style.background='rgba(167,139,250,.3)'" onmouseout="this.style.background='rgba(167,139,250,.15)'">🖨 Print Sheet</button>` : ''}
+              ${(item.graphicImg || item.graphicName || item.graphicImgBack || item.graphicNameBack) ? (() => {
+                const printKey = `${o.id}_${itemIdx}`;
+                const printData = {orderId:o.id,customer:o.customer,store:o.store,date:o.timestamp,itemName:item.name,color:item.color||'',size:item.size||'',qty:item.qty||1,playerName:item.playerName||'',playerNumber:item.playerNumber||'',graphicName:item.graphicName||'',graphicImg:item.graphicImg||'',graphicNameBack:item.graphicNameBack||'',graphicImgBack:item.graphicImgBack||''};
+                const isChecked = !!prodPrintSelection[printKey];
+                return `<label style="margin-top:5px;display:flex;align-items:center;gap:5px;justify-content:center;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#a78bfa;">
+                  <input type="checkbox" ${isChecked?'checked':''} onchange="toggleProdPrintSelect('${printKey}', ${jsAttr(JSON.stringify(printData))}, this.checked)" style="accent-color:#a78bfa;cursor:pointer;">
+                  🖨 Print
+                </label>`;
+              })() : ''}
             </td>
             ${itemIdx === 0 ? `
               <td class="prod-td" rowspan="${o.items.length}" style="vertical-align:middle;text-align:center;min-width:120px;">
@@ -5445,6 +5469,8 @@ function renderProductionAdmin() {
     <div class="cm-section-head">
       <div class="cm-section-title" style="color:#4ade80;">Production <span style="color:var(--up-sky)">Board</span></div>
       <div style="display:flex;gap:8px;">
+        ${(() => { const n = Object.keys(prodPrintSelection).length; return `
+        <button class="btn-prod-export" onclick="openPrintSheetsBatch()" ${n?'':'disabled'} style="${n?'':'opacity:.4;cursor:default;'}border-color:rgba(167,139,250,.35);color:#a78bfa;" title="${n?`Print sheets for ${n} checked item${n!==1?'s':''}`:'Check items below to enable'}">🖨 Print Sheets${n?` (${n})`:''}</button>`; })()}
         <button class="btn-prod-export" onclick="exportProductionCSV()">⬇ Export CSV</button>
       </div>
     </div>
@@ -5496,18 +5522,8 @@ function renderProductionAdmin() {
 // ══════════════════════════════════════════════════════════════════
 //  PRINT SHEET — opens a clean printable window for DTF printing
 // ══════════════════════════════════════════════════════════════════
-function openPrintSheet(data) {
-  if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) { return; } }
-
-  const date = data.date ? new Date(data.date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '';
-  const playerLine = [data.playerName, data.playerNumber ? '#' + data.playerNumber : ''].filter(Boolean).join(' ');
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Print Sheet — ${escHtml(data.graphicName || data.itemName)}</title>
-<style>
+// Shared page CSS for both the single-item and batch print sheets.
+const PRINT_SHEET_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;700&family=Barlow:wght@300;400&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:#fff;color:#060810;font-family:'Barlow',sans-serif;padding:32px;max-width:800px;margin:0 auto;}
@@ -5531,70 +5547,107 @@ function openPrintSheet(data) {
   .btn-print:hover{background:#0a4fd6;}
   .print-note{text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;}
   .locations-badge{display:inline-block;background:#f3f0ff;border:1px solid #ddd6fe;color:#7c3aed;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;margin-bottom:24px;}
+  .sheet-section{padding-bottom:24px;margin-bottom:24px;border-bottom:1px dashed #d1d5db;}
+  .sheet-section:last-of-type{border-bottom:none;}
   @media print{
     .btn-print,.print-note{display:none;}
     body{padding:16px;}
     @page{margin:12mm;}
+    .sheet-section{page-break-after:always;border-bottom:none;}
+    .sheet-section:last-of-type{page-break-after:auto;}
   }
-</style>
+`;
+
+// Builds the graphic/order-details markup for one item — shared by the
+// single-item print sheet and the batch (checked-items) print sheet.
+function printSheetSectionHTML(data) {
+  const date = data.date ? new Date(data.date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '';
+  const playerLine = [data.playerName, data.playerNumber ? '#' + data.playerNumber : ''].filter(Boolean).join(' ');
+
+  return `
+  <div class="sheet-section">
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-logo">Under Pressure</div>
+        <div class="sheet-sub">DTF Print Sheet</div>
+      </div>
+      <div class="sheet-date">
+        <div>${escHtml(data.store)}</div>
+        <div style="margin-top:4px;">${date}</div>
+        <div style="margin-top:4px;font-size:10px;">Order #${escHtml(data.orderId)}</div>
+      </div>
+    </div>
+
+    <div class="graphic-name">${escHtml(data.graphicName || data.itemName)}</div>
+    <div class="graphic-sub">${escHtml(data.itemName)}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + escHtml(data.graphicName) : ''}${data.graphicNameBack ? ' · Back: ' + escHtml(data.graphicNameBack) : ''}</div>
+    <div class="locations-badge">🎨 ${getGraphicLocations ? getGraphicLocations(data.itemName) : 1} print location${getGraphicLocations && getGraphicLocations(data.itemName) > 1 ? 's' : ''}</div>
+
+    <div class="graphic-img-row">
+      <div class="graphic-img-wrap">
+        <div class="graphic-img-label">Front</div>
+        ${data.graphicImg
+          ? `<img src="${escHtml(data.graphicImg)}" alt="${escHtml(data.graphicName||data.itemName||'')}" onerror="this.parentElement.innerHTML='<div class=graphic-img-label>Front</div><div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImg)}">`
+          : `<div class="no-img">No graphic image on file<br><span style="font-size:11px;margin-top:6px;display:block;">Add a design image URL in the team store admin</span></div>`}
+      </div>
+      ${data.graphicImgBack || data.graphicNameBack ? `<div class="graphic-img-wrap">
+        <div class="graphic-img-label">Back</div>
+        ${data.graphicImgBack
+          ? `<img src="${escHtml(data.graphicImgBack)}" alt="${escHtml(data.graphicNameBack||'')}" onerror="this.parentElement.innerHTML='<div class=graphic-img-label>Back</div><div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImgBack)}">`
+          : `<div class="no-img">No graphic image on file</div>`}
+      </div>` : ''}
+    </div>
+
+    <div class="order-grid">
+      <div class="order-cell span2">
+        <div class="order-label">Customer</div>
+        <div class="order-value">${escHtml(data.customer)}</div>
+      </div>
+      <div class="order-cell">
+        <div class="order-label">Qty</div>
+        <div class="order-value" style="font-size:28px;">${escHtml(data.qty)}</div>
+      </div>
+      <div class="order-cell">
+        <div class="order-label">Size</div>
+        <div class="order-value">${escHtml(data.size) || '—'}</div>
+      </div>
+      <div class="order-cell">
+        <div class="order-label">Color</div>
+        <div class="order-value">${escHtml(data.color) || '—'}</div>
+      </div>
+      <div class="order-cell">
+        <div class="order-label">Player</div>
+        <div class="order-value">${escHtml(playerLine) || '—'}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openPrintSheet(data) {
+  if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) { return; } }
+  openPrintSheetPage([data], data.graphicName || data.itemName);
+}
+
+// Opens one browser tab containing every checked item's print sheet, each on
+// its own page (page-break-after in print media) — for batch-printing DTF
+// sheets from the Production Board's header button instead of one at a time.
+function openPrintSheetsBatch() {
+  const items = Object.values(prodPrintSelection);
+  if (!items.length) { showToast('Check at least one item to print'); return; }
+  openPrintSheetPage(items, `${items.length} item${items.length!==1?'s':''}`);
+}
+
+function openPrintSheetPage(items, titleText) {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Print Sheet — ${escHtml(titleText)}</title>
+<style>${PRINT_SHEET_STYLE}</style>
 </head>
 <body>
-  <div class="sheet-header">
-    <div>
-      <div class="sheet-logo">Under Pressure</div>
-      <div class="sheet-sub">DTF Print Sheet</div>
-    </div>
-    <div class="sheet-date">
-      <div>${escHtml(data.store)}</div>
-      <div style="margin-top:4px;">${date}</div>
-      <div style="margin-top:4px;font-size:10px;">Order #${escHtml(data.orderId)}</div>
-    </div>
-  </div>
-
-  <div class="graphic-name">${escHtml(data.graphicName || data.itemName)}</div>
-  <div class="graphic-sub">${escHtml(data.itemName)}${data.graphicName && data.graphicName !== data.itemName ? ' · ' + escHtml(data.graphicName) : ''}${data.graphicNameBack ? ' · Back: ' + escHtml(data.graphicNameBack) : ''}</div>
-  <div class="locations-badge">🎨 ${getGraphicLocations ? getGraphicLocations(data.itemName) : 1} print location${getGraphicLocations && getGraphicLocations(data.itemName) > 1 ? 's' : ''}</div>
-
-  <div class="graphic-img-row">
-    <div class="graphic-img-wrap">
-      <div class="graphic-img-label">Front</div>
-      ${data.graphicImg
-        ? `<img src="${escHtml(data.graphicImg)}" alt="${escHtml(data.graphicName||data.itemName||'')}" onerror="this.parentElement.innerHTML='<div class=graphic-img-label>Front</div><div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImg)}">`
-        : `<div class="no-img">No graphic image on file<br><span style="font-size:11px;margin-top:6px;display:block;">Add a design image URL in the team store admin</span></div>`}
-    </div>
-    ${data.graphicImgBack || data.graphicNameBack ? `<div class="graphic-img-wrap">
-      <div class="graphic-img-label">Back</div>
-      ${data.graphicImgBack
-        ? `<img src="${escHtml(data.graphicImgBack)}" alt="${escHtml(data.graphicNameBack||'')}" onerror="this.parentElement.innerHTML='<div class=graphic-img-label>Back</div><div class=no-img>Image could not load — open URL directly</div><div style=margin-top:8px;font-size:11px;color:#9ca3af;word-break:break-all></div>';this.parentElement.lastElementChild.textContent=${jsAttr(data.graphicImgBack)}">`
-        : `<div class="no-img">No graphic image on file</div>`}
-    </div>` : ''}
-  </div>
-
-  <div class="order-grid">
-    <div class="order-cell span2">
-      <div class="order-label">Customer</div>
-      <div class="order-value">${escHtml(data.customer)}</div>
-    </div>
-    <div class="order-cell">
-      <div class="order-label">Qty</div>
-      <div class="order-value" style="font-size:28px;">${escHtml(data.qty)}</div>
-    </div>
-    <div class="order-cell">
-      <div class="order-label">Size</div>
-      <div class="order-value">${escHtml(data.size) || '—'}</div>
-    </div>
-    <div class="order-cell">
-      <div class="order-label">Color</div>
-      <div class="order-value">${escHtml(data.color) || '—'}</div>
-    </div>
-    <div class="order-cell">
-      <div class="order-label">Player</div>
-      <div class="order-value">${escHtml(playerLine) || '—'}</div>
-    </div>
-  </div>
-
+  ${items.map(printSheetSectionHTML).join('')}
   <button class="btn-print" onclick="window.print()">🖨 PRINT / SAVE AS PDF</button>
-  <div class="print-note">Print this sheet or save as PDF to send to your DTF printer</div>
+  <div class="print-note">Print ${items.length > 1 ? 'these sheets' : 'this sheet'} or save as PDF to send to your DTF printer</div>
 </body>
 </html>`;
 
