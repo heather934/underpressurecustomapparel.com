@@ -987,6 +987,7 @@ const PRODUCT_CATALOG = {
   jacket:     { label: 'Batting Jacket',        category: 'tops',    icon: '🧤', views: [], placeholder: true },
   hat:        { label: 'Hat / Cap',             category: 'extras',  icon: '🧢', views: [], placeholder: true },
   bag:        { label: 'Bag / Backpack',        category: 'extras',  icon: '🎒', views: [], placeholder: true },
+  misc:       { label: 'Miscellaneous Item',    category: 'extras',  icon: '📦', views: [], placeholder: true },
 };
 
 // Backward-compat: a product's design(s) live either in the current
@@ -1355,7 +1356,7 @@ function renderCard(product, index) {
       <div class="ts-card-body">
         <div class="ts-card-labels">
           <div>
-            <div class="ts-card-name">${meta.label}</div>
+            <div class="ts-card-name">${product.label || meta.label}</div>
             ${designSummary ? `<div class="ts-card-design-name">${designSummary}</div>` : ''}
           </div>
           <div class="ts-card-price">$${unitPrice.toFixed(2)}</div>
@@ -1379,7 +1380,7 @@ function renderCard(product, index) {
         <!-- ADD TO CART -->
         <button class="ts-add-btn" id="tsaddbtn-${cardId}"
           style="background:${teamData?.color||'var(--up-blue)'};"
-          onclick="addToCart('${cardId}','${product.type}','${encodeURIComponent(designName)}','${encodeURIComponent(designUrl)}','${encodeURIComponent(secondaryDesign?.designName||'')}','${encodeURIComponent(secondaryDesign?.designUrl||'')}','${encodeURIComponent(meta.label)}',${unitPrice})">
+          onclick="addToCart('${cardId}','${product.type}','${encodeURIComponent(designName)}','${encodeURIComponent(designUrl)}','${encodeURIComponent(secondaryDesign?.designName||'')}','${encodeURIComponent(secondaryDesign?.designUrl||'')}','${encodeURIComponent(product.label || meta.label)}',${unitPrice})">
           Add to Cart
         </button>
       </div>

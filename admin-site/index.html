@@ -3421,6 +3421,7 @@ const TM_PRODUCT_CATALOG = [
   // ── Extras ────────────────────────────────────────
   { type:'hat',         icon:'🧢', label:'Hat / Cap',             category:'extras',  defaultPrice:'$22–$28', placeholder:true },
   { type:'bag',         icon:'🎒', label:'Bag / Backpack',        category:'extras',  defaultPrice:'$28–$36', placeholder:true },
+  { type:'misc',        icon:'📦', label:'Miscellaneous Item',    category:'extras',  defaultPrice:'$10–$25', placeholder:true },
 ];
 
 function renderTeamAdmin() {
@@ -3586,7 +3587,7 @@ function teamFormHTML(t) {
       <!-- Add new instance form -->
       <div class="tm-inst-builder" id="tm-inst-builder">
         <div class="tm-inst-builder-head">
-          <span>➕ Add a Product</span>
+          <span id="tm-inst-builder-title">➕ Add a Product</span>
           <span id="tm-inst-builder-count" style="color:var(--up-mist);"></span>
         </div>
         <div class="tm-inst-grid">
@@ -3668,7 +3669,10 @@ function teamFormHTML(t) {
           </div>
 
         </div>
-        <button class="tm-add-inst-btn" onclick="tmAddProductInstance()">+ Add This Product to Store</button>
+        <div style="display:flex;gap:8px;">
+          <button class="tm-add-inst-btn" id="tm-add-inst-btn" onclick="tmAddProductInstance()">+ Add This Product to Store</button>
+          <button class="tm-add-inst-btn" id="tm-cancel-edit-btn" onclick="tmCancelEditInstance()" style="display:none;flex:0 0 auto;width:auto;padding-left:20px;padding-right:20px;background:transparent;border-color:var(--up-border);color:var(--up-mist);">Cancel</button>
+        </div>
       </div>
     </div>
 
@@ -3914,6 +3918,7 @@ const MOCKUP_VIEWS = {
 const CUSTOMER_ORIGIN = 'https://admin.underpressurecustomapparel.com';
 
 let tmProductInstances = []; // saved instances
+let tmEditingIndex = -1;     // index into tmProductInstances currently loaded into the builder form, or -1 when adding new
 let tmInstDesigns = {};      // designs staged for the product currently being built: { front:{...}, back:{...}, side:{...} }
 let tmInstActiveView = 'front'; // which placement the design form is currently editing
 let tmInstDesignLeft = 50;
@@ -3978,6 +3983,8 @@ function renderInstList() {
       </div>
       <button onclick="tmToggleFeaturedProduct(${i})" title="${inst.featured ? 'Remove from homepage feature' : 'Feature on homepage'}"
         style="background:${inst.featured ? 'rgba(255,200,0,.15)' : 'transparent'};border:1px solid ${inst.featured ? 'rgba(255,200,0,.4)' : 'var(--up-border)'};color:${inst.featured ? '#ffc800' : 'var(--up-mist)'};padding:5px 9px;cursor:pointer;font-size:14px;transition:all .2s;flex-shrink:0;" title="Feature on homepage">&#11088;</button>
+      <button onclick="tmEditProductInstance(${i})" title="Edit this product"
+        style="background:${tmEditingIndex===i ? 'rgba(21,101,255,.15)' : 'transparent'};border:1px solid ${tmEditingIndex===i ? 'var(--up-blue)' : 'var(--up-border)'};color:${tmEditingIndex===i ? 'var(--up-sky)' : 'var(--up-mist)'};padding:5px 9px;cursor:pointer;font-size:14px;transition:all .2s;flex-shrink:0;">✏️</button>
       <button class="tm-inst-card-del" onclick="tmRemoveInstance(${i})" title="Remove">✕</button>
     </div>`;
   }).join('');
@@ -3986,6 +3993,10 @@ function renderInstList() {
 }
 
 function tmRemoveInstance(i) {
+  // Removing shifts every index after it, which would silently point the
+  // open edit form at the wrong product — safest to just drop out of edit
+  // mode rather than trust a now-stale index.
+  if (tmEditingIndex !== -1) tmCancelEditInstance();
   tmProductInstances.splice(i, 1);
   renderInstList();
 }
@@ -3996,6 +4007,8 @@ function tmToggleFeaturedProduct(i) {
 function tmMoveInstance(i, dir) {
   const j = i + dir;
   if (j < 0 || j >= tmProductInstances.length) return;
+  // Same reasoning as tmRemoveInstance — a swap invalidates a stale edit index.
+  if (tmEditingIndex !== -1) tmCancelEditInstance();
   [tmProductInstances[i], tmProductInstances[j]] = [tmProductInstances[j], tmProductInstances[i]];
   renderInstList();
 }
@@ -4203,7 +4216,6 @@ function initDragPositioner() {
 function tmAddProductInstance() {
   const nameEl   = document.getElementById('tm-inew-name');
   const priceEl  = document.getElementById('tm-inew-price');
-  const designEl = document.getElementById('tm-inew-design');
 
   const name  = nameEl?.value.trim();
   const price = priceEl?.value.trim();
@@ -4219,7 +4231,7 @@ function tmAddProductInstance() {
   // Collect sizes
   const sizes  = Array.from(document.querySelectorAll('#tm-inew-sizes .tm-size-chip.selected')).map(s => s.dataset.size);
 
-  types.forEach(type => {
+  const buildInstance = (type, useMultiLabel, existing) => {
     const cat = TM_PRODUCT_CATALOG.find(p => p.type === type);
     const views = MOCKUP_VIEWS[type] || {};
     // Only keep the staged placements this type's mockup actually supports —
@@ -4227,21 +4239,97 @@ function tmAddProductInstance() {
     const designs = {};
     Object.keys(tmInstDesigns).forEach(v => { if (views[v]) designs[v] = tmInstDesigns[v]; });
 
-    tmProductInstances.push({
-      instanceId: 'inst-' + Date.now() + '-' + type,
+    return {
+      instanceId: existing?.instanceId || ('inst-' + Date.now() + '-' + type),
       type,
-      label:      types.length > 1 ? `${name} — ${cat?.label || type}` : name,
+      label:      useMultiLabel ? `${name} — ${cat?.label || type}` : name,
       icon:       cat?.icon || '👕',
       price:      price || cat?.defaultPrice || '$25',
       designs,
       colors:     colors.length ? colors : ['Black','Navy','White','Sport Grey','Red'],
       sizes:      sizes.length  ? sizes  : ['S','M','L','XL','2XL'],
-    });
+      featured:   existing?.featured || false,
+    };
+  };
+
+  if (tmEditingIndex !== -1) {
+    // Editing replaces the one card in place — a card can't fan out into
+    // several products mid-edit, so only the first selected type is used
+    // even if more are checked.
+    const existing = tmProductInstances[tmEditingIndex];
+    tmProductInstances[tmEditingIndex] = buildInstance(types[0], false, existing);
+    tmEditingIndex = -1;
+    showToast(`"${name}" updated!`);
+  } else {
+    types.forEach(type => tmProductInstances.push(buildInstance(type, types.length > 1, null)));
+    showToast(`${types.length > 1 ? types.length + ' products' : '"' + name + '"'} added!`);
+  }
+
+  tmResetProductForm();
+  renderInstList();
+}
+
+// Loads a saved product back into the builder form so Erin can change it in
+// place, rather than deleting and re-adding. tmAddProductInstance() checks
+// tmEditingIndex to decide whether to replace this card or push a new one.
+function tmEditProductInstance(idx) {
+  const inst = tmProductInstances[idx];
+  if (!inst) return;
+  tmEditingIndex = idx;
+
+  document.getElementById('tm-inew-name')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const nameEl  = document.getElementById('tm-inew-name');
+  const priceEl = document.getElementById('tm-inew-price');
+  if (nameEl)  nameEl.value  = inst.label || '';
+  if (priceEl) priceEl.value = inst.price || '';
+
+  // Only this instance's own type is selected — editing doesn't support
+  // fanning a single card back out into a multi-type add.
+  document.querySelectorAll('#tm-inew-types .tm-type-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`#tm-inew-types .tm-type-chip[data-type="${inst.type}"]`)?.classList.add('selected');
+  tmInstTypesChanged();
+
+  tmInstDesigns = { ...getInstanceDesigns(inst) };
+  tmInstActiveView = 'front';
+  document.querySelectorAll('.tm-placement-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.tm-placement-btn[data-view="front"]')?.classList.add('active');
+  const viewLbl = document.getElementById('tm-inew-view-label');
+  if (viewLbl) viewLbl.textContent = 'Front';
+  loadViewIntoForm('front');
+
+  document.querySelectorAll('#tm-inew-colors .tm-color-dot').forEach(d => {
+    d.classList.toggle('selected', (inst.colors||[]).includes(d.dataset.color));
+  });
+  document.querySelectorAll('#tm-inew-sizes .tm-size-chip').forEach(s => {
+    s.classList.toggle('selected', (inst.sizes||[]).includes(s.dataset.size));
   });
 
-  renderInstList();
+  updatePositioner();
+  renderInstList(); // so the card being edited highlights
 
-  // Reset form
+  const titleEl = document.getElementById('tm-inst-builder-title');
+  if (titleEl) titleEl.textContent = `✏️ Editing "${inst.label}"`;
+  const addBtn = document.getElementById('tm-add-inst-btn');
+  if (addBtn) addBtn.textContent = '💾 Save Changes';
+  const cancelBtn = document.getElementById('tm-cancel-edit-btn');
+  if (cancelBtn) cancelBtn.style.display = '';
+}
+
+function tmCancelEditInstance() {
+  tmEditingIndex = -1;
+  tmResetProductForm();
+  renderInstList();
+}
+
+// Shared by "Add This Product to Store" (after a successful add), "Save
+// Changes" (after a successful edit), and Cancel — clears the builder form
+// back to its empty-add state.
+function tmResetProductForm() {
+  const nameEl   = document.getElementById('tm-inew-name');
+  const priceEl  = document.getElementById('tm-inew-price');
+  const designEl = document.getElementById('tm-inew-design');
+
   if (nameEl)   nameEl.value   = '';
   if (priceEl)  priceEl.value  = '';
   document.querySelectorAll('#tm-inew-types .tm-type-chip.selected').forEach(c => c.classList.remove('selected'));
@@ -4263,7 +4351,13 @@ function tmAddProductInstance() {
   document.querySelectorAll('#tm-inew-sizes .tm-size-chip').forEach(s => {
     s.classList.toggle('selected', ['S','M','L','XL','2XL'].includes(s.dataset.size));
   });
-  showToast(`${types.length > 1 ? types.length + ' products' : '"' + name + '"'} added!`);
+
+  const titleEl = document.getElementById('tm-inst-builder-title');
+  if (titleEl) titleEl.textContent = '➕ Add a Product';
+  const addBtn = document.getElementById('tm-add-inst-btn');
+  if (addBtn) addBtn.textContent = '+ Add This Product to Store';
+  const cancelBtn = document.getElementById('tm-cancel-edit-btn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
 function tmToggleProduct(type, labelEl) {
