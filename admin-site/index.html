@@ -2016,9 +2016,13 @@ nav { position: relative; }
 .tm-color-picker-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
 .tm-color-dot{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0;}
 .tm-color-dot.selected{border-color:#fff;box-shadow:0 0 0 2px var(--up-blue);}
-.tm-sizes-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.tm-sizes-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
 .tm-size-chip{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border:1px solid var(--up-border);color:var(--up-mist);cursor:pointer;background:var(--up-navy);transition:all .15s;user-select:none;}
 .tm-size-chip.selected{border-color:var(--up-blue);color:var(--up-sky);background:rgba(21,101,255,.12);}
+.tm-size-price-box{display:flex;flex-direction:column;align-items:stretch;gap:3px;width:64px;}
+.tm-size-price-box .tm-size-chip{text-align:center;}
+.tm-size-price-input{background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:4px 5px;font-family:'Barlow',sans-serif;font-size:11px;outline:none;width:100%;text-align:center;}
+.tm-size-price-input:focus{border-color:var(--up-sky);}
 .tm-type-chip-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
 .tm-type-chip{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;padding:6px 12px;border:1px solid var(--up-border);color:var(--up-mist);cursor:pointer;background:var(--up-navy);transition:all .15s;user-select:none;}
 .tm-type-chip.selected{border-color:var(--up-blue);color:var(--up-sky);background:rgba(21,101,255,.12);}
@@ -3424,6 +3428,33 @@ const TM_PRODUCT_CATALOG = [
   { type:'misc',        icon:'📦', label:'Miscellaneous Item',    category:'extras',  defaultPrice:'$10–$25', placeholder:true },
 ];
 
+const TM_SIZE_LIST = ['YXS','YS','YM','YL','YXL','XS','S','M','L','XL','2XL','3XL','4XL'];
+const TM_DEFAULT_SIZES = ['S','M','L','XL','2XL'];
+
+// Backward-compat: newer products price each size individually
+// (inst.sizePrices); older ones just have one flat inst.price applied to
+// every size. Read through this helper rather than migrating stored data.
+function resolveSizePrice(sizePrices, basePrice, size) {
+  const raw = (sizePrices && sizePrices[size]) || basePrice || '25';
+  // basePrice may itself be a catalog range like "$18–$22" (the fallback for
+  // a size left blank) — take the low end rather than stripping the dash and
+  // gluing both numbers into one (e.g. "1822").
+  const firstNum = String(raw).replace(/[^0-9.\-–]/g,'').split(/[-–]/)[0];
+  const n = parseFloat(firstNum);
+  return isNaN(n) ? 25 : n;
+}
+
+// Summarizes a product's per-size prices as a single string for places that
+// only have room to show one price (e.g. the product card meta line) —
+// "$25.00" when every offered size costs the same, "$18.00–$28.00" otherwise.
+function sizePriceRangeText(sizePrices, basePrice, sizes) {
+  const list = (sizes && sizes.length ? sizes : Object.keys(sizePrices || {}))
+    .map(s => resolveSizePrice(sizePrices, basePrice, s));
+  if (!list.length) return `$${resolveSizePrice(null, basePrice, null).toFixed(2)}`;
+  const min = Math.min(...list), max = Math.max(...list);
+  return min === max ? `$${min.toFixed(2)}` : `$${min.toFixed(2)}–$${max.toFixed(2)}`;
+}
+
 function renderTeamAdmin() {
   // All stores now live in teams[] — built-ins are seeded on loadTeams()
   const allStores = teams.map((t,i) => ({...t, key: t.key||`team-${i}`, isCustom:true, idx:i}));
@@ -3601,10 +3632,6 @@ function teamFormHTML(t) {
               ${TM_PRODUCT_CATALOG.map(p => `<span class="tm-type-chip" data-type="${p.type}" onclick="tmToggleTypeChip(this)">${p.icon} ${p.label}</span>`).join('')}
             </div>
           </div>
-          <div class="tm-inst-field">
-            <label>Price</label>
-            <input id="tm-inew-price" placeholder="e.g. $25">
-          </div>
           <div class="tm-inst-field full" id="tm-inew-design-wrap" style="display:none;">
             <label>Editing Design For: <span id="tm-inew-view-label" style="color:var(--up-sky);">Front</span></label>
             <div class="tm-placement-toggle" id="tm-inew-placement-toggle" style="margin-bottom:8px;">
@@ -3657,13 +3684,17 @@ function teamFormHTML(t) {
             </div>
           </div>
 
-          <!-- SIZES -->
+          <!-- SIZES & PRICING -->
           <div class="tm-inst-field full" id="tm-inew-sizes-wrap" style="display:none;">
-            <label>Available Sizes</label>
+            <label>Sizes &amp; Pricing <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— each size offered gets its own price; leave a box blank to use the catalog default</span></label>
             <div class="tm-sizes-wrap" id="tm-inew-sizes">
-              ${['YXS','YS','YM','YL','YXL','XS','S','M','L','XL','2XL','3XL','4XL'].map(s =>
-                `<span class="tm-size-chip${['S','M','L','XL','2XL'].includes(s)?' selected':''}"
-                  data-size="${s}" onclick="this.classList.toggle('selected')">${s}</span>`
+              ${TM_SIZE_LIST.map(s =>
+                `<div class="tm-size-price-box">
+                  <span class="tm-size-chip${TM_DEFAULT_SIZES.includes(s)?' selected':''}"
+                    data-size="${s}" onclick="tmToggleSizeChip(this)">${s}</span>
+                  <input type="text" class="tm-size-price-input" id="tm-sizeprice-${s}" data-size="${s}"
+                    placeholder="e.g. $25" style="display:${TM_DEFAULT_SIZES.includes(s)?'':'none'};">
+                </div>`
               ).join('')}
             </div>
           </div>
@@ -3973,7 +4004,7 @@ function renderInstList() {
       ${mockupSrc ? `<img class="tm-inst-card-thumb" src="${mockupSrc}" alt="${escHtml(inst.label)}" onerror="this.style.display='none'">` : `<div style="width:40px;height:40px;background:var(--up-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">${TM_PRODUCT_CATALOG.find(p=>p.type===inst.type)?.icon||'👕'}</div>`}
       <div class="tm-inst-card-info">
         <div class="tm-inst-card-name">${inst.featured ? '&#11088; ' : ''}${escHtml(inst.label||inst.type)}</div>
-        <div class="tm-inst-card-meta">${designSummary} · ${(inst.colors||[]).length} colors · ${escHtml(inst.price||'')}</div>
+        <div class="tm-inst-card-meta">${designSummary} · ${(inst.colors||[]).length} colors · ${escHtml(sizePriceRangeText(inst.sizePrices, inst.price, inst.sizes))}</div>
       </div>
       <div style="display:flex;gap:2px;flex-shrink:0;">
         <button onclick="tmMoveInstance(${i},-1)" ${i===0?'disabled':''} title="Move left" aria-label="Move product earlier in the list"
@@ -4018,13 +4049,28 @@ function tmToggleTypeChip(el) {
   tmInstTypesChanged();
 }
 
+// Shows/hides that size's price box and clears it when the size is
+// deselected, so a stale price can't linger for a size no longer offered.
+function tmToggleSizeChip(el) {
+  el.classList.toggle('selected');
+  const size = el.dataset.size;
+  const input = document.getElementById('tm-sizeprice-' + size);
+  if (!input) return;
+  const selected = el.classList.contains('selected');
+  input.style.display = selected ? '' : 'none';
+  if (!selected) input.value = '';
+}
+
 function tmInstTypesChanged() {
   const types = getSelectedTypes();
   const primaryType = types[0] || '';
   const cat = TM_PRODUCT_CATALOG.find(p => p.type === primaryType);
 
-  const priceEl = document.getElementById('tm-inew-price');
-  if (priceEl && !priceEl.value && cat) priceEl.value = cat.defaultPrice;
+  // Each size's price box shows the catalog default as a hint (not an
+  // actual value) — updates whenever the selected type changes.
+  document.querySelectorAll('#tm-inew-sizes .tm-size-price-input').forEach(inp => {
+    inp.placeholder = cat?.defaultPrice || 'e.g. $25';
+  });
 
   const colWrap = document.getElementById('tm-inew-colors-wrap');
   const sizWrap = document.getElementById('tm-inew-sizes-wrap');
@@ -4215,10 +4261,8 @@ function initDragPositioner() {
 
 function tmAddProductInstance() {
   const nameEl   = document.getElementById('tm-inew-name');
-  const priceEl  = document.getElementById('tm-inew-price');
 
   const name  = nameEl?.value.trim();
-  const price = priceEl?.value.trim();
   const types = getSelectedTypes();
 
   if (!name)        { showToast('Enter a product name'); return; }
@@ -4228,8 +4272,16 @@ function tmAddProductInstance() {
 
   // Collect colors
   const colors = Array.from(document.querySelectorAll('#tm-inew-colors .tm-color-dot.selected')).map(d => d.dataset.color);
-  // Collect sizes
-  const sizes  = Array.from(document.querySelectorAll('#tm-inew-sizes .tm-size-chip.selected')).map(s => s.dataset.size);
+  // Collect sizes + each one's own price box (blank = falls back to the
+  // catalog default at display/checkout time, via resolveSizePrice).
+  const sizes = [];
+  const sizePrices = {};
+  document.querySelectorAll('#tm-inew-sizes .tm-size-chip.selected').forEach(chip => {
+    const size = chip.dataset.size;
+    sizes.push(size);
+    const val = document.getElementById('tm-sizeprice-' + size)?.value.trim();
+    if (val) sizePrices[size] = val;
+  });
 
   const buildInstance = (type, useMultiLabel, existing) => {
     const cat = TM_PRODUCT_CATALOG.find(p => p.type === type);
@@ -4244,7 +4296,8 @@ function tmAddProductInstance() {
       type,
       label:      useMultiLabel ? `${name} — ${cat?.label || type}` : name,
       icon:       cat?.icon || '👕',
-      price:      price || cat?.defaultPrice || '$25',
+      price:      cat?.defaultPrice || '$25', // fallback for any size left with a blank price box
+      sizePrices,
       designs,
       colors:     colors.length ? colors : ['Black','Navy','White','Sport Grey','Red'],
       sizes:      sizes.length  ? sizes  : ['S','M','L','XL','2XL'],
@@ -4280,9 +4333,7 @@ function tmEditProductInstance(idx) {
   document.getElementById('tm-inew-name')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const nameEl  = document.getElementById('tm-inew-name');
-  const priceEl = document.getElementById('tm-inew-price');
   if (nameEl)  nameEl.value  = inst.label || '';
-  if (priceEl) priceEl.value = inst.price || '';
 
   // Only this instance's own type is selected — editing doesn't support
   // fanning a single card back out into a multi-type add.
@@ -4302,7 +4353,14 @@ function tmEditProductInstance(idx) {
     d.classList.toggle('selected', (inst.colors||[]).includes(d.dataset.color));
   });
   document.querySelectorAll('#tm-inew-sizes .tm-size-chip').forEach(s => {
-    s.classList.toggle('selected', (inst.sizes||[]).includes(s.dataset.size));
+    const size = s.dataset.size;
+    const offered = (inst.sizes||[]).includes(size);
+    s.classList.toggle('selected', offered);
+    const priceInput = document.getElementById('tm-sizeprice-' + size);
+    if (priceInput) {
+      priceInput.style.display = offered ? '' : 'none';
+      priceInput.value = offered ? (inst.sizePrices?.[size] || '') : '';
+    }
   });
 
   updatePositioner();
@@ -4327,11 +4385,9 @@ function tmCancelEditInstance() {
 // back to its empty-add state.
 function tmResetProductForm() {
   const nameEl   = document.getElementById('tm-inew-name');
-  const priceEl  = document.getElementById('tm-inew-price');
   const designEl = document.getElementById('tm-inew-design');
 
   if (nameEl)   nameEl.value   = '';
-  if (priceEl)  priceEl.value  = '';
   document.querySelectorAll('#tm-inew-types .tm-type-chip.selected').forEach(c => c.classList.remove('selected'));
   if (designEl) designEl.value = '';
   tmInstDesigns = {};
@@ -4346,10 +4402,17 @@ function tmResetProductForm() {
   document.querySelector('.tm-placement-btn[data-view="front"]')?.classList.add('active');
   const viewLbl = document.getElementById('tm-inew-view-label');
   if (viewLbl) viewLbl.textContent = 'Front';
-  // Reset all color dots and size chips to default
+  // Reset all color dots, size chips, and size price boxes to default
   document.querySelectorAll('#tm-inew-colors .tm-color-dot').forEach(d => d.classList.remove('selected'));
   document.querySelectorAll('#tm-inew-sizes .tm-size-chip').forEach(s => {
-    s.classList.toggle('selected', ['S','M','L','XL','2XL'].includes(s.dataset.size));
+    const isDefault = TM_DEFAULT_SIZES.includes(s.dataset.size);
+    s.classList.toggle('selected', isDefault);
+    const priceInput = document.getElementById('tm-sizeprice-' + s.dataset.size);
+    if (priceInput) {
+      priceInput.style.display = isDefault ? '' : 'none';
+      priceInput.value = '';
+      priceInput.placeholder = 'e.g. $25';
+    }
   });
 
   const titleEl = document.getElementById('tm-inst-builder-title');
