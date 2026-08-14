@@ -1007,6 +1007,30 @@ function getProductDesigns(product) {
   return {};
 }
 
+// Backward-compat: newer products price each size individually
+// (product.sizePrices); older ones just have one flat product.price applied
+// to every size. Read through this helper rather than migrating stored data.
+function resolveSizePrice(sizePrices, basePrice, size) {
+  const raw = (sizePrices && sizePrices[size]) || basePrice || '25';
+  // basePrice may itself be a catalog range like "$18–$22" (the fallback for
+  // a size left blank) — take the low end rather than stripping the dash and
+  // gluing both numbers into one (e.g. "1822").
+  const firstNum = String(raw).replace(/[^0-9.\-–]/g,'').split(/[-–]/)[0];
+  const n = parseFloat(firstNum);
+  return isNaN(n) ? 25 : n;
+}
+
+// Summarizes a product's per-size prices as one string for display before a
+// size is picked — "$25.00" when every offered size costs the same,
+// "$18.00–$28.00" otherwise.
+function sizePriceRangeText(sizePrices, basePrice, sizes) {
+  const list = (sizes && sizes.length ? sizes : Object.keys(sizePrices || {}))
+    .map(s => resolveSizePrice(sizePrices, basePrice, s));
+  if (!list.length) return `$${resolveSizePrice(null, basePrice, null).toFixed(2)}`;
+  const min = Math.min(...list), max = Math.max(...list);
+  return min === max ? `$${min.toFixed(2)}` : `$${min.toFixed(2)}–$${max.toFixed(2)}`;
+}
+
 const CATEGORY_LABELS = {
   all:     'All',
   tops:    'T-Shirts & Tops',
@@ -1267,10 +1291,16 @@ function renderCard(product, index) {
     cardStates[cardId] = { color: firstColor, view: defaultView, qty: 1, size: '', personalization: '' };
   }
   const state = cardStates[cardId];
+  // Refreshed every render (not just on first init) so addToCart/setCardSize
+  // can resolve the right price for the selected size without needing to
+  // look the product back up by cardId.
+  state.sizePrices = product.sizePrices || null;
+  state.basePrice  = product.price || '25';
 
-  // Price — strip $ signs and use first value if range
-  const rawPrice  = String(product.price || '25').replace(/[^0-9.–\-]/g,'').split(/[–\-]/)[0].trim();
-  const unitPrice = parseFloat(rawPrice) || 25;
+  // Price — the exact price for the selected size once one's picked,
+  // otherwise a range summary across every size this product offers.
+  const unitPrice = state.size ? resolveSizePrice(state.sizePrices, state.basePrice, state.size) : null;
+  const priceDisplay = unitPrice !== null ? `$${unitPrice.toFixed(2)}` : sizePriceRangeText(state.sizePrices, state.basePrice, sizes);
 
   // Mockup
   const hasMockup = !meta.placeholder && meta.views && meta.views.length;
@@ -1359,7 +1389,7 @@ function renderCard(product, index) {
             <div class="ts-card-name">${product.label || meta.label}</div>
             ${designSummary ? `<div class="ts-card-design-name">${designSummary}</div>` : ''}
           </div>
-          <div class="ts-card-price">$${unitPrice.toFixed(2)}</div>
+          <div class="ts-card-price" id="tsprice-${cardId}">${priceDisplay}</div>
         </div>
 
         <!-- COLOR SWATCHES -->
@@ -1387,7 +1417,7 @@ function renderCard(product, index) {
         <!-- ADD TO CART -->
         <button class="ts-add-btn" id="tsaddbtn-${cardId}"
           style="background:${teamData?.color||'var(--up-blue)'};"
-          onclick="addToCart('${cardId}','${product.type}','${encodeURIComponent(designName)}','${encodeURIComponent(designUrl)}','${encodeURIComponent(secondaryDesign?.designName||'')}','${encodeURIComponent(secondaryDesign?.designUrl||'')}','${encodeURIComponent(product.label || meta.label)}',${unitPrice})">
+          onclick="addToCart('${cardId}','${product.type}','${encodeURIComponent(designName)}','${encodeURIComponent(designUrl)}','${encodeURIComponent(secondaryDesign?.designName||'')}','${encodeURIComponent(secondaryDesign?.designUrl||'')}','${encodeURIComponent(product.label || meta.label)}')">
           Add to Cart
         </button>
       </div>
@@ -1448,10 +1478,15 @@ function setCardView(cardId, prodType, viewKey, toggleEl) {
 }
 
 function setCardSize(cardId, size, chipEl) {
-  cardStates[cardId].size = size;
+  const state = cardStates[cardId];
+  state.size = size;
   const wrap = document.getElementById('tssizes-' + cardId);
   if (wrap) wrap.querySelectorAll('.ts-size-chip').forEach(c =>
     c.classList.toggle('selected', c.textContent === size));
+
+  // Prices can differ per size, so swap in the exact price for this one.
+  const priceEl = document.getElementById('tsprice-' + cardId);
+  if (priceEl) priceEl.textContent = `$${resolveSizePrice(state.sizePrices, state.basePrice, size).toFixed(2)}`;
 }
 
 function setCardPersonalization(cardId, val) {
@@ -1469,10 +1504,14 @@ function changeCardQty(cardId, delta) {
 // ═══════════════════════════════════════════════════════
 //  CART
 // ═══════════════════════════════════════════════════════
-function addToCart(cardId, prodType, frontNameEnc, frontUrlEnc, backNameEnc, backUrlEnc, labelEnc, unitPrice) {
+function addToCart(cardId, prodType, frontNameEnc, frontUrlEnc, backNameEnc, backUrlEnc, labelEnc) {
   const state = cardStates[cardId];
   if (!state) return;
   if (!state.size) { showToast('Please select a size'); return; }
+
+  // Prices can differ per size — resolve it now that a size is locked in,
+  // rather than trusting a value baked into the button at render time.
+  const unitPrice = resolveSizePrice(state.sizePrices, state.basePrice, state.size);
 
   const frontDesignName = decodeURIComponent(frontNameEnc);
   const frontDesignUrl  = decodeURIComponent(frontUrlEnc);
