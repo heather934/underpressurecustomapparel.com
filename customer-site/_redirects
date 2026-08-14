@@ -9,9 +9,18 @@
 # NOTE: Do NOT add a /team-store rule here. Cloudflare Pages already
 # serves team-store.html at the clean path /team-store automatically.
 # Adding a rewrite creates an infinite redirect loop (ERR_TOO_MANY_REDIRECTS).
-# Every admin-created store works at:
+# Every admin-created store still works at:
 #   underpressurecustomapparel.com/team-store?team=<subdomain>
 
 # ── Legacy named routes (kept for old links) ─────────────────────────
 /rampage         /team-store?team=rampage          200
 /rome            /team-store?team=rome             200
+
+# ── Short store URLs ──────────────────────────────────────────────────
+# underpressurecustomapparel.com/<subdomain> for any store, e.g.
+# underpressurecustomapparel.com/thefamilystore. Rules above take
+# precedence (first match wins), and any actual static file at that
+# path (images, .b64 mockups, etc.) is always served before this is
+# ever considered — Cloudflare only falls through to _redirects when
+# no static asset matches the request path.
+/:team           /team-store?team=:team            200
