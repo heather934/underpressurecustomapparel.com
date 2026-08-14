@@ -7838,6 +7838,11 @@ var discFormState = {
 
 function renderDiscountAdmin() {
   loadDiscountCodes();
+  loadTeams();
+  // "Valid For Store" needs every admin-generated store (built-in and
+  // custom alike — loadTeams() seeds the built-ins into teams[] too), plus
+  // UP Sportswear, which isn't a team store and so isn't in that list.
+  const discountStoreNames = ['UP Sportswear', ...teams.map(t => t.name)];
 
   const codesHTML = discountCodes.length
     ? discountCodes.map((d, i) => {
@@ -7937,9 +7942,7 @@ function renderDiscountAdmin() {
           <label>Valid For Store</label>
           <select id="dcStore" style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:100%;">
             <option value="all">All Stores</option>
-            <option value="River City Rampage">River City Rampage</option>
-            <option value="Rome CoC Youth T-Shirts">Rome CoC Youth T-Shirts</option>
-            <option value="UP Sportswear">UP Sportswear</option>
+            ${discountStoreNames.map(name => `<option value="${escHtml(name)}">${escHtml(name)}</option>`).join('')}
           </select>
         </div>
       </div>
