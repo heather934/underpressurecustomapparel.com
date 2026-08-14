@@ -5516,6 +5516,7 @@ function renderProductionAdmin() {
             <td class="prod-td" style="border-right:1px solid var(--up-border);">
               <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--up-white);">${escHtml(item.name)||'—'}</div>
               ${item.color ? `<div style="font-size:11px;color:var(--up-mist);">${escHtml(item.color)}</div>` : ''}
+              ${item.personalization ? `<div style="font-size:11px;color:var(--up-sky);font-weight:600;">📝 ${escHtml(item.personalization)}</div>` : ''}
             </td>
             <td class="prod-td name-col" style="border-right:1px solid var(--up-border);text-align:center;">
               ${item.playerName ? escHtml(item.playerName) : '<span style="color:var(--up-mist);font-weight:300;font-size:12px;">—</span>'}
@@ -5532,9 +5533,9 @@ function renderProductionAdmin() {
             <td class="prod-td" style="border-right:1px solid var(--up-border);text-align:center;${o.completed?'':''}">
               <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${o.completed?'var(--up-mist)':'#a78bfa'};">${graphicsThisLine}</span>
               <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:var(--up-mist);text-transform:uppercase;">${locsLabel}</div>
-              ${(item.graphicImg || item.graphicName || item.graphicImgBack || item.graphicNameBack) ? (() => {
+              ${(item.graphicImg || item.graphicName || item.graphicImgBack || item.graphicNameBack || item.personalization) ? (() => {
                 const printKey = `${o.id}_${itemIdx}`;
-                const printData = {orderId:o.id,customer:o.customer,store:o.store,date:o.timestamp,itemName:item.name,color:item.color||'',size:item.size||'',qty:item.qty||1,playerName:item.playerName||'',playerNumber:item.playerNumber||'',graphicName:item.graphicName||'',graphicImg:item.graphicImg||'',graphicNameBack:item.graphicNameBack||'',graphicImgBack:item.graphicImgBack||''};
+                const printData = {orderId:o.id,customer:o.customer,store:o.store,date:o.timestamp,itemName:item.name,color:item.color||'',size:item.size||'',qty:item.qty||1,playerName:item.playerName||'',playerNumber:item.playerNumber||'',graphicName:item.graphicName||'',graphicImg:item.graphicImg||'',graphicNameBack:item.graphicNameBack||'',graphicImgBack:item.graphicImgBack||'',personalization:item.personalization||''};
                 const isChecked = !!prodPrintSelection[printKey];
                 return `<label style="margin-top:5px;display:flex;align-items:center;gap:5px;justify-content:center;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#a78bfa;">
                   <input type="checkbox" ${isChecked?'checked':''} onchange="toggleProdPrintSelect('${printKey}', ${jsAttr(JSON.stringify(printData))}, this.checked)" style="accent-color:#a78bfa;cursor:pointer;">
@@ -5713,6 +5714,10 @@ function printSheetSectionHTML(data) {
         <div class="order-label">Player</div>
         <div class="order-value">${escHtml(playerLine) || '—'}</div>
       </div>
+      ${data.personalization ? `<div class="order-cell span2">
+        <div class="order-label">Personalization</div>
+        <div class="order-value">${escHtml(data.personalization)}</div>
+      </div>` : ''}
     </div>
   </div>`;
 }

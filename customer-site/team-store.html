@@ -1264,7 +1264,7 @@ function renderCard(product, index) {
 
   // Init card state
   if (!cardStates[cardId]) {
-    cardStates[cardId] = { color: firstColor, view: defaultView, qty: 1, size: '' };
+    cardStates[cardId] = { color: firstColor, view: defaultView, qty: 1, size: '', personalization: '' };
   }
   const state = cardStates[cardId];
 
@@ -1377,6 +1377,13 @@ function renderCard(product, index) {
           <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;margin-left:4px;text-transform:uppercase;">qty</span>
         </div>
 
+        <!-- PERSONALIZATION -->
+        <div class="ts-form-f" style="margin-bottom:10px;">
+          <label>Personalization <span style="font-weight:300;text-transform:none;letter-spacing:0;opacity:.7;">(optional)</span></label>
+          <input type="text" id="tspersonalize-${cardId}" placeholder="Name, number, or note for this item" maxlength="60"
+            value="${state.personalization || ''}" oninput="setCardPersonalization('${cardId}', this.value)">
+        </div>
+
         <!-- ADD TO CART -->
         <button class="ts-add-btn" id="tsaddbtn-${cardId}"
           style="background:${teamData?.color||'var(--up-blue)'};"
@@ -1447,6 +1454,10 @@ function setCardSize(cardId, size, chipEl) {
     c.classList.toggle('selected', c.textContent === size));
 }
 
+function setCardPersonalization(cardId, val) {
+  if (cardStates[cardId]) cardStates[cardId].personalization = val;
+}
+
 function changeCardQty(cardId, delta) {
   const state = cardStates[cardId];
   if (!state) return;
@@ -1482,10 +1493,18 @@ function addToCart(cardId, prodType, frontNameEnc, frontUrlEnc, backNameEnc, bac
     backDesignName, backDesignUrl,
     color:      state.color,
     size:       state.size,
+    personalization: (state.personalization || '').trim(),
     qty,
     unitPrice,
     price:      parseFloat((unitPrice * qty).toFixed(2)),
   });
+
+  // Clear the personalization field after adding — it's typically unique
+  // per item (a specific name/number), so it shouldn't carry over if she
+  // adds another of the same product next.
+  state.personalization = '';
+  const personalizeInput = document.getElementById('tspersonalize-' + cardId);
+  if (personalizeInput) personalizeInput.value = '';
 
   updateCartUI();
   openCart();
@@ -1541,6 +1560,7 @@ function renderCartItems() {
         <div class="ts-cart-item-meta">
           ${[item.frontDesignName, item.backDesignName].filter(Boolean).join(' / ')}${item.frontDesignName||item.backDesignName ? ' · ' : ''}${item.color} · ${item.size} · Qty ${item.qty}
         </div>
+        ${item.personalization ? `<div class="ts-cart-item-meta" style="color:var(--up-sky);">📝 ${item.personalization}</div>` : ''}
       </div>
       <div class="ts-cart-item-price">$${(item.unitPrice * item.qty).toFixed(2)}</div>
       <button class="ts-cart-item-del" onclick="removeFromCart(${item.id})" title="Remove">✕</button>
@@ -1585,7 +1605,7 @@ function openCheckout() {
     const designs = [i.frontDesignName, i.backDesignName].filter(Boolean).join(' / ');
     return `
     <div class="ts-order-row">
-      <span>${i.label} ${designs?'('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty}</span>
+      <span>${i.label} ${designs?'('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty}${i.personalization?' · 📝 '+i.personalization:''}</span>
       <span>$${(i.unitPrice * i.qty).toFixed(2)}</span>
     </div>`;
   }).join('');
@@ -1665,6 +1685,7 @@ function payWithPayPal(amount) {
         name: i.label, size: i.size||'', color: i.color||'', qty: i.qty,
         graphicName: i.frontDesignName||'', graphicImg: i.frontDesignUrl||'',
         graphicNameBack: i.backDesignName||'', graphicImgBack: i.backDesignUrl||'',
+        personalization: i.personalization||'',
       })),
       completed: false
     });
@@ -1675,7 +1696,7 @@ function payWithPayPal(amount) {
     const v = id => document.getElementById(id)?.value || '';
     const lineItems = cart.map(i => {
       const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
-      return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} x ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`;
+      return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} x ${i.qty}${i.personalization?' — Personalization: '+i.personalization:''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
     }).join('\n');
     fetch(`${KV_API}/api/save-cart`, {
       method: 'POST',
@@ -1737,7 +1758,7 @@ async function sendOrderEmail(details) {
   const designSummary = i => [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
   const lineItems = cart.map(i => {
     const designs = designSummary(i);
-    return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty} = $${(i.unitPrice*i.qty).toFixed(2)}`;
+    return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty}${i.personalization?' — Personalization: '+i.personalization:''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
   }).join('\n');
   const customerName    = `${v('co-first')} ${v('co-last')}`.trim();
   const customerEmail   = v('co-email');
@@ -1756,7 +1777,7 @@ async function sendOrderEmail(details) {
     const designs = designSummary(i);
     return {
       image_url:        i.designUrl || '',
-      name:              `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size}`,
+      name:              `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size}${i.personalization?' — '+i.personalization:''}`,
       units:             i.qty,
       price:             i.unitPrice.toFixed(2),
       customer_email:    customerEmail,
@@ -1766,6 +1787,7 @@ async function sendOrderEmail(details) {
       color:             i.color || '',
       design_name:       designs || '',
       size:              i.size || '',
+      personalization:   i.personalization || '',
     };
   });
   // Field names are duplicated under both this file's original naming and the
