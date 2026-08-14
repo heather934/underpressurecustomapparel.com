@@ -26,6 +26,7 @@
     if (config.emailjsOrderConfirmTemplateId)localStorage.setItem('upEmailjsOrderConfirmTemplate',config.emailjsOrderConfirmTemplateId);
     if (config.emailjsNewOrderTemplateId)    localStorage.setItem('upEmailjsNewOrderTemplate',    config.emailjsNewOrderTemplateId);
     if (config.emailjsOrderReadyTemplateId)  localStorage.setItem('upEmailjsOrderReadyTemplate',  config.emailjsOrderReadyTemplateId);
+    if (config.emailjsNewProductTemplateId)  localStorage.setItem('upEmailjsNewProductTemplate',  config.emailjsNewProductTemplateId);
     if (config.cfAccountId)   localStorage.setItem('upCfAccountId',    config.cfAccountId);
     if (config.cfImagesToken) localStorage.setItem('upCfImagesToken',  config.cfImagesToken);
     if (config.emailjsPublicKey && typeof emailjs !== 'undefined') {
@@ -6913,6 +6914,7 @@ var customerSearch = '';
 
 function renderCustomers() {
   loadProductionOrders();
+  loadTeams();
   const real = productionOrders.filter(o => !o._storeRegistration);
 
   // Build customer map
@@ -6925,6 +6927,16 @@ function renderCustomers() {
     customers[key].stores.add(o.store);
     customers[key].totalSpend += (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
   });
+
+  // Stores with at least one customer who has an email on file — an email
+  // is required to notify them, so store-less/email-less customers don't
+  // count toward the "Notify Customers" dropdown below.
+  const storeCounts = {};
+  Object.values(customers).forEach(c => {
+    if (!c.email) return;
+    c.stores.forEach(s => { storeCounts[s] = (storeCounts[s]||0) + 1; });
+  });
+  const notifyStores = Object.keys(storeCounts).sort((a,b) => storeCounts[b]-storeCounts[a]);
 
   const sorted = Object.values(customers)
     .filter(c => !customerSearch || [c.name,c.email,c.phone].join(' ').toLowerCase().includes(customerSearch.toLowerCase()))
@@ -6977,11 +6989,112 @@ function renderCustomers() {
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">${sorted.length} customer${sorted.length!==1?'s':''} · Auto-built from order history</div></div>
       <button class="btn-prod-export" onclick="exportCustomerCSV()">⬇ Export CSV</button>
     </div>
+
+    <div class="disc-add-form" style="margin-bottom:16px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:10px;">📧 Notify Customers of New Products</div>
+      ${notifyStores.length ? `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="df" style="flex:1;min-width:220px;">
+          <label>Store</label>
+          <select id="notifyStoreSelect" style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow Condensed',sans-serif;font-size:13px;outline:none;width:100%;">
+            ${notifyStores.map(s => `<option value="${escHtml(s)}">${escHtml(s)} (${storeCounts[s]} customer${storeCounts[s]!==1?'s':''})</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn-save-up" style="background:var(--accent);color:#000;white-space:nowrap;" onclick="notifyCustomersOfNewProducts()">📧 Send Announcement</button>
+      </div>
+      <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);margin-top:10px;">
+        Emails everyone who's ordered from the selected store, letting them know it has new products. Set up the template first in <strong>Integrations → EmailJS → Customer Announcements</strong>.
+      </div>` : `
+      <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);">No customers with an email on file yet — this fills in automatically as orders come in.</div>`}
+    </div>
+
     <div class="customer-search-bar">
       <input class="customer-search" placeholder="🔍 Search by name, email, or phone..." value="${escHtml(customerSearch)}"
         oninput="customerSearch=this.value;renderAdminPanel('customers')">
     </div>
     ${cardsHTML}`;
+}
+
+// Gathers every distinct customer email on file for a store and confirms
+// before handing off to sendNewProductAnnouncement().
+function notifyCustomersOfNewProducts() {
+  const storeName = document.getElementById('notifyStoreSelect')?.value;
+  if (!storeName) return;
+
+  loadProductionOrders();
+  const real = productionOrders.filter(o => !o._storeRegistration);
+  const seen = new Set();
+  const recipients = [];
+  real.forEach(o => {
+    if (o.store !== storeName || !o.email) return;
+    const key = o.email.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    recipients.push({ email: o.email, name: o.customer || '' });
+  });
+
+  if (!recipients.length) { showToast('No customers with an email on file for that store.'); return; }
+
+  showConfirmModal({
+    title: 'SEND ANNOUNCEMENT',
+    msg: `Email ${recipients.length} customer${recipients.length!==1?'s':''} of ${storeName} to let them know it has new products?`,
+    icon: '📧',
+    label: `Send to ${recipients.length}`,
+    onConfirm: () => sendNewProductAnnouncement(storeName, recipients),
+  });
+}
+
+// Sends the emailjsNewProductTemplateId template (configured in Integrations)
+// to every recipient — one at a time so a single bad address can't abort the
+// rest of the batch.
+async function sendNewProductAnnouncement(storeName, recipients) {
+  let serviceId = '', templateId = '', publicKey = '';
+  try {
+    const cfgRes = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
+    const cfgData = await cfgRes.json();
+    const cfg = cfgData.config || cfgData;
+    serviceId  = cfg.emailjsServiceId            || '';
+    templateId = cfg.emailjsNewProductTemplateId || '';
+    publicKey  = cfg.emailjsPublicKey            || '';
+  } catch(e) {
+    showToast('Could not load email config — check Worker is running.');
+    console.error('sendNewProductAnnouncement: config fetch failed', e);
+    return;
+  }
+
+  if (!serviceId || !publicKey) { showToast('EmailJS not configured — set it up in Integrations.'); return; }
+  if (!templateId) { showToast('No template set for Customer Announcements — add one in Integrations → EmailJS.'); return; }
+  if (typeof emailjs === 'undefined') { showToast('EmailJS SDK not loaded — please refresh and try again.'); return; }
+  try { emailjs.init(publicKey); } catch(e) {}
+
+  loadTeams();
+  const team = teams.find(t => t.name === storeName);
+  const storeUrl = team
+    ? `https://underpressurecustomapparel.com/team-store?team=${team.subdomain || slugify(team.name)}`
+    : 'https://underpressurecustomapparel.com/store';
+
+  showToast(`Sending to ${recipients.length} customer${recipients.length!==1?'s':''}…`);
+
+  let sent = 0, failed = 0;
+  for (const r of recipients) {
+    try {
+      await emailjs.send(serviceId, templateId, {
+        to_email:      r.email,
+        customer_name: r.name,
+        store_name:    storeName,
+        store_url:     storeUrl,
+        reply_to:      'erin@underpressurecustomapparel.com',
+      });
+      sent++;
+    } catch(e) {
+      failed++;
+      console.warn('New product announcement failed for', r.email, e);
+    }
+  }
+
+  showToast(failed
+    ? `✅ Sent to ${sent} customer${sent!==1?'s':''} — ${failed} failed (see console).`
+    : `✅ Sent to ${sent} customer${sent!==1?'s':''}!`);
 }
 
 function toggleCustomerCard(idx) {
@@ -8082,6 +8195,7 @@ function renderIntegrations() {
   const emailjsOrderConfirmTemplate  = localStorage.getItem('upEmailjsOrderConfirmTemplate')  || '';
   const emailjsNewOrderTemplate      = localStorage.getItem('upEmailjsNewOrderTemplate')      || '';
   const emailjsOrderReadyTemplate    = localStorage.getItem('upEmailjsOrderReadyTemplate')    || '';
+  const emailjsNewProductTemplate    = localStorage.getItem('upEmailjsNewProductTemplate')    || '';
   const cfAccountId    = localStorage.getItem('upCfAccountId')    || '';
   const cfImagesToken  = localStorage.getItem('upCfImagesToken')  || '';
 
@@ -8194,6 +8308,18 @@ function renderIntegrations() {
         </div>
       </div>
 
+      <div style="border-top:1px solid var(--up-border);margin:16px 0;padding-top:14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-bottom:10px;">Customer Announcements</div>
+        <div class="df" style="margin-bottom:12px;">
+          <label>New Products Announcement (to customers)</label>
+          <input id="intEmailjsNewProductTemplate" type="text" placeholder="e.g. template_8fk2wpq" value="${emailjsNewProductTemplate.replace(/"/g,'&quot;')}"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:monospace;font-size:12px;outline:none;width:100%;">
+        </div>
+        <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);margin-bottom:12px;">
+          Used by the "📧 Notify Customers" button on the Customers tab, which sends this template to every customer who's ordered from a given store — for letting them know that store just added new products. Params sent: <code>to_email</code>, <code>customer_name</code>, <code>store_name</code>, <code>store_url</code>.
+        </div>
+      </div>
+
       <button class="btn-save-up" style="background:var(--accent);color:#000;" onclick="saveEmailjsIntegration()">💾 Save EmailJS Settings</button>
     </div>
 
@@ -8247,6 +8373,7 @@ async function _saveToKV(payload, btn) {
       emailjsOrderConfirmTemplateId:'upEmailjsOrderConfirmTemplate',
       emailjsNewOrderTemplateId:   'upEmailjsNewOrderTemplate',
       emailjsOrderReadyTemplateId: 'upEmailjsOrderReadyTemplate',
+      emailjsNewProductTemplateId: 'upEmailjsNewProductTemplate',
       cfAccountId:                 'upCfAccountId',
       cfImagesToken:               'upCfImagesToken',
     };
@@ -8295,6 +8422,7 @@ function saveEmailjsIntegration() {
     emailjsOrderConfirmTemplateId:get('intEmailjsOrderConfirmTemplate')|| '',
     emailjsNewOrderTemplateId:    get('intEmailjsNewOrderTemplate')    || '',
     emailjsOrderReadyTemplateId:  get('intEmailjsOrderReadyTemplate')  || '',
+    emailjsNewProductTemplateId:  get('intEmailjsNewProductTemplate')  || '',
   };
   const btn = document.querySelector('button[onclick="saveEmailjsIntegration()"]');
   _saveToKV(payload, btn).then(ok => {
