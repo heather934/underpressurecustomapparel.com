@@ -6912,6 +6912,12 @@ function timeAgo(date) {
 // ══════════════════════════════════════════════════════
 var customerSearch = '';
 
+// "Notify Customers" panel state — which store's customer list is showing,
+// and which of that store's customers Erin has unchecked (excluded from the
+// send). Reset whenever the store dropdown changes.
+var notifyStoreCurrent = '';
+var notifyExcluded = new Set();
+
 function renderCustomers() {
   loadProductionOrders();
   loadTeams();
@@ -6937,6 +6943,19 @@ function renderCustomers() {
     c.stores.forEach(s => { storeCounts[s] = (storeCounts[s]||0) + 1; });
   });
   const notifyStores = Object.keys(storeCounts).sort((a,b) => storeCounts[b]-storeCounts[a]);
+
+  // Keep the current store selection if it's still valid, otherwise default
+  // to the top of the list (also covers first render, when it's blank).
+  if (!notifyStores.includes(notifyStoreCurrent)) {
+    notifyStoreCurrent = notifyStores[0] || '';
+    notifyExcluded = new Set();
+  }
+  const notifyCustomers = notifyStoreCurrent
+    ? Object.values(customers)
+        .filter(c => c.email && c.stores.has(notifyStoreCurrent))
+        .sort((a,b) => a.name.localeCompare(b.name))
+    : [];
+  const notifySelectedCount = notifyCustomers.filter(c => !notifyExcluded.has(c.email.toLowerCase())).length;
 
   const sorted = Object.values(customers)
     .filter(c => !customerSearch || [c.name,c.email,c.phone].join(' ').toLowerCase().includes(customerSearch.toLowerCase()))
@@ -6993,17 +7012,33 @@ function renderCustomers() {
     <div class="disc-add-form" style="margin-bottom:16px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:10px;">📧 Notify Customers of New Products</div>
       ${notifyStores.length ? `
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
         <div class="df" style="flex:1;min-width:220px;">
           <label>Store</label>
-          <select id="notifyStoreSelect" style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow Condensed',sans-serif;font-size:13px;outline:none;width:100%;">
-            ${notifyStores.map(s => `<option value="${escHtml(s)}">${escHtml(s)} (${storeCounts[s]} customer${storeCounts[s]!==1?'s':''})</option>`).join('')}
+          <select id="notifyStoreSelect" onchange="notifyStoreCurrent=this.value;notifyExcluded=new Set();renderAdminPanel('customers')"
+            style="background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-white);padding:10px 13px;font-family:'Barlow Condensed',sans-serif;font-size:13px;outline:none;width:100%;">
+            ${notifyStores.map(s => `<option value="${escHtml(s)}" ${s===notifyStoreCurrent?'selected':''}>${escHtml(s)} (${storeCounts[s]} customer${storeCounts[s]!==1?'s':''})</option>`).join('')}
           </select>
         </div>
-        <button class="btn-save-up" style="background:var(--accent);color:#000;white-space:nowrap;" onclick="notifyCustomersOfNewProducts()">📧 Send Announcement</button>
+        <button class="btn-save-up" style="background:var(--accent);color:#000;white-space:nowrap;" ${notifySelectedCount?'':'disabled'} onclick="notifyCustomersOfNewProducts()">📧 Send to ${notifySelectedCount} Customer${notifySelectedCount!==1?'s':''}</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;">Pick who gets this one</span>
+        <button class="btn-reorder" onclick="setNotifySelection(true)">Select All</button>
+        <button class="btn-reorder" onclick="setNotifySelection(false)">Select None</button>
+      </div>
+      <div style="max-height:220px;overflow-y:auto;border:1px solid var(--up-border);background:var(--up-navy);">
+        ${notifyCustomers.map(c => {
+          const checked = !notifyExcluded.has(c.email.toLowerCase());
+          return `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--up-border);cursor:pointer;">
+            <input type="checkbox" ${checked?'checked':''} onchange="toggleNotifyCustomer(${jsAttr(c.email)}, this.checked)" style="accent-color:var(--accent);cursor:pointer;flex-shrink:0;">
+            <span style="font-family:'Barlow',sans-serif;font-size:13px;color:var(--up-white);flex:1;">${escHtml(c.name)}</span>
+            <span style="font-family:monospace;font-size:11px;color:var(--up-mist);">${escHtml(c.email)}</span>
+          </label>`;
+        }).join('')}
       </div>
       <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);margin-top:10px;">
-        Emails everyone who's ordered from the selected store, letting them know it has new products. Set up the template first in <strong>Integrations → EmailJS → Customer Announcements</strong>.
+        Uncheck anyone you don't want this announcement going to. Set up the template first in <strong>Integrations → EmailJS → Customer Announcements</strong>.
       </div>` : `
       <div style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-mist);">No customers with an email on file yet — this fills in automatically as orders come in.</div>`}
     </div>
@@ -7015,10 +7050,30 @@ function renderCustomers() {
     ${cardsHTML}`;
 }
 
-// Gathers every distinct customer email on file for a store and confirms
-// before handing off to sendNewProductAnnouncement().
+// Exclude/re-include one customer from the current store's send list.
+function toggleNotifyCustomer(email, checked) {
+  const key = email.toLowerCase();
+  if (checked) notifyExcluded.delete(key);
+  else notifyExcluded.add(key);
+  renderAdminPanel('customers');
+}
+
+// "Select All" clears every exclusion; "Select None" excludes everyone
+// currently listed for the selected store.
+function setNotifySelection(all) {
+  if (all) { notifyExcluded = new Set(); renderAdminPanel('customers'); return; }
+  loadProductionOrders();
+  const real = productionOrders.filter(o => !o._storeRegistration);
+  const excluded = new Set();
+  real.forEach(o => { if (o.store === notifyStoreCurrent && o.email) excluded.add(o.email.toLowerCase()); });
+  notifyExcluded = excluded;
+  renderAdminPanel('customers');
+}
+
+// Gathers the distinct, non-excluded customer emails for the selected store
+// and confirms before handing off to sendNewProductAnnouncement().
 function notifyCustomersOfNewProducts() {
-  const storeName = document.getElementById('notifyStoreSelect')?.value;
+  const storeName = notifyStoreCurrent;
   if (!storeName) return;
 
   loadProductionOrders();
@@ -7028,12 +7083,12 @@ function notifyCustomersOfNewProducts() {
   real.forEach(o => {
     if (o.store !== storeName || !o.email) return;
     const key = o.email.toLowerCase();
-    if (seen.has(key)) return;
+    if (seen.has(key) || notifyExcluded.has(key)) return;
     seen.add(key);
     recipients.push({ email: o.email, name: o.customer || '' });
   });
 
-  if (!recipients.length) { showToast('No customers with an email on file for that store.'); return; }
+  if (!recipients.length) { showToast('No customers selected for that store.'); return; }
 
   showConfirmModal({
     title: 'SEND ANNOUNCEMENT',
