@@ -2,8 +2,15 @@
 # Place this file in customer-site/ (repo root for this Pages project)
 
 # ── Root URL serves the store ────────────────────────────────────────
-/                /customer-index.html              200
-/store           /customer-index.html              200
+# NOTE: target the clean path, NOT customer-index.html. Cloudflare Pages
+# auto-strips .html off a served file's canonical URL, so rewriting to
+# the .html filename here silently bounces every visit to / or /store
+# onward to /customer-index — which then falls into the wildcard store
+# rule below and shows "store not found" instead of the homepage. This
+# was the real cause of the homepage becoming unreachable after the
+# short-URL wildcard (below) was added.
+/                /customer-index              200
+/store           /customer-index              200
 
 # ── Dynamic team stores ──────────────────────────────────────────────
 # NOTE: Do NOT add a /team-store rule here, and do NOT add a
