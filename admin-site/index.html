@@ -3329,7 +3329,7 @@ function getStoreState(storeKey) {
 }
 function isStoreVisible(storeKey) {
   const state = getStoreState(storeKey);
-  return state === 'public';
+  return state === 'public' || state === 'code';
 }
 function isStoreCodeProtected(storeKey) {
   return getStoreState(storeKey) === 'code';
@@ -4987,10 +4987,10 @@ function buildCarousel() {
         const colorStyle = `--team-color:${color};--team-color2:${color2||color};--team-banner-bg:${bannerBg};text-decoration:none;position:relative;`;
         const url = t.url || `https://underpressurecustomapparel.com/team-store?team=${t.subdomain || slugify(t.name)}`;
         const stateForCard = getStoreState(t.key);
-        const cardHref = stateForCard === 'code'
-          ? `javascript:openCodeGate('${url}','${t.key}')`
-          : url;
-        const cardTarget = stateForCard === 'code' ? '' : (url.startsWith('http') && !url.includes(window.location.hostname) ? 'target="_blank" rel="noopener noreferrer"' : '');
+        // "Code Access" stores link straight through — team-store.html itself
+        // prompts for and verifies the code before showing the store.
+        const cardHref = url;
+        const cardTarget = url.startsWith('http') && !url.includes(window.location.hostname) ? 'target="_blank" rel="noopener noreferrer"' : '';
         const lockIcon = stateForCard === 'code' ? `<div style="position:absolute;top:12px;right:12px;background:rgba(232,180,0,.2);border:1px solid var(--accent);color:var(--accent);padding:3px 8px;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;">🔑 Code Access</div>` : '';
         return `<a class="team-card" href="${cardHref}" ${cardTarget} style="${colorStyle}">
           ${lockIcon}
@@ -5205,35 +5205,6 @@ function getUPShipping() {
   const key = Math.min(qty, 20);
   return UP_SHIPPING[key] || 25;
 }
-
-// ── CODE GATE ──
-var codeGateTarget = null; // { url, key }
-
-function openCodeGate(url, storeKey) {
-  codeGateTarget = { url, key: storeKey };
-  document.getElementById('gateCodeInput').value = '';
-  document.getElementById('gateError').style.display = 'none';
-  document.getElementById('codeGateModal').classList.add('open');
-}
-function closeCodeGate() {
-  document.getElementById('codeGateModal').classList.remove('open');
-  codeGateTarget = null;
-}
-function submitCodeGate() {
-  const entered = document.getElementById('gateCodeInput').value.trim().toUpperCase();
-  const correct = storeCodes[codeGateTarget?.key]?.toUpperCase();
-  if (entered === correct && correct) {
-    closeCodeGate();
-    window.open(codeGateTarget.url, '_blank');
-  } else {
-    const err = document.getElementById('gateError');
-    err.style.display = 'block';
-    document.getElementById('gateCodeInput').style.borderColor = 'var(--hs-red)';
-    setTimeout(() => { err.style.display='none'; document.getElementById('gateCodeInput').style.borderColor=''; }, 2500);
-  }
-}
-const _cgm = document.getElementById('codeGateModal');
-if (_cgm) _cgm.addEventListener('click', function(e){ if(e.target===this) closeCodeGate(); });
 
 // ══════════════════════════════════════════════════════
 //  PRODUCTION BOARD
