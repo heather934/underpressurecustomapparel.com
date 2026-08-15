@@ -4,6 +4,7 @@
 # ── Root URL serves the store ────────────────────────────────────────
 /                /customer-index.html              200
 /store           /customer-index.html              200
+/customer-index  /customer-index.html              200
 
 # ── Dynamic team stores ──────────────────────────────────────────────
 # NOTE: Do NOT add a /team-store rule here. Cloudflare Pages already
