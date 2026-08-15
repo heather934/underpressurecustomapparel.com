@@ -2,26 +2,21 @@
 # Place this file in customer-site/ (repo root for this Pages project)
 
 # ── Root URL serves the store ────────────────────────────────────────
-# NOTE: target the clean path, NOT customer-index.html. Cloudflare Pages
-# auto-strips .html off a served file's canonical URL, so rewriting to
-# the .html filename here silently bounces every visit to / or /store
-# onward to /customer-index — which then falls into the wildcard store
-# rule below and shows "store not found" instead of the homepage. This
-# was the real cause of the homepage becoming unreachable after the
-# short-URL wildcard (below) was added.
-/                /customer-index              200
-/store           /customer-index              200
+# The homepage file is named index.html, so Cloudflare Pages serves it
+# at / natively — no rule needed here at all, which sidesteps the
+# .html-stripping trap entirely (see note below). /store is just a
+# friendly alias, rewritten straight to / (not to a filename), so it
+# can't collide with the wildcard store rule either.
+/store           /                             200
 
 # ── Dynamic team stores ──────────────────────────────────────────────
-# NOTE: Do NOT add a /team-store rule here, and do NOT add a
-# /customer-index rule targeting /customer-index.html either — both
-# hit the same trap: Cloudflare Pages automatically strips the .html
-# extension off any served HTML file's canonical URL, so a rule whose
-# source path equals its own target's clean form creates an infinite
-# redirect loop (ERR_TOO_MANY_REDIRECTS), not a working page. Team
-# stores are already served at the clean path /team-store
-# automatically. The homepage is the bare domain (/) or /store.
-# Every admin-created store still works at:
+# NOTE: Do NOT add a /team-store rule targeting team-store.html (or any
+# rule whose source path equals its own target's clean/extensionless
+# form) — Cloudflare Pages automatically strips the .html extension off
+# any served HTML file's canonical URL, so that combination creates an
+# infinite redirect loop (ERR_TOO_MANY_REDIRECTS), not a working page.
+# Team stores are already served at the clean path /team-store
+# automatically. Every admin-created store still works at:
 #   underpressurecustomapparel.com/team-store?team=<subdomain>
 
 # ── Legacy named routes (kept for old links) ─────────────────────────

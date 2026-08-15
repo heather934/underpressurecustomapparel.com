@@ -1171,6 +1171,13 @@ function getMockupSrc(src) {
   return (src && mockupCache[src] !== undefined) ? mockupCache[src] : src;
 }
 
+// Site-internal paths that must never be mistaken for a store slug, even
+// if a client somehow lands on this page with one of them as the path
+// (e.g. a stale bookmark from before a routing fix, or an edge case in
+// how a rewrite target gets resolved). Landing on any of these just
+// bounces back to the real homepage instead of showing a "not found".
+const RESERVED_SLUGS = new Set(['team-store', 'customer-index', 'index', 'store']);
+
 async function init() {
   // Read team ID from URL — supports ?team=rampage or path /rampage.
   // The page itself is served at the clean path /team-store, so landing
@@ -1178,7 +1185,11 @@ async function init() {
   // "team-store" — that's this page's own path, not a store slug.
   const params = new URLSearchParams(window.location.search);
   const pathSlug = window.location.pathname.replace(/^\//, '').split('/')[0].replace(/\.html$/, '') || '';
-  teamId = params.get('team') || (pathSlug === 'team-store' ? '' : pathSlug);
+  if (!params.get('team') && RESERVED_SLUGS.has(pathSlug)) {
+    window.location.replace('/');
+    return;
+  }
+  teamId = params.get('team') || pathSlug;
 
   if (!teamId) { showError('No team store specified.'); return; }
 
