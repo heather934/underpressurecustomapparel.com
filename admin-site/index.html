@@ -3946,7 +3946,6 @@ const MOCKUP_VIEWS = {
   mensshorts:  { front:'/products/mens-shorts-front.png',      side:'/products/mens-shorts-side.png' },
   womensshorts:{ front:'/products/womens-shorts.png' },
 };
-const CUSTOMER_ORIGIN = 'https://admin.underpressurecustomapparel.com';
 
 let tmProductInstances = []; // saved instances
 let tmEditingIndex = -1;     // index into tmProductInstances currently loaded into the builder form, or -1 when adding new
@@ -3994,7 +3993,7 @@ function renderInstList() {
     const designs = getInstanceDesigns(inst);
     const thumbView = designs.front ? 'front' : Object.keys(designs)[0];
     const mockupSrc = inst.type && MOCKUP_VIEWS[inst.type]
-      ? CUSTOMER_ORIGIN + (MOCKUP_VIEWS[inst.type][thumbView] || MOCKUP_VIEWS[inst.type].front || Object.values(MOCKUP_VIEWS[inst.type])[0])
+      ? (MOCKUP_VIEWS[inst.type][thumbView] || MOCKUP_VIEWS[inst.type].front || Object.values(MOCKUP_VIEWS[inst.type])[0])
       : '';
     const designSummary = ['front','back','side']
       .filter(v => designs[v]?.designName)
@@ -4163,21 +4162,23 @@ function updatePositioner() {
   const wrap      = document.getElementById('tm-positioner-wrap');
   if (!wrap) return;
 
-  if (!type || !designUrl) { wrap.style.display = 'none'; return; }
+  const views = MOCKUP_VIEWS[type] || {};
+  // Placeholder types (Jersey, Batting Jacket, Hat/Cap, Bag/Backpack, Misc)
+  // have no mockup photo at all by design — there's nothing to position a
+  // design against, so hide the positioner instead of showing a broken image.
+  if (!type || !designUrl || !Object.keys(views).length) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'flex';
 
-  const views  = MOCKUP_VIEWS[type] || {};
-  const src    = views[tmInstActiveView] || views.front || Object.values(views)[0] || '';
-  const fullSrc = src ? CUSTOMER_ORIGIN + src : '';
+  const src = views[tmInstActiveView] || views.front || Object.values(views)[0] || '';
 
   const mockup = document.getElementById('tm-pos-mockup');
   const tint   = document.getElementById('tm-pos-tint');
   const dimg   = document.getElementById('tm-pos-design-img');
 
-  if (mockup) mockup.src = fullSrc;
-  if (tint && fullSrc) {
-    tint.style.maskImage = `url('${fullSrc}')`;
-    tint.style.webkitMaskImage = `url('${fullSrc}')`;
+  if (mockup) mockup.src = src;
+  if (tint && src) {
+    tint.style.maskImage = `url('${src}')`;
+    tint.style.webkitMaskImage = `url('${src}')`;
     tint.style.backgroundColor = '#1a1a1a';
   }
   if (dimg) dimg.src = designUrl;
