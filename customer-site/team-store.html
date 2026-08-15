@@ -1155,6 +1155,25 @@ async function init() {
     const teams = Array.isArray(data) ? data : (data.value || []);
     teamData = teams.find(t => (t.subdomain || slugify(t.name||'')) === teamId);
     if (!teamData) { showError(`Team store "${teamId}" not found.`); return; }
+
+    const teamIdx = teams.indexOf(teamData);
+    const teamKey = teamData.key || `team-${teamIdx}`;
+    let storeState = 'public';
+    let storeCode  = '';
+    try {
+      const [ar, cr] = await Promise.all([
+        fetch(`${KV_API}/data/storeAccess`),
+        fetch(`${KV_API}/data/storeCodes`),
+      ]);
+      if (ar.ok) { const d = await ar.json(); storeState = (d && d[teamKey]) || 'public'; }
+      if (cr.ok) { const d = await cr.json(); storeCode  = (d && d[teamKey]) || ''; }
+    } catch(e) { /* access-control fetch failing shouldn't block a public store */ }
+
+    if (storeState === 'code') {
+      showCodeGate(storeCode);
+      return;
+    }
+
     await preloadMockups(teamData);
     renderStore();
   } catch(e) {
@@ -1172,6 +1191,52 @@ function showError(msg) {
       ⚠ ${msg}<br><br>
       <a href="/store" style="color:var(--up-sky);text-decoration:none;font-size:11px;">← Return to UP Store</a>
     </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CODE-PROTECTED STORE GATE
+// ═══════════════════════════════════════════════════════
+function showCodeGate(correctCode) {
+  document.getElementById('tsLoading').innerHTML = `
+    <div style="max-width:340px;margin:0 auto;padding:40px 24px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:10px;">🔑</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:2px;color:var(--up-white);text-transform:uppercase;margin-bottom:6px;">
+        This store requires an access code
+      </div>
+      <div style="font-family:'Barlow',sans-serif;font-size:13px;color:var(--up-mist);margin-bottom:18px;">
+        Ask your team organizer for the code to unlock ${escHtml(teamData?.name || 'this store')}.
+      </div>
+      <div class="ts-form-f" style="text-align:left;">
+        <input id="tsGateCodeInput" placeholder="ENTER CODE" maxlength="20"
+          style="text-transform:uppercase;text-align:center;letter-spacing:2px;"
+          onkeydown="if(event.key==='Enter')submitStoreCodeGate('${escAttr(correctCode)}')">
+        <div id="tsGateError" style="display:none;color:var(--hs-red);font-size:12px;margin-top:6px;">Incorrect code — try again.</div>
+      </div>
+      <button class="ts-add-btn" style="width:100%;margin-top:14px;" onclick="submitStoreCodeGate('${escAttr(correctCode)}')">Unlock Store</button>
+    </div>`;
+  document.getElementById('tsLoading').style.display = 'flex';
+  setTimeout(() => document.getElementById('tsGateCodeInput')?.focus(), 50);
+}
+
+async function submitStoreCodeGate(correctCode) {
+  const input = document.getElementById('tsGateCodeInput');
+  const entered = (input?.value || '').trim().toUpperCase();
+  const correct = (correctCode || '').toUpperCase();
+  if (entered && correct && entered === correct) {
+    await preloadMockups(teamData);
+    renderStore();
+  } else {
+    const err = document.getElementById('tsGateError');
+    if (err) err.style.display = 'block';
+    if (input) { input.style.borderColor = 'var(--hs-red)'; input.value = ''; input.focus(); }
+  }
+}
+
+function escHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escAttr(str) {
+  return String(str ?? '').replace(/[&<>"'\\]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','\\':'\\\\'}[c]));
 }
 
 // ═══════════════════════════════════════════════════════
