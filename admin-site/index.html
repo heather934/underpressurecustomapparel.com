@@ -3627,7 +3627,7 @@ function teamFormHTML(t) {
             <input id="tm-inew-name" placeholder="e.g. Rampage Script Tee" maxlength="60">
           </div>
           <div class="tm-inst-field full">
-            <label>Product Type(s) <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— pick more than one to add the same design to several products at once, each still gets its own card</span></label>
+            <label>Product Type(s) <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— pick more than one to add the same design to several products at once, each still gets its own card. The first one you pick is used for the preview below and the default price.</span></label>
             <div class="tm-type-chip-wrap" id="tm-inew-types">
               ${TM_PRODUCT_CATALOG.map(p => `<span class="tm-type-chip" data-type="${p.type}" onclick="tmToggleTypeChip(this)">${p.icon} ${p.label}</span>`).join('')}
             </div>
@@ -3950,6 +3950,7 @@ const CUSTOMER_ORIGIN = 'https://admin.underpressurecustomapparel.com';
 
 let tmProductInstances = []; // saved instances
 let tmEditingIndex = -1;     // index into tmProductInstances currently loaded into the builder form, or -1 when adding new
+let tmSelectedTypeOrder = []; // types in the order Erin actually clicked them — see getSelectedTypes()
 let tmInstDesigns = {};      // designs staged for the product currently being built: { front:{...}, back:{...}, side:{...} }
 let tmInstActiveView = 'front'; // which placement the design form is currently editing
 let tmInstDesignLeft = 50;
@@ -3974,8 +3975,20 @@ function getInstanceDesigns(inst) {
   return {};
 }
 
+// Multiple chips can be selected at once, and with several picked, the first
+// one Erin clicked is treated as the "display" type — the one whose mockup
+// shows in the positioner preview and whose price default gets filled in
+// (see tmInstTypesChanged/updatePositioner). A plain DOM query would return
+// them in catalog order instead of click order, so click order is tracked
+// here in tmSelectedTypeOrder and self-healed against the DOM on every call —
+// each chip click calls this immediately after, so newly-selected types are
+// appended in the order they're actually clicked, and deselected ones drop
+// out without disturbing the order of whatever's left.
 function getSelectedTypes() {
-  return Array.from(document.querySelectorAll('#tm-inew-types .tm-type-chip.selected')).map(c => c.dataset.type);
+  const selected = new Set(Array.from(document.querySelectorAll('#tm-inew-types .tm-type-chip.selected')).map(c => c.dataset.type));
+  tmSelectedTypeOrder = tmSelectedTypeOrder.filter(t => selected.has(t));
+  selected.forEach(t => { if (!tmSelectedTypeOrder.includes(t)) tmSelectedTypeOrder.push(t); });
+  return [...tmSelectedTypeOrder];
 }
 
 function initProductInstances(existing) {
