@@ -1172,9 +1172,13 @@ function getMockupSrc(src) {
 }
 
 async function init() {
-  // Read team ID from URL — supports ?team=rampage or path /rampage
+  // Read team ID from URL — supports ?team=rampage or path /rampage.
+  // The page itself is served at the clean path /team-store, so landing
+  // there directly (no ?team=) must NOT be treated as a team named
+  // "team-store" — that's this page's own path, not a store slug.
   const params = new URLSearchParams(window.location.search);
-  teamId = params.get('team') || window.location.pathname.replace(/^\//, '').split('/')[0] || '';
+  const pathSlug = window.location.pathname.replace(/^\//, '').split('/')[0].replace(/\.html$/, '') || '';
+  teamId = params.get('team') || (pathSlug === 'team-store' ? '' : pathSlug);
 
   if (!teamId) { showError('No team store specified.'); return; }
 
