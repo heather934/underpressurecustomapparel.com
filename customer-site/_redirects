@@ -4,12 +4,16 @@
 # ── Root URL serves the store ────────────────────────────────────────
 /                /customer-index.html              200
 /store           /customer-index.html              200
-/customer-index  /customer-index.html              200
 
 # ── Dynamic team stores ──────────────────────────────────────────────
-# NOTE: Do NOT add a /team-store rule here. Cloudflare Pages already
-# serves team-store.html at the clean path /team-store automatically.
-# Adding a rewrite creates an infinite redirect loop (ERR_TOO_MANY_REDIRECTS).
+# NOTE: Do NOT add a /team-store rule here, and do NOT add a
+# /customer-index rule targeting /customer-index.html either — both
+# hit the same trap: Cloudflare Pages automatically strips the .html
+# extension off any served HTML file's canonical URL, so a rule whose
+# source path equals its own target's clean form creates an infinite
+# redirect loop (ERR_TOO_MANY_REDIRECTS), not a working page. Team
+# stores are already served at the clean path /team-store
+# automatically. The homepage is the bare domain (/) or /store.
 # Every admin-created store still works at:
 #   underpressurecustomapparel.com/team-store?team=<subdomain>
 
