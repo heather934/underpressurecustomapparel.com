@@ -1435,29 +1435,36 @@ function renderCard(product, index) {
   const unitPrice = state.size ? resolveSizePrice(state.sizePrices, state.basePrice, state.size) : null;
   const priceDisplay = unitPrice !== null ? `$${unitPrice.toFixed(2)}` : sizePriceRangeText(state.sizePrices, state.basePrice, sizes);
 
-  // Mockup — only offer views whose photo is confirmed to actually load
-  // (see preloadMockups/isMockupAvailable). A placement the catalog lists
-  // but has no real photo for yet is treated as not existing at all, so
-  // cards stay visually consistent instead of showing a broken image.
+  // Mockup — a placement is offered (toggle button or split pane) whenever
+  // it actually has a design, even if no garment photo exists for it yet;
+  // see isMockupAvailable/preloadMockups. Front is always offered when the
+  // type supports it, since it's the default view. A missing photo for an
+  // otherwise-meaningful placement degrades to a plain color block instead
+  // of a broken image — the design itself still shows — rather than
+  // hiding the whole placement.
   const rawHasMockup = !meta.placeholder && meta.views && meta.views.length;
-  const availableViews = rawHasMockup ? meta.views.filter(v => isMockupAvailable(v.src)) : [];
-  const hasMockup  = availableViews.length > 0;
-  const activeView = availableViews.find(v => v.key === state.view) || availableViews[0];
-  const mockupSrc  = getMockupSrc(activeView?.src || '');
-  const hasViews   = availableViews.length > 1;
+  const meaningfulViews = rawHasMockup ? meta.views.filter(v => v.key === 'front' || designs[v.key]?.designUrl) : [];
+  const hasMockup  = meaningfulViews.length > 0;
+  const activeView = meaningfulViews.find(v => v.key === state.view) || meaningfulViews[0];
+  const activeViewHasPhoto = isMockupAvailable(activeView?.src);
+  const mockupSrc  = activeViewHasPhoto ? getMockupSrc(activeView.src) : '';
+  const hasViews   = meaningfulViews.length > 1;
 
-  // When a product has its own design on more than one available placement
+  // When a product has its own design on more than one meaningful placement
   // (e.g. a different design front and back), show every designed side at
   // once instead of making the customer toggle to see the other one.
-  const designedViews = availableViews.filter(v => designs[v.key]?.designUrl);
+  const designedViews = meaningfulViews.filter(v => designs[v.key]?.designUrl);
   const showSplitViews = designedViews.length > 1;
 
-  // Color tint layer
-  const tintStyle = hasMockup ? `background-color:${colorHex};mask-image:url('${mockupSrc}');-webkit-mask-image:url('${mockupSrc}');` : '';
+  // Color tint layer — only masked against a garment silhouette when a
+  // real photo exists for the active view; otherwise a flat color block.
+  const tintStyle = mockupSrc
+    ? `background-color:${colorHex};mask-image:url('${mockupSrc}');-webkit-mask-image:url('${mockupSrc}');`
+    : (hasMockup ? `background-color:${colorHex};mix-blend-mode:normal;` : '');
 
   // One design overlay per placement that actually has a design — only the
   // one matching the active view is visible; toggling views swaps which.
-  const overlaysHTML = hasMockup ? availableViews.map(v => {
+  const overlaysHTML = hasMockup ? meaningfulViews.map(v => {
     const d = designs[v.key];
     if (!d || !d.designUrl) return '';
     const gLeft  = d.graphicLeft  || meta.graphicLeft  || '50%';
@@ -1473,15 +1480,20 @@ function renderCard(product, index) {
   }).join('') : '';
 
   // Side-by-side panes for products with a design on more than one placement.
+  // A pane whose garment photo isn't available yet still shows the design,
+  // just on a flat color block instead of a silhouette.
   const splitPanesHTML = showSplitViews ? designedViews.map(v => {
     const d = designs[v.key];
-    const src = getMockupSrc(v.src);
+    const hasPhoto = isMockupAvailable(v.src);
+    const src = hasPhoto ? getMockupSrc(v.src) : '';
     const gLeft  = d.graphicLeft  || meta.graphicLeft  || '50%';
     const gTop   = d.graphicTop   || meta.graphicTop   || '40%';
     const gWidth = d.graphicWidth || meta.graphicWidth || '35%';
     return `<div class="ts-card-pane">
-        <img class="ts-card-mockup" src="${src}" alt="${meta.label} ${v.label}" loading="lazy">
-        <div class="ts-card-tint" style="background-color:${colorHex};mask-image:url('${src}');-webkit-mask-image:url('${src}');"></div>
+        ${hasPhoto ? `
+          <img class="ts-card-mockup" src="${src}" alt="${meta.label} ${v.label}" loading="lazy">
+          <div class="ts-card-tint" style="background-color:${colorHex};mask-image:url('${src}');-webkit-mask-image:url('${src}');"></div>
+        ` : `<div class="ts-card-tint" style="background-color:${colorHex};mix-blend-mode:normal;"></div>`}
         <div class="ts-card-design" style="position:absolute;top:${gTop};left:${gLeft};width:${gWidth};transform:translate(-50%,-50%);pointer-events:none;">
           <img src="${d.designUrl}" alt="${d.designName||''}"
             style="width:100%;height:auto;object-fit:contain;"
@@ -1526,7 +1538,7 @@ function renderCard(product, index) {
         ${showSplitViews ? splitPanesHTML : `
           ${hasViews ? `
             <div class="ts-card-view-toggle">
-              ${availableViews.map(v => `
+              ${meaningfulViews.map(v => `
                 <button class="ts-card-view-btn${v.key === (activeView?.key) ? ' active' : ''}"
                   onclick="setCardView('${cardId}','${product.type}','${v.key}',this.closest('.ts-card-view-toggle'))">
                   ${v.label}
@@ -1534,8 +1546,8 @@ function renderCard(product, index) {
             </div>` : ''}
 
           ${hasMockup ? `
-            <img class="ts-card-mockup" id="tsmock-${cardId}"
-              src="${mockupSrc}" alt="${meta.label}" loading="lazy">
+            ${mockupSrc ? `<img class="ts-card-mockup" id="tsmock-${cardId}"
+              src="${mockupSrc}" alt="${meta.label}" loading="lazy">` : `<img class="ts-card-mockup" id="tsmock-${cardId}" alt="${meta.label}" style="display:none;">`}
             <div class="ts-card-tint" id="tstint-${cardId}" style="${tintStyle}"></div>
             ${overlaysHTML}
           ` : `
@@ -1616,17 +1628,32 @@ function setCardView(cardId, prodType, viewKey, toggleEl) {
 
   const view = meta.views.find(v => v.key === viewKey);
   if (!view) return;
-  const resolvedSrc = getMockupSrc(view.src);
+  const hasPhoto = isMockupAvailable(view.src);
+  const colorHex = getColorHex(cardStates[cardId]?.color);
 
-  // Update mockup image
+  // Update mockup image — hide it entirely when this view has no real
+  // photo yet, instead of pointing it at a broken/empty src.
   const mock = document.getElementById('tsmock-' + cardId);
-  if (mock) mock.src = resolvedSrc;
+  if (mock) {
+    if (hasPhoto) { mock.src = getMockupSrc(view.src); mock.style.display = ''; }
+    else { mock.removeAttribute('src'); mock.style.display = 'none'; }
+  }
 
-  // Update tint mask
+  // Update tint — masked against the silhouette when a photo exists,
+  // otherwise a flat color block so the design still has a background.
   const tint = document.getElementById('tstint-' + cardId);
   if (tint) {
-    tint.style.maskImage = `url('${resolvedSrc}')`;
-    tint.style.webkitMaskImage = `url('${resolvedSrc}')`;
+    if (hasPhoto) {
+      const resolvedSrc = getMockupSrc(view.src);
+      tint.style.maskImage = `url('${resolvedSrc}')`;
+      tint.style.webkitMaskImage = `url('${resolvedSrc}')`;
+      tint.style.mixBlendMode = '';
+    } else {
+      tint.style.maskImage = 'none';
+      tint.style.webkitMaskImage = 'none';
+      tint.style.mixBlendMode = 'normal';
+    }
+    tint.style.backgroundColor = colorHex;
   }
 
   // Show only the design overlay for this placement (each view has its own).
