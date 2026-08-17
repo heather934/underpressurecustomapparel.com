@@ -303,35 +303,6 @@ body {
   background: var(--accent);
   color: #fff;
 }
-.ts-card-previewer-split {
-  display: flex;
-}
-.ts-card-pane {
-  position: relative;
-  flex: 1;
-  aspect-ratio: 1;
-  overflow: hidden;
-}
-.ts-card-pane + .ts-card-pane {
-  border-left: 1px solid rgba(0,0,0,.12);
-}
-.ts-card-pane-label {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 30px;
-  background: rgba(0,0,0,.4);
-  color: rgba(255,255,255,.85);
-  z-index: 10;
-  pointer-events: none;
-}
 .ts-card-body {
   padding: 16px;
   display: flex;
@@ -1450,12 +1421,6 @@ function renderCard(product, index) {
   const mockupSrc  = activeViewHasPhoto ? getMockupSrc(activeView.src) : '';
   const hasViews   = meaningfulViews.length > 1;
 
-  // When a product has its own design on more than one meaningful placement
-  // (e.g. a different design front and back), show every designed side at
-  // once instead of making the customer toggle to see the other one.
-  const designedViews = meaningfulViews.filter(v => designs[v.key]?.designUrl);
-  const showSplitViews = designedViews.length > 1;
-
   // Color tint layer — only masked against a garment silhouette when a
   // real photo exists for the active view; otherwise a flat color block.
   const tintStyle = mockupSrc
@@ -1476,30 +1441,6 @@ function renderCard(product, index) {
         <img src="${d.designUrl}" alt="${d.designName||''}"
           style="width:100%;height:auto;object-fit:contain;"
           onerror="this.parentElement.style.display='none'">
-      </div>`;
-  }).join('') : '';
-
-  // Side-by-side panes for products with a design on more than one placement.
-  // A pane whose garment photo isn't available yet still shows the design,
-  // just on a flat color block instead of a silhouette.
-  const splitPanesHTML = showSplitViews ? designedViews.map(v => {
-    const d = designs[v.key];
-    const hasPhoto = isMockupAvailable(v.src);
-    const src = hasPhoto ? getMockupSrc(v.src) : '';
-    const gLeft  = d.graphicLeft  || meta.graphicLeft  || '50%';
-    const gTop   = d.graphicTop   || meta.graphicTop   || '40%';
-    const gWidth = d.graphicWidth || meta.graphicWidth || '35%';
-    return `<div class="ts-card-pane">
-        ${hasPhoto ? `
-          <img class="ts-card-mockup" src="${src}" alt="${meta.label} ${v.label}" loading="lazy">
-          <div class="ts-card-tint" style="background-color:${colorHex};mask-image:url('${src}');-webkit-mask-image:url('${src}');"></div>
-        ` : `<div class="ts-card-tint" style="background-color:${colorHex};mix-blend-mode:normal;"></div>`}
-        <div class="ts-card-design" style="position:absolute;top:${gTop};left:${gLeft};width:${gWidth};transform:translate(-50%,-50%);pointer-events:none;">
-          <img src="${d.designUrl}" alt="${d.designName||''}"
-            style="width:100%;height:auto;object-fit:contain;"
-            onerror="this.parentElement.style.display='none'">
-        </div>
-        <div class="ts-card-pane-label">${v.label}</div>
       </div>`;
   }).join('') : '';
 
@@ -1534,28 +1475,26 @@ function renderCard(product, index) {
   return `
     <div class="ts-card" id="tscard-${cardId}">
       <!-- PREVIEWER -->
-      <div class="ts-card-previewer${showSplitViews ? ' ts-card-previewer-split' : ''}">
-        ${showSplitViews ? splitPanesHTML : `
-          ${hasViews ? `
-            <div class="ts-card-view-toggle">
-              ${meaningfulViews.map(v => `
-                <button class="ts-card-view-btn${v.key === (activeView?.key) ? ' active' : ''}"
-                  onclick="setCardView('${cardId}','${product.type}','${v.key}',this.closest('.ts-card-view-toggle'))">
-                  ${v.label}
-                </button>`).join('')}
-            </div>` : ''}
+      <div class="ts-card-previewer">
+        ${hasViews ? `
+          <div class="ts-card-view-toggle">
+            ${meaningfulViews.map(v => `
+              <button class="ts-card-view-btn${v.key === (activeView?.key) ? ' active' : ''}"
+                onclick="setCardView('${cardId}','${product.type}','${v.key}',this.closest('.ts-card-view-toggle'))">
+                ${v.label}
+              </button>`).join('')}
+          </div>` : ''}
 
-          ${hasMockup ? `
-            ${mockupSrc ? `<img class="ts-card-mockup" id="tsmock-${cardId}"
-              src="${mockupSrc}" alt="${meta.label}" loading="lazy">` : `<img class="ts-card-mockup" id="tsmock-${cardId}" alt="${meta.label}" style="display:none;">`}
-            <div class="ts-card-tint" id="tstint-${cardId}" style="${tintStyle}"></div>
-            ${overlaysHTML}
-          ` : `
-            <div class="ts-card-placeholder">
-              <div class="ts-card-placeholder-icon">${meta.icon}</div>
-              <div class="ts-card-placeholder-text">Mockup Coming Soon</div>
-            </div>
-          `}
+        ${hasMockup ? `
+          ${mockupSrc ? `<img class="ts-card-mockup" id="tsmock-${cardId}"
+            src="${mockupSrc}" alt="${meta.label}" loading="lazy">` : `<img class="ts-card-mockup" id="tsmock-${cardId}" alt="${meta.label}" style="display:none;">`}
+          <div class="ts-card-tint" id="tstint-${cardId}" style="${tintStyle}"></div>
+          ${overlaysHTML}
+        ` : `
+          <div class="ts-card-placeholder">
+            <div class="ts-card-placeholder-icon">${meta.icon}</div>
+            <div class="ts-card-placeholder-text">Mockup Coming Soon</div>
+          </div>
         `}
       </div>
 
