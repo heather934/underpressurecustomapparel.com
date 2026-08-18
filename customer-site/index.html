@@ -2198,8 +2198,8 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
             <div class="dropdown-section-label" style="margin-top:4px;">UP Apparel</div>
 
             <a class="dropdown-item" href="#"
-              onclick="event.preventDefault();showPage('up');openAdmin()"
-              data-search="up sportswear custom apparel products add manage">
+              onclick="event.preventDefault();showPage('up');document.getElementById('upProductsSection').scrollIntoView({behavior:'smooth'});"
+              data-search="up sportswear custom apparel products brand">
               <div class="dropdown-item-icon" style="background:rgba(21,101,255,.1);">⚡</div>
               <div class="dropdown-item-text">
                 <span class="dropdown-item-name">UP Sportswear Line</span>
@@ -2218,7 +2218,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
 
     </nav>
     <div class="nav-right">
-      <button class="btn-manage" onclick="openAdmin()" style="display:none" id="manageBtn">⚙ Manage</button>
       <button class="cart-btn" onclick="toggleSearch()" title="Search products" aria-label="Search products" aria-expanded="false" aria-controls="searchBarSection" style="margin-right:2px;">
         🔍 Search
       </button>
@@ -2666,70 +2665,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
   </div>
 </div>
 
-<!-- ══ EDIT PRODUCT MODAL (admin) ══ -->
-<div class="modal-bg" id="editModal">
-  <div class="modal-box2">
-    <div class="modal-head"><h3>EDIT PRODUCT</h3><button class="btn-close-m" onclick="closeEditModal()" aria-label="Close edit product form">✕</button></div>
-    <div class="modal-body">
-      <div class="admin-grid">
-        <div class="f"><label>Product Name *</label><input id="e-name" type="text"></div>
-        <div class="f"><label>Display Price *</label><input id="e-price" type="text"></div>
-        <div class="f"><label>Numeric Price (for checkout)</label><input id="e-pnum" type="number" step="0.01"></div>
-        <div class="f"><label>Category</label>
-          <select id="e-cat">
-            <option value="sportswear-tees">Performance Tees</option>
-            <option value="sportswear-hoodies">Hoodies &amp; Sweatshirts</option>
-            <option value="sportswear-shorts">Shorts &amp; Bottoms</option>
-            <option value="sportswear-jackets">Jackets &amp; Outerwear</option>
-            <option value="sportswear-hats">Hats &amp; Headwear</option>
-            <option value="sportswear-accessories">Accessories &amp; Gear</option>
-            <option value="sportswear-womens">Women's Sportswear</option>
-            <option value="sportswear-youth">Youth &amp; Kids</option>
-          </select>
-        </div>
-        <div class="f"><label>Sport / Team</label><input id="e-sport" type="text"></div>
-        <div class="f full">
-          <label>Product Image</label>
-          <div class="img-field-wrap">
-            <div class="img-input-row">
-              <input id="e-img" type="text" placeholder="Paste image URL or Canva share link..." oninput="previewImg('e')">
-              <button class="btn-canva" onclick="importCanva('e')" id="e-canva-btn">🎨 Import from Canva</button>
-              <label class="btn-upload-file" title="Upload from your device">
-                📁 Upload
-                <input id="e-file-input" type="file" accept="image/*" onchange="handleImgFileChange('e',this)">
-              </label>
-            </div>
-            <div class="canva-hint">
-              Paste a URL, import from Canva, or upload a PNG/JPG from your device.
-            </div>
-            <div class="canva-status" id="e-canva-status"></div>
-            <div class="img-preview-wrap" id="e-img-preview">
-              <img id="e-img-preview-img" src="" alt="Preview">
-              <button class="img-preview-clear" onclick="clearImg('e')" aria-label="Remove product image">✕</button>
-            </div>
-          </div>
-        </div>
-        <div class="f full"><label>Description (optional)</label><textarea id="e-desc" placeholder="Brief product description..."></textarea></div>
-        <div class="f full">
-          <label>Available Colors
-            <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">Customers see color swatches and the shirt tints to match</span>
-          </label>
-          <div class="color-chip-row" id="e-color-chips"></div>
-          <div class="color-add-row">
-            <input id="e-color-input" type="text" placeholder="Type a color (e.g. Navy, Red, White) then press Enter"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();addColorChip('e');}">
-            <button type="button" class="btn-add-color" onclick="addColorChip('e')">+ Add</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-actions">
-        <button class="btn-save-up" onclick="saveEdit()">Save Changes</button>
-        <button class="btn-cancel-up" onclick="closeEditModal()">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ══ ITEM COST ENTRY MODAL (admin) ══ -->
 <div class="modal-bg" id="costEntryModal">
   <div class="cost-entry-modal-box">
@@ -3069,8 +3004,7 @@ function showOrderSuccess(details){
 // ══════════════════════════════
 // UP SPORTSWEAR
 // ══════════════════════════════
-var upProducts=[],editIdx=null,upFilter="all";
-function loadUP(){try{upProducts=JSON.parse(localStorage.getItem("upSportswear")||"[]");}catch(e){upProducts=[];}}
+var upProducts=[],upFilter="all";
 
 // ═══════════════════════════════════════════════════
 //  KV SYNC LAYER
@@ -3099,7 +3033,6 @@ async function kvGet(key) {
   }
 }
 
-function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));kvSet('products',upProducts);}
 function renderUP(filter="all"){
   upFilter=filter;
   const grid=document.getElementById("upGrid");
@@ -3112,7 +3045,7 @@ function renderUP(filter="all"){
     return;
   }
   grid.innerHTML=data.map((p,i)=>{
-    const icon=catIcons[p.cat]||"👕",lbl=catLabels[p.cat]||p.cat,ri=upProducts.indexOf(p),hasP=parseFloat(p.pnum)>0;
+    const icon=catIcons[p.cat]||"👕",lbl=catLabels[p.cat]||p.cat,hasP=parseFloat(p.pnum)>0;
     const cardId = 'up-' + p.id;
     // colors: array of color names e.g. ["Navy","Red","White"]
     const colors = p.colors && p.colors.length ? (Array.isArray(p.colors) ? p.colors : Object.keys(p.colors)) : null;
@@ -3140,10 +3073,6 @@ function renderUP(filter="all"){
         ${buildSwatches(cardId, colors)}
         <span class="p-swatch-label" id="pcolor-label-${cardId}">${firstName}</span>
       </div>` : ''}
-      <div class="p-controls">
-        <button class="btn-edit-p" onclick="openEdit(${ri})">✏ Edit</button>
-        <button class="btn-del-p" onclick="deleteProduct(${ri})">✕ Remove</button>
-      </div>
     </div>`;
   }).join("");
 }
@@ -3311,6 +3240,30 @@ function getColorHex(name) { return COLOR_HEX_MAP[name] || '#888'; }
 
 // Default colors shown when no list is specified
 const DEFAULT_PRODUCT_COLORS = ['White','Black','Navy','Sport Grey','Red'];
+
+// Changes the color layer behind a brand item's transparent product image —
+// the design/graphic itself is unaffected.
+function setSwatchColor(cardId, colorName) {
+  const layer = document.getElementById('pcolor-' + cardId);
+  if (layer) layer.style.backgroundColor = getColorHex(colorName);
+  document.querySelectorAll(`.p-swatch[data-card="${cardId}"]`)
+    .forEach(s => s.classList.toggle('active', s.dataset.color === colorName));
+  const label = document.getElementById('pcolor-label-' + cardId);
+  if (label) label.textContent = colorName;
+}
+
+// colors: array of color name strings, e.g. ["Navy","Red","White"]
+function buildSwatches(cardId, colors) {
+  if (!colors || !colors.length) colors = DEFAULT_PRODUCT_COLORS;
+  if (!Array.isArray(colors)) colors = Object.keys(colors);
+  return colors.map((c, i) =>
+    `<div class="p-swatch${i===0?' active':''}"
+      style="background:${getColorHex(c)};"
+      data-card="${cardId}" data-color="${c}"
+      title="${c}"
+      onclick="setSwatchColor('${cardId}','${c}')"></div>`
+  ).join('');
+}
 
 const TM_PRODUCT_CATALOG = [
   // ── Tops ──────────────────────────────────────────
@@ -4327,7 +4280,6 @@ function maskSecret(val) {
   return val.slice(0, 4) + '•'.repeat(Math.max(val.length - 8, 4)) + val.slice(-4);
 }
 
-var isAdminMode = false;
 document.addEventListener('DOMContentLoaded', function() {
   // Load teams from KV so dynamic stores show on fresh browsers
   (async function() {
@@ -4358,6 +4310,13 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       const cr = await fetch(`${KV_API}/data/storeCodes`);
       if (cr.ok) { const d = await cr.json(); if (d && typeof d === 'object') storeCodes = d; }
+    } catch(e) {}
+    // Load brand items (the "UP Sportswear Line" section) — Erin manages
+    // these from the admin's Brand Items panel; this is the only way they
+    // reach the customer site, since this page never writes to them.
+    try {
+      const pr = await fetch(`${KV_API}/data/products`);
+      if (pr.ok) { const d = await pr.json(); if (Array.isArray(d)) upProducts = d; }
     } catch(e) {}
     loadReviews();
     loadDiscountCodes();

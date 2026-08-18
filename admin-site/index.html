@@ -2199,8 +2199,8 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
             <div class="dropdown-section-label" style="margin-top:4px;">UP Apparel</div>
 
             <a class="dropdown-item" href="#"
-              onclick="event.preventDefault();showPage('up');openAdmin()"
-              data-search="up sportswear custom apparel products add manage">
+              onclick="event.preventDefault();renderAdminPanel('brand')"
+              data-search="up sportswear custom apparel products add manage brand items">
               <div class="dropdown-item-icon" style="background:rgba(21,101,255,.1);">⚡</div>
               <div class="dropdown-item-text">
                 <span class="dropdown-item-name">UP Sportswear Line</span>
@@ -2219,7 +2219,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
 
     </nav>
     <div class="nav-right">
-      <button class="btn-manage" onclick="openAdmin()" style="display:none" id="manageBtn">⚙ Manage</button>
       <button class="cart-btn" onclick="toggleSearch()" title="Search products" aria-label="Search products" aria-expanded="false" aria-controls="searchBarSection" style="margin-right:2px;">
         🔍 Search
       </button>
@@ -2286,71 +2285,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
   </div>
 
   <div class="up-stripe"></div>
-
-  <!-- ADMIN PANEL (admin-only, hidden on front page) -->
-  <div class="admin-panel" id="adminPanel">
-    <div class="admin-inner">
-      <div class="admin-h">⚡ ADD UP SPORTSWEAR PRODUCT</div>
-      <div class="admin-grid">
-        <div class="f"><label>Product Name *</label><input id="f-name" type="text" placeholder="e.g. UP Performance Tee"></div>
-        <div class="f"><label>Display Price *</label><input id="f-price" type="text" placeholder="e.g. $28 or $28–$34"></div>
-        <div class="f"><label>Numeric Price (for checkout)</label><input id="f-pnum" type="number" step="0.01" placeholder="28.00"></div>
-        <div class="f"><label>Category</label>
-          <select id="f-cat">
-            <option value="sportswear-tees">Performance Tees</option>
-            <option value="sportswear-hoodies">Hoodies & Sweatshirts</option>
-            <option value="sportswear-shorts">Shorts & Bottoms</option>
-            <option value="sportswear-jackets">Jackets & Outerwear</option>
-            <option value="sportswear-hats">Hats & Headwear</option>
-            <option value="sportswear-accessories">Accessories & Gear</option>
-            <option value="sportswear-womens">Women's Sportswear</option>
-            <option value="sportswear-youth">Youth & Kids</option>
-          </select>
-        </div>
-        <div class="f"><label>Sport / Team</label><input id="f-sport" type="text" placeholder="e.g. Baseball, Football"></div>
-        <div class="f full">
-          <label>Product Image</label>
-          <div class="img-field-wrap">
-            <div class="img-input-row">
-              <input id="f-img" type="text" placeholder="Paste image URL or Canva share link..." oninput="previewImg('f')">
-              <button class="btn-canva" onclick="importCanva('f')" id="f-canva-btn">
-                🎨 Import from Canva
-              </button>
-              <label class="btn-upload-file" title="Upload from your device">
-                📁 Upload
-                <input id="f-file-input" type="file" accept="image/*" onchange="handleImgFileChange('f',this)">
-              </label>
-            </div>
-            <div class="canva-hint">
-              Paste a URL, import from Canva, or upload a PNG/JPG from your device.
-            </div>
-            <div class="canva-status" id="f-canva-status"></div>
-            <div class="img-preview-wrap" id="f-img-preview">
-              <img id="f-img-preview-img" src="" alt="Preview">
-              <button class="img-preview-clear" onclick="clearImg('f')" aria-label="Remove product image">✕</button>
-            </div>
-          </div>
-        </div>
-        <div class="f full"><label>Description (optional)</label><textarea id="f-desc" placeholder="Brief product description..."></textarea></div>
-        <div class="f full">
-          <label>Available Colors
-            <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">Customers see color swatches and the shirt tints to match</span>
-          </label>
-          <div class="color-chip-row" id="f-color-chips"></div>
-          <div class="color-add-row">
-            <input id="f-color-input" type="text" placeholder="Type a color (e.g. Navy, Red, White) then press Enter"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();addColorChip('f');}">
-            <button type="button" class="btn-add-color" onclick="addColorChip('f')">+ Add</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-actions">
-        <button class="btn-save-up" onclick="saveProduct()">Save Product</button>
-        <button class="btn-cancel-up" onclick="closeAdmin()">Cancel</button>
-        <span class="save-flash" id="saveMsg">✓ Product saved!</span>
-      </div>
-    </div>
-  </div>
 
   <!-- UP PRODUCTS -->
   <div class="up-sw-section" id="upProductsSection">
@@ -3185,20 +3119,114 @@ function renderUP(filter="all"){
   }).join("");
 }
 function filterUP(cat,el){document.querySelectorAll("#upFilters .chip").forEach(c=>c.classList.remove("on"));if(el)el.classList.add("on");renderUP(cat);}
-function openAdmin(){
-  if(!isAdminMode){ return; }
-  document.getElementById("adminPanel").classList.add("open");
-  document.getElementById("adminPanel").scrollIntoView({behavior:"smooth",block:"start"});
+
+// ══════════════════════════════════════════════════════
+//  BRAND ITEMS ADMIN PANEL
+//  Manage the standalone "Under Pressure" products shown
+//  on the customer homepage — not tied to any team store.
+// ══════════════════════════════════════════════════════
+function renderBrandAdmin() {
+  const rows = upProducts.length ? upProducts.map((p, i) => {
+    const icon = catIcons[p.cat] || '👕', lbl = catLabels[p.cat] || p.cat;
+    const priceLabel = p.pnum ? `$${parseFloat(p.pnum).toFixed(2)}` : (p.price || 'TBD');
+    return `<div class="tm-inst-card">
+      ${p.img
+        ? `<img class="tm-inst-card-thumb" src="${p.img}" alt="${escHtml(p.name)}" onerror="this.style.display='none'">`
+        : `<div class="tm-inst-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">${icon}</div>`}
+      <div class="tm-inst-card-info">
+        <div class="tm-inst-card-name">${escHtml(p.name)}</div>
+        <div class="tm-inst-card-meta">${lbl}${p.sport ? ' · ' + escHtml(p.sport) : ''} · ${priceLabel}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn-add-note" onclick="openEdit(${i})">✏ Edit</button>
+        <button class="tm-inst-card-del" onclick="deleteProduct(${i})" aria-label="Remove ${escHtml(p.name)}">✕</button>
+      </div>
+    </div>`;
+  }).join('') : `<div class="dash-empty">No brand items yet — add your first one below. These show in the "UP Sportswear Line" section on the customer homepage, separate from any Team Store.</div>`;
+
+  setTimeout(() => { renderColorChips('f'); initImgPreview('f'); }, 0);
+
+  return `
+    <div class="cm-section-head">
+      <div>
+        <div class="cm-section-title" style="color:var(--up-sky);">Brand <span style="color:var(--accent)">Items</span></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">
+          ${upProducts.length} item${upProducts.length!==1?'s':''} · Shown in the UP Sportswear Line section on the customer homepage
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">${rows}</div>
+
+    <div class="disc-add-form">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:14px;">+ Add Brand Item</div>
+      <div class="admin-grid">
+        <div class="f"><label>Product Name *</label><input id="f-name" type="text" placeholder="e.g. UP Performance Tee"></div>
+        <div class="f"><label>Display Price *</label><input id="f-price" type="text" placeholder="e.g. $28 or $28–$34"></div>
+        <div class="f"><label>Numeric Price (for checkout)</label><input id="f-pnum" type="number" step="0.01" placeholder="28.00"></div>
+        <div class="f"><label>Category</label>
+          <select id="f-cat">
+            <option value="sportswear-tees">Performance Tees</option>
+            <option value="sportswear-hoodies">Hoodies &amp; Sweatshirts</option>
+            <option value="sportswear-shorts">Shorts &amp; Bottoms</option>
+            <option value="sportswear-jackets">Jackets &amp; Outerwear</option>
+            <option value="sportswear-hats">Hats &amp; Headwear</option>
+            <option value="sportswear-accessories">Accessories &amp; Gear</option>
+            <option value="sportswear-womens">Women's Sportswear</option>
+            <option value="sportswear-youth">Youth &amp; Kids</option>
+          </select>
+        </div>
+        <div class="f"><label>Sport / Team</label><input id="f-sport" type="text" placeholder="e.g. Baseball, Football"></div>
+        <div class="f full">
+          <label>Product Image</label>
+          <div class="img-field-wrap">
+            <div class="img-input-row">
+              <input id="f-img" type="text" placeholder="Paste image URL or Canva share link..." oninput="previewImg('f')">
+              <button class="btn-canva" onclick="importCanva('f')" id="f-canva-btn">
+                🎨 Import from Canva
+              </button>
+              <label class="btn-upload-file" title="Upload from your device">
+                📁 Upload
+                <input id="f-file-input" type="file" accept="image/*" onchange="handleImgFileChange('f',this)">
+              </label>
+            </div>
+            <div class="canva-hint">
+              Paste a URL, import from Canva, or upload a PNG/JPG from your device.
+            </div>
+            <div class="canva-status" id="f-canva-status"></div>
+            <div class="img-preview-wrap" id="f-img-preview">
+              <img id="f-img-preview-img" src="" alt="Preview">
+              <button class="img-preview-clear" onclick="clearImg('f')" aria-label="Remove product image">✕</button>
+            </div>
+          </div>
+        </div>
+        <div class="f full"><label>Description (optional)</label><textarea id="f-desc" placeholder="Brief product description..."></textarea></div>
+        <div class="f full">
+          <label>Available Colors
+            <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">Customers see color swatches and the shirt tints to match</span>
+          </label>
+          <div class="color-chip-row" id="f-color-chips"></div>
+          <div class="color-add-row">
+            <input id="f-color-input" type="text" placeholder="Type a color (e.g. Navy, Red, White) then press Enter"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();addColorChip('f');}">
+            <button type="button" class="btn-add-color" onclick="addColorChip('f')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-actions">
+        <button class="btn-save-up" onclick="saveProduct()">Save Product</button>
+        <button class="btn-cancel-up" onclick="clearForm()">Clear</button>
+      </div>
+    </div>`;
 }
-function closeAdmin(){document.getElementById("adminPanel").classList.remove("open");}
+
 function clearForm(){["f-name","f-price","f-sport","f-img","f-desc","f-pnum"].forEach(id=>document.getElementById(id).value="");document.getElementById("f-cat").value="sportswear-tees";formColors=[];renderColorChips("f");}
 function saveProduct(){
   const name=document.getElementById("f-name").value.trim(),price=document.getElementById("f-price").value.trim();
   if(!name||!price){showToast("Name and price are required");return;}
   const colors = getFormColors();
   upProducts.unshift({name,price,pnum:document.getElementById("f-pnum").value.trim(),cat:document.getElementById("f-cat").value,sport:document.getElementById("f-sport").value.trim(),img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now()});
-  saveUP();clearForm();renderUP(upFilter);
-  const m=document.getElementById("saveMsg");m.classList.add("show");setTimeout(()=>m.classList.remove("show"),2500);
+  saveUP();renderUP(upFilter);renderAdminPanel('brand');
   showToast(`"${name}" added!`);
 }
 function openEdit(idx){
@@ -3214,7 +3242,7 @@ function closeEditModal(){document.getElementById("editModal").classList.remove(
 function saveEdit(){
   if(editIdx===null)return;
   upProducts[editIdx]={...upProducts[editIdx],name:document.getElementById("e-name").value.trim(),price:document.getElementById("e-price").value.trim(),pnum:document.getElementById("e-pnum").value.trim(),cat:document.getElementById("e-cat").value,sport:document.getElementById("e-sport").value.trim(),img:document.getElementById("e-img").value.trim(),desc:document.getElementById("e-desc").value.trim(),colors:getFormColors()};
-  saveUP();renderUP(upFilter);closeEditModal();showToast("Product updated!");
+  saveUP();renderUP(upFilter);renderAdminPanel('brand');closeEditModal();showToast("Product updated!");
 }
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
 
@@ -8735,6 +8763,7 @@ function renderInvoiceAdmin() {
         <div class="admin-nav-item" id="anav-storeorders" onclick="renderAdminPanel('storeorders')">📬 <span class="admin-nav-item-label">Store Orders</span></div>
         <div class="admin-nav-item" id="anav-purchaselist" onclick="renderAdminPanel('purchaselist')">🛒 <span class="admin-nav-item-label">Purchase List</span></div>
         <div class="admin-nav-item" id="anav-teams" onclick="renderAdminPanel('teams')">🏆 <span class="admin-nav-item-label">Team Stores</span></div>
+        <div class="admin-nav-item" id="anav-brand" onclick="renderAdminPanel('brand')">🛍 <span class="admin-nav-item-label">Brand Items</span></div>
         <div class="admin-nav-item" id="anav-customers" onclick="renderAdminPanel('customers')">👥 <span class="admin-nav-item-label">Customers</span></div>
         <div class="admin-nav-item" id="anav-costanalysis" onclick="renderAdminPanel('costanalysis')">💰 <span class="admin-nav-item-label">Cost Analysis</span></div>
         <div class="admin-nav-item" id="anav-inventory" onclick="renderAdminPanel('inventory')">📦 <span class="admin-nav-item-label">Inventory</span></div>
@@ -8935,6 +8964,7 @@ function deleteProduct(idx) {
       upProducts.splice(idx, 1);
       saveUP();
       renderUP(upFilter);
+      renderAdminPanel('brand');
       showToast('Product removed.');
     }
   });
@@ -9270,6 +9300,7 @@ function renderAdminPanel(tab) {
       case 'production':   content.innerHTML = renderProductionAdmin(); break;
       case 'purchaselist': content.innerHTML = renderPurchaseList();    break;
       case 'teams':        content.innerHTML = renderTeamAdmin();       break;
+      case 'brand':        content.innerHTML = renderBrandAdmin();      break;
       case 'customers':    content.innerHTML = renderCustomers();       break;
       case 'costanalysis': content.innerHTML = renderCostAnalysis();    break;
       case 'inventory':    content.innerHTML = renderInventory();       break;
@@ -9342,8 +9373,7 @@ const A11Y_MODALS = [
   { id: 'editModal',      close: () => closeEditModal() },
   { id: 'costEntryModal', close: () => closeCostModal() },
   { id: 'reviewModal',    close: () => closeReviewModal() },
-  { id: 'cmModal',        close: () => closeCMModal() },
-  { id: 'adminPanel',     close: () => closeAdmin() }
+  { id: 'cmModal',        close: () => closeCMModal() }
 ];
 
 var a11yLastFocused = null;
