@@ -303,35 +303,6 @@ body {
   background: var(--accent);
   color: #fff;
 }
-.ts-card-previewer-split {
-  display: flex;
-}
-.ts-card-pane {
-  position: relative;
-  flex: 1;
-  aspect-ratio: 1;
-  overflow: hidden;
-}
-.ts-card-pane + .ts-card-pane {
-  border-left: 1px solid rgba(0,0,0,.12);
-}
-.ts-card-pane-label {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 30px;
-  background: rgba(0,0,0,.4);
-  color: rgba(255,255,255,.85);
-  z-index: 10;
-  pointer-events: none;
-}
 .ts-card-body {
   padding: 16px;
   display: flex;
@@ -1120,13 +1091,22 @@ const cardStates = {};
 // Resolved mockup URLs — .b64 files are fetched once and converted to
 // data URLs so both <img src> and CSS mask-image work correctly.
 const mockupCache = {};
+// Sources confirmed NOT to actually load (missing file, corrupt payload).
+// A view whose mockup is unavailable is treated as if that placement
+// doesn't exist at all — no toggle button, no split pane for it — so
+// cards stay consistent instead of showing a broken image. Self-heals
+// automatically once the real photo is added, no code change needed.
+const unavailableMockups = new Set();
 
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
 // Preload mockup images for all product types used by this store.
 // .b64 files are detected as either real PNG binaries renamed to .b64
-// or actual base64 text strings — handled correctly either way.
+// or actual base64 text strings — handled correctly either way. Every
+// resolved image (.b64 or plain .png) is verified to actually decode
+// before being trusted, since a missing .png previously wasn't checked
+// at all — it was just assumed to exist because the catalog listed it.
 async function preloadMockups(team) {
   const srcsToLoad = new Set();
   (team?.products || []).forEach(p => {
@@ -1135,40 +1115,55 @@ async function preloadMockups(team) {
   });
 
   await Promise.all([...srcsToLoad].map(async src => {
-    if (mockupCache[src] !== undefined) return;
-    if (!src.endsWith('.b64')) {
-      mockupCache[src] = src; // regular .png — use URL directly
-      return;
-    }
-    try {
-      const res    = await fetch(src);
-      const buffer = await res.arrayBuffer();
-      const bytes  = new Uint8Array(buffer);
-      let base64;
-      // PNG magic bytes: 0x89 0x50 0x4E 0x47
-      if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
-        // Real PNG binary just renamed to .b64 — encode it ourselves
-        let binary = '';
-        const chunk = 8192;
-        for (let i = 0; i < bytes.length; i += chunk) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    if (mockupCache[src] !== undefined || unavailableMockups.has(src)) return;
+
+    let resolved = src;
+    if (src.endsWith('.b64')) {
+      try {
+        const res = await fetch(src);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buffer = await res.arrayBuffer();
+        const bytes  = new Uint8Array(buffer);
+        let base64;
+        // PNG magic bytes: 0x89 0x50 0x4E 0x47
+        if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+          // Real PNG binary just renamed to .b64 — encode it ourselves
+          let binary = '';
+          const chunk = 8192;
+          for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+          }
+          base64 = btoa(binary);
+        } else {
+          // Actual base64 text file
+          base64 = new TextDecoder().decode(buffer).trim();
         }
-        base64 = btoa(binary);
-      } else {
-        // Actual base64 text file
-        base64 = new TextDecoder().decode(buffer).trim();
+        resolved = `data:image/png;base64,${base64}`;
+      } catch(e) {
+        unavailableMockups.add(src);
+        return;
       }
-      mockupCache[src] = `data:image/png;base64,${base64}`;
-    } catch(e) {
-      console.warn('Mockup preload failed:', src, e);
-      mockupCache[src] = src; // fall back to direct URL
     }
+
+    const loads = await new Promise(resolve => {
+      const img = new Image();
+      img.onload  = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = resolved;
+    });
+    if (loads) mockupCache[src] = resolved;
+    else unavailableMockups.add(src);
   }));
 }
 
 // Return the cached (data URL) version of a mockup src, or the src itself.
 function getMockupSrc(src) {
   return (src && mockupCache[src] !== undefined) ? mockupCache[src] : src;
+}
+
+// True once preloadMockups has confirmed this view's image actually loads.
+function isMockupAvailable(src) {
+  return !!src && mockupCache[src] !== undefined;
 }
 
 // Site-internal paths that must never be mistaken for a store slug, even
@@ -1411,24 +1406,30 @@ function renderCard(product, index) {
   const unitPrice = state.size ? resolveSizePrice(state.sizePrices, state.basePrice, state.size) : null;
   const priceDisplay = unitPrice !== null ? `$${unitPrice.toFixed(2)}` : sizePriceRangeText(state.sizePrices, state.basePrice, sizes);
 
-  // Mockup
-  const hasMockup = !meta.placeholder && meta.views && meta.views.length;
-  const activeView = meta.views.find(v => v.key === state.view) || meta.views[0];
-  const mockupSrc  = getMockupSrc(activeView?.src || '');
-  const hasViews   = meta.views.length > 1;
+  // Mockup — a placement is offered (toggle button or split pane) whenever
+  // it actually has a design, even if no garment photo exists for it yet;
+  // see isMockupAvailable/preloadMockups. Front is always offered when the
+  // type supports it, since it's the default view. A missing photo for an
+  // otherwise-meaningful placement degrades to a plain color block instead
+  // of a broken image — the design itself still shows — rather than
+  // hiding the whole placement.
+  const rawHasMockup = !meta.placeholder && meta.views && meta.views.length;
+  const meaningfulViews = rawHasMockup ? meta.views.filter(v => v.key === 'front' || designs[v.key]?.designUrl) : [];
+  const hasMockup  = meaningfulViews.length > 0;
+  const activeView = meaningfulViews.find(v => v.key === state.view) || meaningfulViews[0];
+  const activeViewHasPhoto = isMockupAvailable(activeView?.src);
+  const mockupSrc  = activeViewHasPhoto ? getMockupSrc(activeView.src) : '';
+  const hasViews   = meaningfulViews.length > 1;
 
-  // When a product has its own design on more than one placement (e.g. a
-  // different design front and back), show every designed side at once
-  // instead of making the customer toggle to see the other one.
-  const designedViews = hasMockup ? meta.views.filter(v => designs[v.key]?.designUrl) : [];
-  const showSplitViews = designedViews.length > 1;
-
-  // Color tint layer
-  const tintStyle = hasMockup ? `background-color:${colorHex};mask-image:url('${mockupSrc}');-webkit-mask-image:url('${mockupSrc}');` : '';
+  // Color tint layer — only masked against a garment silhouette when a
+  // real photo exists for the active view; otherwise a flat color block.
+  const tintStyle = mockupSrc
+    ? `background-color:${colorHex};mask-image:url('${mockupSrc}');-webkit-mask-image:url('${mockupSrc}');`
+    : (hasMockup ? `background-color:${colorHex};mix-blend-mode:normal;` : '');
 
   // One design overlay per placement that actually has a design — only the
   // one matching the active view is visible; toggling views swaps which.
-  const overlaysHTML = hasMockup ? meta.views.map(v => {
+  const overlaysHTML = hasMockup ? meaningfulViews.map(v => {
     const d = designs[v.key];
     if (!d || !d.designUrl) return '';
     const gLeft  = d.graphicLeft  || meta.graphicLeft  || '50%';
@@ -1440,25 +1441,6 @@ function renderCard(product, index) {
         <img src="${d.designUrl}" alt="${d.designName||''}"
           style="width:100%;height:auto;object-fit:contain;"
           onerror="this.parentElement.style.display='none'">
-      </div>`;
-  }).join('') : '';
-
-  // Side-by-side panes for products with a design on more than one placement.
-  const splitPanesHTML = showSplitViews ? designedViews.map(v => {
-    const d = designs[v.key];
-    const src = getMockupSrc(v.src);
-    const gLeft  = d.graphicLeft  || meta.graphicLeft  || '50%';
-    const gTop   = d.graphicTop   || meta.graphicTop   || '40%';
-    const gWidth = d.graphicWidth || meta.graphicWidth || '35%';
-    return `<div class="ts-card-pane">
-        <img class="ts-card-mockup" src="${src}" alt="${meta.label} ${v.label}" loading="lazy">
-        <div class="ts-card-tint" style="background-color:${colorHex};mask-image:url('${src}');-webkit-mask-image:url('${src}');"></div>
-        <div class="ts-card-design" style="position:absolute;top:${gTop};left:${gLeft};width:${gWidth};transform:translate(-50%,-50%);pointer-events:none;">
-          <img src="${d.designUrl}" alt="${d.designName||''}"
-            style="width:100%;height:auto;object-fit:contain;"
-            onerror="this.parentElement.style.display='none'">
-        </div>
-        <div class="ts-card-pane-label">${v.label}</div>
       </div>`;
   }).join('') : '';
 
@@ -1493,28 +1475,26 @@ function renderCard(product, index) {
   return `
     <div class="ts-card" id="tscard-${cardId}">
       <!-- PREVIEWER -->
-      <div class="ts-card-previewer${showSplitViews ? ' ts-card-previewer-split' : ''}">
-        ${showSplitViews ? splitPanesHTML : `
-          ${hasViews ? `
-            <div class="ts-card-view-toggle">
-              ${meta.views.map(v => `
-                <button class="ts-card-view-btn${v.key === state.view ? ' active' : ''}"
-                  onclick="setCardView('${cardId}','${product.type}','${v.key}',this.closest('.ts-card-view-toggle'))">
-                  ${v.label}
-                </button>`).join('')}
-            </div>` : ''}
+      <div class="ts-card-previewer">
+        ${hasViews ? `
+          <div class="ts-card-view-toggle">
+            ${meaningfulViews.map(v => `
+              <button class="ts-card-view-btn${v.key === (activeView?.key) ? ' active' : ''}"
+                onclick="setCardView('${cardId}','${product.type}','${v.key}',this.closest('.ts-card-view-toggle'))">
+                ${v.label}
+              </button>`).join('')}
+          </div>` : ''}
 
-          ${hasMockup ? `
-            <img class="ts-card-mockup" id="tsmock-${cardId}"
-              src="${mockupSrc}" alt="${meta.label}" loading="lazy">
-            <div class="ts-card-tint" id="tstint-${cardId}" style="${tintStyle}"></div>
-            ${overlaysHTML}
-          ` : `
-            <div class="ts-card-placeholder">
-              <div class="ts-card-placeholder-icon">${meta.icon}</div>
-              <div class="ts-card-placeholder-text">Mockup Coming Soon</div>
-            </div>
-          `}
+        ${hasMockup ? `
+          ${mockupSrc ? `<img class="ts-card-mockup" id="tsmock-${cardId}"
+            src="${mockupSrc}" alt="${meta.label}" loading="lazy">` : `<img class="ts-card-mockup" id="tsmock-${cardId}" alt="${meta.label}" style="display:none;">`}
+          <div class="ts-card-tint" id="tstint-${cardId}" style="${tintStyle}"></div>
+          ${overlaysHTML}
+        ` : `
+          <div class="ts-card-placeholder">
+            <div class="ts-card-placeholder-icon">${meta.icon}</div>
+            <div class="ts-card-placeholder-text">Mockup Coming Soon</div>
+          </div>
         `}
       </div>
 
@@ -1587,17 +1567,32 @@ function setCardView(cardId, prodType, viewKey, toggleEl) {
 
   const view = meta.views.find(v => v.key === viewKey);
   if (!view) return;
-  const resolvedSrc = getMockupSrc(view.src);
+  const hasPhoto = isMockupAvailable(view.src);
+  const colorHex = getColorHex(cardStates[cardId]?.color);
 
-  // Update mockup image
+  // Update mockup image — hide it entirely when this view has no real
+  // photo yet, instead of pointing it at a broken/empty src.
   const mock = document.getElementById('tsmock-' + cardId);
-  if (mock) mock.src = resolvedSrc;
+  if (mock) {
+    if (hasPhoto) { mock.src = getMockupSrc(view.src); mock.style.display = ''; }
+    else { mock.removeAttribute('src'); mock.style.display = 'none'; }
+  }
 
-  // Update tint mask
+  // Update tint — masked against the silhouette when a photo exists,
+  // otherwise a flat color block so the design still has a background.
   const tint = document.getElementById('tstint-' + cardId);
   if (tint) {
-    tint.style.maskImage = `url('${resolvedSrc}')`;
-    tint.style.webkitMaskImage = `url('${resolvedSrc}')`;
+    if (hasPhoto) {
+      const resolvedSrc = getMockupSrc(view.src);
+      tint.style.maskImage = `url('${resolvedSrc}')`;
+      tint.style.webkitMaskImage = `url('${resolvedSrc}')`;
+      tint.style.mixBlendMode = '';
+    } else {
+      tint.style.maskImage = 'none';
+      tint.style.webkitMaskImage = 'none';
+      tint.style.mixBlendMode = 'normal';
+    }
+    tint.style.backgroundColor = colorHex;
   }
 
   // Show only the design overlay for this placement (each view has its own).
