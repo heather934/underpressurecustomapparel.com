@@ -1,0 +1,11 @@
+{
+  "id": "olympic_steel_mtr",
+  "display_name": "Olympic Steel - Metallurgical Test Report",
+  "detect_all_of": ["OLYMPIC STEEL", "METALLURGICAL TEST REPORT"],
+  "redact_rects": [
+    [30, 14, 230, 74],
+    [30, 138, 560, 183],
+    [30, 213, 575, 263]
+  ],
+  "notes": "Blanks Olympic Steel's own letterhead/address (they're a reseller/service-center passing through a mill's heat data, not the producing mill -- see HEAT#/producer field which is kept), the Sold To/Ship To block, and the Sales Order/Reference/B-L/Release/Cus Ord#/Date/Cus Name block. Learned from a 612x792pt page; verify rects if a differently-sized Olympic Steel form shows up."
+}

@@ -1,0 +1,136 @@
+"""Learns a new redaction template from a real (original, hand-edited) PDF
+pair.
+
+Given a document as it comes off Google Drive and the same document after
+you've manually blanked out the fields you don't want to hand to a customer,
+this diffs the two page-by-page and works out which rectangular regions of
+the original were removed. It intentionally ignores anything that was merely
+*reformatted* (e.g. text that got redrawn as a cropped image fragment during
+your manual edit) so it doesn't try to blank content you actually kept --
+see `_looks_kept` below.
+
+The result is a Template you can inspect, tweak, and save with
+templates.save_template().
+"""
+from __future__ import annotations
+
+import fitz  # PyMuPDF
+
+from .templates import Template
+
+_KEPT_OVERLAP_FRACTION = 0.4  # a removed-word cluster this covered by a kept
+                               # image in the edited doc is treated as
+                               # "reformatted", not "redacted"
+
+
+def _round_word(w) -> tuple[float, float, float, float, str]:
+    return (round(w[0], 1), round(w[1], 1), round(w[2], 1), round(w[3], 1), w[4])
+
+
+def _rect_area(r: tuple[float, float, float, float]) -> float:
+    return max(0.0, r[2] - r[0]) * max(0.0, r[3] - r[1])
+
+
+def _overlap_area(a, b) -> float:
+    x0, y0 = max(a[0], b[0]), max(a[1], b[1])
+    x1, y1 = min(a[2], b[2]), min(a[3], b[3])
+    return _rect_area((x0, y0, x1, y1))
+
+
+def _cluster_words(words: list[tuple], pad: float = 6.0) -> list[dict]:
+    """Union-find clustering of nearby word boxes into contiguous blocks."""
+    n = len(words)
+    parent = list(range(n))
+
+    def find(a: int) -> int:
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    def expand(w):
+        return (w[0] - pad, w[1] - pad, w[2] + pad, w[3] + pad)
+
+    def touches(a, b):
+        return not (a[2] < b[0] or b[2] < a[0] or a[3] < b[1] or b[3] < a[1])
+
+    exp = [expand(w) for w in words]
+    for i in range(n):
+        for j in range(i + 1, n):
+            if touches(exp[i], exp[j]):
+                union(i, j)
+
+    groups: dict[int, list[tuple]] = {}
+    for i in range(n):
+        groups.setdefault(find(i), []).append(words[i])
+
+    clusters = []
+    for group in groups.values():
+        x0 = min(w[0] for w in group)
+        y0 = min(w[1] for w in group)
+        x1 = max(w[2] for w in group)
+        y1 = max(w[3] for w in group)
+        text = " ".join(w[4] for w in sorted(group, key=lambda w: (w[1], w[0])))
+        clusters.append({"rect": (x0, y0, x1, y1), "text": text})
+    return sorted(clusters, key=lambda c: (c["rect"][1], c["rect"][0]))
+
+
+def diff_page(original_page: fitz.Page, edited_page: fitz.Page) -> list[dict]:
+    """Returns clusters of content present in original_page but genuinely
+    absent from edited_page (not just redrawn as an image), each as
+    {"rect": (x0,y0,x1,y1), "text": "..."}.
+    """
+    orig_words = [_round_word(w) for w in original_page.get_text("words")]
+    edited_words = {_round_word(w) for w in edited_page.get_text("words")}
+    removed = [w for w in orig_words if w not in edited_words]
+    if not removed:
+        return []
+
+    clusters = _cluster_words(removed)
+    edited_images = [tuple(round(v, 1) for v in img["bbox"])
+                      for img in edited_page.get_image_info()]
+
+    true_redactions = []
+    for cluster in clusters:
+        rect = cluster["rect"]
+        area = _rect_area(rect)
+        covered = sum(_overlap_area(rect, img) for img in edited_images)
+        frac = covered / area if area else 0.0
+        if frac <= _KEPT_OVERLAP_FRACTION:
+            true_redactions.append(cluster)
+    return true_redactions
+
+
+def learn_template(original_path: str, edited_path: str, template_id: str,
+                     display_name: str, detect_all_of: list[str],
+                     page_index: int = 0, pad: float = 4.0) -> tuple[Template, list[dict]]:
+    """Diffs page `page_index` of the two PDFs and builds a Template whose
+    redact_rects cover everything genuinely removed in the edited version.
+
+    Returns (template, clusters) -- inspect `clusters` (each has the removed
+    text, so you can sanity-check nothing legitimate got swept in) before
+    calling templates.save_template(template).
+    """
+    with fitz.open(original_path) as orig_doc, fitz.open(edited_path) as edited_doc:
+        clusters = diff_page(orig_doc[page_index], edited_doc[page_index])
+
+    rects = []
+    for c in clusters:
+        x0, y0, x1, y1 = c["rect"]
+        rects.append((round(x0 - pad, 1), round(y0 - pad, 1),
+                       round(x1 + pad, 1), round(y1 + pad, 1)))
+
+    template = Template(
+        id=template_id,
+        display_name=display_name,
+        detect_all_of=detect_all_of,
+        redact_rects=rects,
+        notes="Auto-generated by `learn`; review redact_rects against the "
+              "removed-text clusters before trusting this on real documents.",
+    )
+    return template, clusters
