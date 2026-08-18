@@ -278,10 +278,17 @@ nav{display:flex;gap:6px;align-items:center;}
    printed design (dark areas) punches through unchanged.
    Export shirts from Canva as PNG with transparent background.
 ──────────────────────────────────────────────────────────────── */
-.p-img{aspect-ratio:1;overflow:hidden;position:relative;background:var(--up-card);display:flex;align-items:center;justify-content:center;font-size:58px;}.p-img.has-img{background:#fff;}
+.p-img{aspect-ratio:1;overflow:hidden;position:relative;background:var(--up-card);display:flex;align-items:center;justify-content:center;font-size:58px;isolation:isolate;}.p-img.has-img{background:#fff;}
 .p-img-color{position:absolute;inset:0;transition:background-color .28s ease;z-index:0;mix-blend-mode:multiply;pointer-events:none;}
 .p-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;z-index:1;transition:transform .4s;}
 .p-card:hover .p-img img{transform:scale(1.04);}
+/* Generated garment mockup — used when no custom photo is uploaded;
+   mirrors Team Store product cards (mask-tinted garment shape). */
+.p-mockup{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+.p-tint{position:absolute;inset:0;mix-blend-mode:multiply;pointer-events:none;mask-size:contain;mask-repeat:no-repeat;mask-position:center;-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;}
+.p-view-toggle{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;background:rgba(0,0,0,.4);border-radius:30px;padding:2px;gap:2px;z-index:10;}
+.p-view-btn{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:30px;border:none;cursor:pointer;background:transparent;color:rgba(255,255,255,.6);transition:all .15s;}
+.p-view-btn.active{background:var(--up-blue);color:#fff;}
 /* Swatch strip */
 .p-swatches{display:flex;gap:7px;flex-wrap:wrap;padding:8px 14px 12px;align-items:center;}
 .p-sizes{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 14px;}
@@ -289,6 +296,15 @@ nav{display:flex;gap:6px;align-items:center;}
 .p-swatch:hover{transform:scale(1.2);box-shadow:0 0 0 2px rgba(255,255,255,.25);}
 .p-swatch.active{border-color:#fff;box-shadow:0 0 0 3px rgba(21,101,255,.6);transform:scale(1.1);}
 .p-swatch-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-silver);text-transform:uppercase;margin-left:4px;font-weight:600;}
+.p-qty-row{display:flex;align-items:center;gap:8px;padding:0 14px 12px;}
+.p-qty-btn{width:28px;height:28px;background:var(--up-navy);border:1px solid var(--up-border);color:var(--up-silver);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.p-qty-btn:hover{border-color:var(--up-sky);color:#fff;}
+.p-qty-val{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;min-width:18px;text-align:center;}
+.p-qty-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;margin-left:4px;text-transform:uppercase;}
+.p-add-btn{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:var(--up-blue);color:#fff;border:none;padding:11px 16px;cursor:pointer;width:calc(100% - 28px);margin:0 14px 10px;transition:background .2s;}
+.p-add-btn:hover{background:var(--up-blue2);}
+.p-quote-link{display:block;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--up-mist);text-decoration:none;padding:0 14px 14px;}
+.p-quote-link:hover{color:var(--up-sky);}
 /* Admin color list (name only — no URL needed) */
 .color-chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
 .color-chip{display:flex;align-items:center;gap:6px;background:var(--up-navy);border:1px solid var(--up-border);padding:5px 10px;}
@@ -2806,13 +2822,14 @@ function updateCartUI(){
 function addToCart(id,cardId){
   const p=upProducts.find(x=>x.id===id);
   if(!p){showToast("Product not found");return;}
-  const sizeEl=document.querySelector(`#psizes-${cardId} .tm-size-chip.selected`);
-  const size=sizeEl?sizeEl.dataset.size:null;
+  const state=brandCardStates[cardId];
+  const size=state?.size;
   if(!size){showToast("Please select a size");return;}
+  const qty=state.qty||1;
   const cat=typeCatalog(p.type);
   const unitPrice=resolveSizePrice(p.sizePrices,cat?.defaultPrice,size);
   const ex=cart.find(i=>i.id===id&&i.size===size);
-  if(ex){ex.qty++;}else{cart.push({id,name:p.name,price:unitPrice,qty:1,size,icon:cat?.icon||"👕",cat_label:cat?.label||p.type});}
+  if(ex){ex.qty+=qty;}else{cart.push({id,name:p.name,price:unitPrice,qty,size,icon:cat?.icon||"👕",cat_label:cat?.label||p.type});}
   updateCartUI();showToast(`"${p.name}" (${size}) added to cart!`);
 }
 function changeQty(idx,d){cart[idx].qty+=d;if(cart[idx].qty<=0)cart.splice(idx,1);updateCartUI();}
@@ -3059,6 +3076,11 @@ async function kvGet(key) {
 }
 
 function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));kvSet('products',upProducts);}
+// Per-card UI state (color/view/qty/size), same pattern Team Store cards
+// use — initialized once per card, persisted across re-renders (filtering,
+// re-adding, etc.) rather than reset every time renderUP() runs.
+const brandCardStates = {};
+
 function renderUP(filter="all"){
   upFilter=filter;
   const grid=document.getElementById("upGrid");
@@ -3077,18 +3099,44 @@ function renderUP(filter="all"){
     const priceDisplay = sizePriceRangeText(p.sizePrices, cat?.defaultPrice, sizes);
     // colors: array of color names e.g. ["Navy","Red","White"]
     const colors = p.colors && p.colors.length ? (Array.isArray(p.colors) ? p.colors : Object.keys(p.colors)) : null;
-    const firstColor = colors ? getColorHex(colors[0]) : '#fff';
-    const firstName  = colors ? colors[0] : '';
+    const firstColor = colors ? colors[0] : null;
+
+    if (!brandCardStates[cardId]) brandCardStates[cardId] = { color: firstColor, view: 'front', qty: 1, size: '' };
+    const state = brandCardStates[cardId];
+    const colorHex = getColorHex(state.color || firstColor);
+
+    // No custom photo uploaded and the type has a generated mockup —
+    // show the same color-tinted garment used on Team Store cards. A
+    // custom photo (Erin's own upload) always takes priority when present.
+    const useMockup = !p.img && cat?.views?.length > 0;
+    const views = useMockup ? cat.views : [];
+    const activeView = views.find(v => v.key === state.view) || views[0];
+    const activeViewHasPhoto = isMockupAvailable(activeView?.src);
+    const mockupSrc = activeViewHasPhoto ? getMockupSrc(activeView.src) : '';
+    const hasViews = views.length > 1;
+    const tintStyle = mockupSrc
+      ? `background-color:${colorHex};mask-image:url('${mockupSrc}');-webkit-mask-image:url('${mockupSrc}');`
+      : `background-color:${colorHex};mix-blend-mode:normal;`;
+
     return `<div class="p-card" style="animation:slideUp .5s ${i*.05}s ease both">
       <div class="p-img${p.img?' has-img':''}">
-        <div class="p-img-color" id="pcolor-${cardId}" style="background-color:${firstColor};"></div>
-        ${p.img?`<img src="${p.img}" alt="${p.name}" onerror="this.style.display='none';this.closest('.p-img').classList.remove('has-img')">`:
-          `<span style="position:relative;z-index:2;mix-blend-mode:normal;">${icon}</span>`}
+        ${useMockup ? `
+          ${hasViews ? `
+            <div class="p-view-toggle">
+              ${views.map(v => `
+                <button class="p-view-btn${v.key===(activeView?.key)?' active':''}"
+                  onclick="setBrandCardView('${cardId}',${p.id},'${v.key}',this.closest('.p-view-toggle'))">${v.label}</button>`).join('')}
+            </div>` : ''}
+          ${mockupSrc ? `<img class="p-mockup" id="pmock-${cardId}" src="${mockupSrc}" alt="${p.name}" loading="lazy">`
+                       : `<img class="p-mockup" id="pmock-${cardId}" alt="${p.name}" style="display:none;">`}
+          <div class="p-tint" id="ptint-${cardId}" style="${tintStyle}"></div>
+        ` : p.img ? `
+          <div class="p-img-color" id="pcolor-${cardId}" style="background-color:${colorHex};"></div>
+          <img src="${p.img}" alt="${p.name}" onerror="this.style.display='none';this.closest('.p-img').classList.remove('has-img')">
+        ` : `
+          <span style="position:relative;z-index:2;mix-blend-mode:normal;">${icon}</span>
+        `}
         <div class="p-badge blue">UP Original</div>
-        <div class="p-hover">
-          <button class="btn-cart-add" onclick="addToCart(${p.id},'${cardId}')">+ Add to Cart</button>
-          <a href="tel:3046336401" class="btn-printavo" style="margin-top:6px">📋 Click for Team Quote</a>
-        </div>
       </div>
       <div class="p-info">
         <div class="p-brand blue">${lbl}</div>
@@ -3098,12 +3146,20 @@ function renderUP(filter="all"){
       </div>
       ${colors ? `
       <div class="p-swatches">
-        ${buildSwatches(cardId, colors)}
-        <span class="p-swatch-label" id="pcolor-label-${cardId}">${firstName}</span>
+        ${buildSwatches(cardId, colors, state.color)}
+        <span class="p-swatch-label" id="pcolor-label-${cardId}">${state.color || ''}</span>
       </div>` : ''}
       <div class="p-sizes" id="psizes-${cardId}">
-        ${sizes.map(s => `<span class="tm-size-chip" data-size="${s}" onclick="setPSize('${cardId}',${p.id},'${s}',this)">${s}</span>`).join('')}
+        ${sizes.map(s => `<span class="tm-size-chip${s===state.size?' selected':''}" data-size="${s}" onclick="setPSize('${cardId}',${p.id},'${s}',this)">${s}</span>`).join('')}
       </div>
+      <div class="p-qty-row">
+        <button class="p-qty-btn" onclick="changeBrandCardQty('${cardId}',-1)">−</button>
+        <span class="p-qty-val" id="pqty-${cardId}">${state.qty}</span>
+        <button class="p-qty-btn" onclick="changeBrandCardQty('${cardId}',1)">+</button>
+        <span class="p-qty-label">qty</span>
+      </div>
+      <button class="p-add-btn" onclick="addToCart(${p.id},'${cardId}')">Add to Cart</button>
+      <a href="tel:3046336401" class="p-quote-link">📋 Click for Team Quote</a>
       <div class="p-controls">
         <button class="btn-edit-p" onclick="openEdit(${ri})">✏ Edit</button>
         <button class="btn-del-p" onclick="deleteProduct(${ri})">✕ Remove</button>
@@ -3112,11 +3168,55 @@ function renderUP(filter="all"){
   }).join("");
 }
 function setPSize(cardId, id, size, chipEl) {
+  const state = brandCardStates[cardId];
+  if (state) state.size = size;
   const wrap = document.getElementById('psizes-' + cardId);
   if (wrap) wrap.querySelectorAll('.tm-size-chip').forEach(c => c.classList.toggle('selected', c === chipEl));
   const p = upProducts.find(x => x.id === id);
   const priceEl = document.getElementById('pprice-' + cardId);
   if (p && priceEl) priceEl.textContent = `$${resolveSizePrice(p.sizePrices, typeCatalog(p.type)?.defaultPrice, size).toFixed(2)}`;
+}
+function setBrandCardView(cardId, id, viewKey, toggleEl) {
+  const state = brandCardStates[cardId];
+  if (!state) return;
+  state.view = viewKey;
+  const p = upProducts.find(x => x.id === id);
+  const cat = p && typeCatalog(p.type);
+  const view = cat?.views?.find(v => v.key === viewKey);
+  if (!view) return;
+  const hasPhoto = isMockupAvailable(view.src);
+  const colorHex = getColorHex(state.color);
+
+  const mock = document.getElementById('pmock-' + cardId);
+  if (mock) {
+    if (hasPhoto) { mock.src = getMockupSrc(view.src); mock.style.display = ''; }
+    else { mock.removeAttribute('src'); mock.style.display = 'none'; }
+  }
+  const tint = document.getElementById('ptint-' + cardId);
+  if (tint) {
+    if (hasPhoto) {
+      const src = getMockupSrc(view.src);
+      tint.style.maskImage = `url('${src}')`;
+      tint.style.webkitMaskImage = `url('${src}')`;
+      tint.style.mixBlendMode = '';
+    } else {
+      tint.style.maskImage = 'none';
+      tint.style.webkitMaskImage = 'none';
+      tint.style.mixBlendMode = 'normal';
+    }
+    tint.style.backgroundColor = colorHex;
+  }
+  if (toggleEl) {
+    toggleEl.querySelectorAll('.p-view-btn').forEach(btn =>
+      btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === viewKey));
+  }
+}
+function changeBrandCardQty(cardId, delta) {
+  const state = brandCardStates[cardId];
+  if (!state) return;
+  state.qty = Math.max(1, (state.qty || 1) + delta);
+  const el = document.getElementById('pqty-' + cardId);
+  if (el) el.textContent = state.qty;
 }
 function filterUP(cat,el){document.querySelectorAll("#upFilters .chip").forEach(c=>c.classList.remove("on"));if(el)el.classList.add("on");renderUP(cat);}
 function renderUPFilters(){
@@ -3284,9 +3384,17 @@ function saveProduct(){
   if(!type){showToast("Choose a product type");return;}
   const colors = getFormColors();
   const { sizes, sizePrices } = getBrandSizesAndPrices('f');
-  upProducts.unshift({name,type,sizes,sizePrices,img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now()});
+  const newProduct={name,type,sizes,sizePrices,img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now()};
+  upProducts.unshift(newProduct);
   saveUP();renderUP(upFilter);renderAdminPanel('brand');
   showToast(`"${name}" added!`);
+  // Preload this type's mockup (only the ones already on the page were
+  // preloaded at load time) so the card updates from a flat placeholder to
+  // the real garment mockup without needing a refresh.
+  preloadMockups([newProduct]).then(()=>{
+    renderUP(upFilter);
+    if (document.getElementById('anav-brand')?.classList.contains('active')) renderAdminPanel('brand');
+  });
 }
 function openEdit(idx){
   editIdx=idx;const p=upProducts[idx];
@@ -3317,8 +3425,13 @@ function saveEdit(){
   const type=document.querySelector("#e-types .tm-type-chip.selected")?.dataset.type;
   if(!type){showToast("Choose a product type");return;}
   const { sizes, sizePrices } = getBrandSizesAndPrices('e');
-  upProducts[editIdx]={...upProducts[editIdx],name:document.getElementById("e-name").value.trim(),type,sizes,sizePrices,img:document.getElementById("e-img").value.trim(),desc:document.getElementById("e-desc").value.trim(),colors:getFormColors()};
+  const updated={...upProducts[editIdx],name:document.getElementById("e-name").value.trim(),type,sizes,sizePrices,img:document.getElementById("e-img").value.trim(),desc:document.getElementById("e-desc").value.trim(),colors:getFormColors()};
+  upProducts[editIdx]=updated;
   saveUP();renderUP(upFilter);renderAdminPanel('brand');closeEditModal();showToast("Product updated!");
+  preloadMockups([updated]).then(()=>{
+    renderUP(upFilter);
+    if (document.getElementById('anav-brand')?.classList.contains('active')) renderAdminPanel('brand');
+  });
 }
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
 
@@ -3566,6 +3679,66 @@ function sizePriceRangeText(sizePrices, basePrice, sizes) {
   if (!list.length) return `$${resolveSizePrice(null, basePrice, null).toFixed(2)}`;
   const min = Math.min(...list), max = Math.max(...list);
   return min === max ? `$${min.toFixed(2)}` : `$${min.toFixed(2)}–$${max.toFixed(2)}`;
+}
+
+// ══════════════════════════════════════════════════════
+//  BRAND ITEM GARMENT MOCKUPS
+//  A Brand Item with no custom photo uploaded shows the same
+//  color-tinted garment mockup Team Store products use, generated from
+//  its type + chosen color rather than a manually uploaded image.
+// ══════════════════════════════════════════════════════
+const mockupCache = {};
+const unavailableMockups = new Set();
+async function preloadMockups(products) {
+  const srcsToLoad = new Set();
+  (products || []).forEach(p => {
+    const meta = typeCatalog(p.type);
+    if (meta?.views) meta.views.forEach(v => { if (v.src) srcsToLoad.add(v.src); });
+  });
+
+  await Promise.all([...srcsToLoad].map(async src => {
+    if (mockupCache[src] !== undefined || unavailableMockups.has(src)) return;
+
+    let resolved = src;
+    if (src.endsWith('.b64')) {
+      try {
+        const res = await fetch(src);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buffer = await res.arrayBuffer();
+        const bytes  = new Uint8Array(buffer);
+        let base64;
+        if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+          let binary = '';
+          const chunk = 8192;
+          for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+          }
+          base64 = btoa(binary);
+        } else {
+          base64 = new TextDecoder().decode(buffer).trim();
+        }
+        resolved = `data:image/png;base64,${base64}`;
+      } catch(e) {
+        unavailableMockups.add(src);
+        return;
+      }
+    }
+
+    const loads = await new Promise(resolve => {
+      const img = new Image();
+      img.onload  = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = resolved;
+    });
+    if (loads) mockupCache[src] = resolved;
+    else unavailableMockups.add(src);
+  }));
+}
+function getMockupSrc(src) {
+  return (src && mockupCache[src] !== undefined) ? mockupCache[src] : src;
+}
+function isMockupAvailable(src) {
+  return !!src && mockupCache[src] !== undefined;
 }
 
 function renderTeamAdmin() {
@@ -4059,6 +4232,15 @@ const MOCKUP_VIEWS = {
   mensshorts:  { front:'/products/mens-shorts-front.png',      side:'/products/mens-shorts-side.png' },
   womensshorts:{ front:'/products/womens-shorts.png' },
 };
+
+// Attach a Team-Store-style views[] list to each catalog entry, derived
+// from MOCKUP_VIEWS above rather than duplicating these file paths — used
+// by Brand Items' customer-facing garment mockup rendering.
+const VIEW_LABELS = { front:'Front', back:'Back', side:'Side' };
+TM_PRODUCT_CATALOG.forEach(cat => {
+  const views = MOCKUP_VIEWS[cat.type];
+  if (views) cat.views = Object.keys(views).map(key => ({ key, label: VIEW_LABELS[key]||key, src: views[key] }));
+});
 
 let tmProductInstances = []; // saved instances
 let tmEditingIndex = -1;     // index into tmProductInstances currently loaded into the builder form, or -1 when adding new
@@ -6197,9 +6379,18 @@ function renderPurchaseList() {
 // Changes the color layer behind the transparent PNG.
 // The shirt fabric blends with that color; the design is unaffected.
 function setSwatchColor(cardId, colorName) {
-  // Tint the color layer
+  // Brand Items cards track their picked color in brandCardStates (used by
+  // addToCart/re-renders); legacy hardcoded team-store HTML cards (see
+  // initHtmlCardSwatches below) don't have an entry here, which is fine.
+  const state = brandCardStates[cardId];
+  if (state) state.color = colorName;
+
+  // Tint the color layer — flat-photo cards use a solid layer behind the
+  // image, generated-mockup cards tint the garment-shaped mask instead.
   const layer = document.getElementById('pcolor-' + cardId);
   if (layer) layer.style.backgroundColor = getColorHex(colorName);
+  const tint = document.getElementById('ptint-' + cardId);
+  if (tint) tint.style.backgroundColor = getColorHex(colorName);
 
   // Update active ring on swatch dots
   document.querySelectorAll(`.p-swatch[data-card="${cardId}"]`)
@@ -6212,13 +6403,14 @@ function setSwatchColor(cardId, colorName) {
 
 // ── Build swatch strip ────────────────────────────────────────────
 // colors: array of color name strings, e.g. ["Navy","Red","White"]
-function buildSwatches(cardId, colors) {
+function buildSwatches(cardId, colors, activeColor) {
   if (!colors || !colors.length) colors = DEFAULT_PRODUCT_COLORS;
   // Normalize: accept object keys too (legacy/future-proof)
   if (!Array.isArray(colors)) colors = Object.keys(colors);
+  if (!activeColor) activeColor = colors[0];
 
-  return colors.map((c, i) =>
-    `<div class="p-swatch${i===0?' active':''}"
+  return colors.map((c) =>
+    `<div class="p-swatch${c===activeColor?' active':''}"
       style="background:${getColorHex(c)};"
       data-card="${cardId}" data-color="${c}"
       title="${c}"
@@ -9568,6 +9760,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Cloudflare Access handles authentication — open admin directly
   document.getElementById('adminOverlay').style.display = 'flex';
   await loadFromKV();
+  await preloadMockups(upProducts);
   renderUPFilters();
   renderUP();
   renderAdminPanel('dashboard');
@@ -9575,6 +9768,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Also run immediately in case DOMContentLoaded already fired
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   document.getElementById('adminOverlay').style.display = 'flex';
-  loadFromKV().then(() => { renderUPFilters(); renderUP(); renderAdminPanel('dashboard'); });
+  loadFromKV().then(() => preloadMockups(upProducts)).then(() => { renderUPFilters(); renderUP(); renderAdminPanel('dashboard'); });
 }
 </script>
