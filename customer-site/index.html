@@ -297,6 +297,7 @@ nav{display:flex;gap:6px;align-items:center;}
 .p-card:hover .p-img img{transform:scale(1.04);}
 /* Swatch strip */
 .p-swatches{display:flex;gap:7px;flex-wrap:wrap;padding:8px 14px 12px;align-items:center;}
+.p-sizes{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 14px;}
 .p-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,box-shadow .15s,border-color .15s;flex-shrink:0;position:relative;}
 .p-swatch:hover{transform:scale(1.2);box-shadow:0 0 0 2px rgba(255,255,255,.25);}
 .p-swatch.active{border-color:#fff;box-shadow:0 0 0 3px rgba(21,101,255,.6);transform:scale(1.1);}
@@ -2295,14 +2296,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
     </div>
     <div class="filters" id="upFilters">
       <button class="chip on" onclick="filterUP('all',this)">All Items</button>
-      <button class="chip" onclick="filterUP('sportswear-tees',this)">Perf. Tees</button>
-      <button class="chip" onclick="filterUP('sportswear-hoodies',this)">Hoodies</button>
-      <button class="chip" onclick="filterUP('sportswear-shorts',this)">Shorts</button>
-      <button class="chip" onclick="filterUP('sportswear-jackets',this)">Jackets</button>
-      <button class="chip" onclick="filterUP('sportswear-hats',this)">Hats</button>
-      <button class="chip" onclick="filterUP('sportswear-accessories',this)">Accessories</button>
-      <button class="chip" onclick="filterUP('sportswear-womens',this)">Women's</button>
-      <button class="chip" onclick="filterUP('sportswear-youth',this)">Youth</button>
     </div>
     <div class="grid" id="upGrid"></div>
   </div>
@@ -2719,8 +2712,7 @@ function showPage(p){
 // ══════════════════════════════
 // CART
 // ══════════════════════════════
-const catIcons={'sportswear-tees':"👕",'sportswear-hoodies':"🧥",'sportswear-shorts':"🩳",'sportswear-jackets':"🧥",'sportswear-hats':"🧢",'sportswear-accessories':"🎒",'sportswear-womens':"👗",'sportswear-youth':"🧒"};
-const catLabels={'sportswear-tees':"Perf. Tees",'sportswear-hoodies':"Hoodies",'sportswear-shorts':"Shorts",'sportswear-jackets':"Jackets",'sportswear-hats':"Hats",'sportswear-accessories':"Accessories",'sportswear-womens':"Women's",'sportswear-youth':"Youth"};
+function typeCatalog(type) { return TM_PRODUCT_CATALOG.find(c => c.type === type); }
 var cart=[];
 function cartTotal(){return cart.reduce((s,i)=>s+(i.price*i.qty),0);}
 function cartQty(){return cart.reduce((s,i)=>s+i.qty,0);}
@@ -2740,7 +2732,7 @@ function updateCartUI(){
       <div class="ci-img">${item.icon}</div>
       <div class="ci-info">
         <div class="ci-name">${item.name}</div>
-        <div class="ci-meta">${item.cat_label}</div>
+        <div class="ci-meta">${item.cat_label} · Size ${item.size}</div>
         <div class="ci-row">
           <div class="ci-price">$${(item.price*item.qty).toFixed(2)}</div>
           <div class="qty-ctrl">
@@ -2753,14 +2745,17 @@ function updateCartUI(){
       </div>
     </div>`).join("");
 }
-function addToCart(id){
+function addToCart(id,cardId){
   const p=upProducts.find(x=>x.id===id);
   if(!p){showToast("Product not found");return;}
-  const pnum=parseFloat(p.pnum)||0;
-  if(!pnum){showToast("Set a numeric price first (edit this product)");return;}
-  const ex=cart.find(i=>i.id===id);
-  if(ex){ex.qty++;}else{cart.push({id,name:p.name,price:pnum,qty:1,icon:catIcons[p.cat]||"👕",cat_label:catLabels[p.cat]||p.cat});}
-  updateCartUI();showToast(`"${p.name}" added to cart!`);
+  const sizeEl=document.querySelector(`#psizes-${cardId} .tm-size-chip.selected`);
+  const size=sizeEl?sizeEl.dataset.size:null;
+  if(!size){showToast("Please select a size");return;}
+  const cat=typeCatalog(p.type);
+  const unitPrice=resolveSizePrice(p.sizePrices,cat?.defaultPrice,size);
+  const ex=cart.find(i=>i.id===id&&i.size===size);
+  if(ex){ex.qty++;}else{cart.push({id,name:p.name,price:unitPrice,qty:1,size,icon:cat?.icon||"👕",cat_label:cat?.label||p.type});}
+  updateCartUI();showToast(`"${p.name}" (${size}) added to cart!`);
 }
 function changeQty(idx,d){cart[idx].qty+=d;if(cart[idx].qty<=0)cart.splice(idx,1);updateCartUI();}
 function removeFromCart(idx){cart.splice(idx,1);updateCartUI();}
@@ -3036,7 +3031,7 @@ async function kvGet(key) {
 function renderUP(filter="all"){
   upFilter=filter;
   const grid=document.getElementById("upGrid");
-  const data=filter==="all"?upProducts:upProducts.filter(p=>p.cat===filter);
+  const data=filter==="all"?upProducts:upProducts.filter(p=>typeCatalog(p.type)?.category===filter);
   if(!data.length){
     const cta = filter==="all"
       ? `<button class="btn-save-up" onclick="document.getElementById('upProducts').scrollIntoView({behavior:'smooth'});" style="margin-top:6px;">Browse Team Stores</button>`
@@ -3045,8 +3040,10 @@ function renderUP(filter="all"){
     return;
   }
   grid.innerHTML=data.map((p,i)=>{
-    const icon=catIcons[p.cat]||"👕",lbl=catLabels[p.cat]||p.cat,hasP=parseFloat(p.pnum)>0;
+    const cat=typeCatalog(p.type),icon=cat?.icon||"👕",lbl=cat?.label||p.type;
     const cardId = 'up-' + p.id;
+    const sizes = p.sizes && p.sizes.length ? p.sizes : ['S','M','L','XL','2XL'];
+    const priceDisplay = sizePriceRangeText(p.sizePrices, cat?.defaultPrice, sizes);
     // colors: array of color names e.g. ["Navy","Red","White"]
     const colors = p.colors && p.colors.length ? (Array.isArray(p.colors) ? p.colors : Object.keys(p.colors)) : null;
     const firstColor = colors ? getColorHex(colors[0]) : '#fff';
@@ -3058,14 +3055,14 @@ function renderUP(filter="all"){
           `<span style="position:relative;z-index:2;mix-blend-mode:normal;">${icon}</span>`}
         <div class="p-badge blue">UP Original</div>
         <div class="p-hover">
-          ${hasP?`<button class="btn-cart-add" onclick="addToCart(${p.id})">+ Add to Cart</button>`:""}
-          <a href="tel:3046336401" class="btn-printavo" style="margin-top:${hasP?"6px":"0"}">📋 Click for Team Quote</a>
+          <button class="btn-cart-add" onclick="addToCart(${p.id},'${cardId}')">+ Add to Cart</button>
+          <a href="tel:3046336401" class="btn-printavo" style="margin-top:6px">📋 Click for Team Quote</a>
         </div>
       </div>
       <div class="p-info">
-        <div class="p-brand blue">${lbl}${p.sport?" · "+p.sport:""}</div>
+        <div class="p-brand blue">${lbl}</div>
         <div class="p-name">${p.name}</div>
-        <div class="p-price">$${p.pnum||p.price||"TBD"}</div>
+        <div class="p-price" id="pprice-${cardId}">${priceDisplay}</div>
         ${p.desc?`<div class="p-desc">${p.desc}</div>`:""}
       </div>
       ${colors ? `
@@ -3073,10 +3070,26 @@ function renderUP(filter="all"){
         ${buildSwatches(cardId, colors)}
         <span class="p-swatch-label" id="pcolor-label-${cardId}">${firstName}</span>
       </div>` : ''}
+      <div class="p-sizes" id="psizes-${cardId}">
+        ${sizes.map(s => `<span class="tm-size-chip" data-size="${s}" onclick="setPSize('${cardId}',${p.id},'${s}',this)">${s}</span>`).join('')}
+      </div>
     </div>`;
   }).join("");
 }
+function setPSize(cardId, id, size, chipEl) {
+  const wrap = document.getElementById('psizes-' + cardId);
+  if (wrap) wrap.querySelectorAll('.tm-size-chip').forEach(c => c.classList.toggle('selected', c === chipEl));
+  const p = upProducts.find(x => x.id === id);
+  const priceEl = document.getElementById('pprice-' + cardId);
+  if (p && priceEl) priceEl.textContent = `$${resolveSizePrice(p.sizePrices, typeCatalog(p.type)?.defaultPrice, size).toFixed(2)}`;
+}
 function filterUP(cat,el){document.querySelectorAll("#upFilters .chip").forEach(c=>c.classList.remove("on"));if(el)el.classList.add("on");renderUP(cat);}
+function renderUPFilters(){
+  const wrap = document.getElementById('upFilters');
+  if (!wrap) return;
+  wrap.innerHTML = Object.keys(CATEGORY_LABELS).map(c =>
+    `<button class="chip${c==='all'?' on':''}" onclick="filterUP('${c}',this)">${CATEGORY_LABELS[c]}</button>`).join('');
+}
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
 // ══════════════════════════════════════════════════════
 //  TEAM STORES SYSTEM
@@ -3288,6 +3301,39 @@ const TM_PRODUCT_CATALOG = [
   { type:'hat',         icon:'🧢', label:'Hat / Cap',             category:'extras',  defaultPrice:'$22–$28', placeholder:true },
   { type:'bag',         icon:'🎒', label:'Bag / Backpack',        category:'extras',  defaultPrice:'$28–$36', placeholder:true },
 ];
+
+const CATEGORY_LABELS = {
+  all:     'All',
+  tops:    'T-Shirts & Tops',
+  fleece:  'Hoodies & Fleece',
+  tanks:   'Tanks',
+  bottoms: 'Bottoms',
+  extras:  'Extras',
+};
+
+// Backward-compat: newer products price each size individually
+// (product.sizePrices); older ones just have one flat product.price applied
+// to every size. Read through this helper rather than migrating stored data.
+function resolveSizePrice(sizePrices, basePrice, size) {
+  const raw = (sizePrices && sizePrices[size]) || basePrice || '25';
+  // basePrice may itself be a catalog range like "$18–$22" (the fallback for
+  // a size left blank) — take the low end rather than stripping the dash and
+  // gluing both numbers into one (e.g. "1822").
+  const firstNum = String(raw).replace(/[^0-9.\-–]/g,'').split(/[-–]/)[0];
+  const n = parseFloat(firstNum);
+  return isNaN(n) ? 25 : n;
+}
+
+// Summarizes a product's per-size prices as one string for display before a
+// size is picked — "$25.00" when every offered size costs the same,
+// "$18.00–$28.00" otherwise.
+function sizePriceRangeText(sizePrices, basePrice, sizes) {
+  const list = (sizes && sizes.length ? sizes : Object.keys(sizePrices || {}))
+    .map(s => resolveSizePrice(sizePrices, basePrice, s));
+  if (!list.length) return `$${resolveSizePrice(null, basePrice, null).toFixed(2)}`;
+  const min = Math.min(...list), max = Math.max(...list);
+  return min === max ? `$${min.toFixed(2)}` : `$${min.toFixed(2)}–$${max.toFixed(2)}`;
+}
 
 function handleFiles(fileList) {
   const allowed = ['image/png','image/jpeg','image/jpg','image/gif','image/webp','image/svg+xml','application/pdf'];
@@ -4071,10 +4117,11 @@ function buildSearchIndex() {
 
   // UP Sportswear products
   upProducts.forEach(p => {
+    const cat = typeCatalog(p.type);
     index.push({
-      name: p.name, price: '$' + parseFloat(p.price||0).toFixed(2),
+      name: p.name, price: sizePriceRangeText(p.sizePrices, cat?.defaultPrice, p.sizes),
       store: 'UP Sportswear', storeColor: 'var(--up-blue)',
-      img: p.img || '', category: p.cat || '',
+      img: p.img || '', category: cat?.category || '',
       action: () => { showPage('up'); }
     });
   });
@@ -4320,6 +4367,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch(e) {}
     loadReviews();
     loadDiscountCodes();
+    renderUPFilters();
     renderUP();
     buildCarousel();
     buildSearchIndex();

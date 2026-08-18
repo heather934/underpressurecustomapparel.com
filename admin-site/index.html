@@ -284,6 +284,7 @@ nav{display:flex;gap:6px;align-items:center;}
 .p-card:hover .p-img img{transform:scale(1.04);}
 /* Swatch strip */
 .p-swatches{display:flex;gap:7px;flex-wrap:wrap;padding:8px 14px 12px;align-items:center;}
+.p-sizes{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 14px;}
 .p-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,box-shadow .15s,border-color .15s;flex-shrink:0;position:relative;}
 .p-swatch:hover{transform:scale(1.2);box-shadow:0 0 0 2px rgba(255,255,255,.25);}
 .p-swatch.active{border-color:#fff;box-shadow:0 0 0 3px rgba(21,101,255,.6);transform:scale(1.1);}
@@ -2296,14 +2297,6 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
     </div>
     <div class="filters" id="upFilters">
       <button class="chip on" onclick="filterUP('all',this)">All Items</button>
-      <button class="chip" onclick="filterUP('sportswear-tees',this)">Perf. Tees</button>
-      <button class="chip" onclick="filterUP('sportswear-hoodies',this)">Hoodies</button>
-      <button class="chip" onclick="filterUP('sportswear-shorts',this)">Shorts</button>
-      <button class="chip" onclick="filterUP('sportswear-jackets',this)">Jackets</button>
-      <button class="chip" onclick="filterUP('sportswear-hats',this)">Hats</button>
-      <button class="chip" onclick="filterUP('sportswear-accessories',this)">Accessories</button>
-      <button class="chip" onclick="filterUP('sportswear-womens',this)">Women's</button>
-      <button class="chip" onclick="filterUP('sportswear-youth',this)">Youth</button>
     </div>
     <div class="grid" id="upGrid"></div>
   </div>
@@ -2672,22 +2665,15 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
     <div class="modal-head"><h3>EDIT PRODUCT</h3><button class="btn-close-m" onclick="closeEditModal()" aria-label="Close edit product form">✕</button></div>
     <div class="modal-body">
       <div class="admin-grid">
-        <div class="f"><label>Product Name *</label><input id="e-name" type="text"></div>
-        <div class="f"><label>Display Price *</label><input id="e-price" type="text"></div>
-        <div class="f"><label>Numeric Price (for checkout)</label><input id="e-pnum" type="number" step="0.01"></div>
-        <div class="f"><label>Category</label>
-          <select id="e-cat">
-            <option value="sportswear-tees">Performance Tees</option>
-            <option value="sportswear-hoodies">Hoodies &amp; Sweatshirts</option>
-            <option value="sportswear-shorts">Shorts &amp; Bottoms</option>
-            <option value="sportswear-jackets">Jackets &amp; Outerwear</option>
-            <option value="sportswear-hats">Hats &amp; Headwear</option>
-            <option value="sportswear-accessories">Accessories &amp; Gear</option>
-            <option value="sportswear-womens">Women's Sportswear</option>
-            <option value="sportswear-youth">Youth &amp; Kids</option>
-          </select>
+        <div class="f full"><label>Product Name *</label><input id="e-name" type="text"></div>
+        <div class="f full">
+          <label>Product Type *</label>
+          <div class="tm-type-chip-wrap" id="e-types"></div>
         </div>
-        <div class="f"><label>Sport / Team</label><input id="e-sport" type="text"></div>
+        <div class="f full">
+          <label>Sizes &amp; Pricing <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— each size offered gets its own price; leave a box blank to use the catalog default</span></label>
+          <div class="tm-sizes-wrap" id="e-sizes"></div>
+        </div>
         <div class="f full">
           <label>Product Image</label>
           <div class="img-field-wrap">
@@ -2784,8 +2770,7 @@ function showPage(p){
 // ══════════════════════════════
 // CART
 // ══════════════════════════════
-const catIcons={'sportswear-tees':"👕",'sportswear-hoodies':"🧥",'sportswear-shorts':"🩳",'sportswear-jackets':"🧥",'sportswear-hats':"🧢",'sportswear-accessories':"🎒",'sportswear-womens':"👗",'sportswear-youth':"🧒"};
-const catLabels={'sportswear-tees':"Perf. Tees",'sportswear-hoodies':"Hoodies",'sportswear-shorts':"Shorts",'sportswear-jackets':"Jackets",'sportswear-hats':"Hats",'sportswear-accessories':"Accessories",'sportswear-womens':"Women's",'sportswear-youth':"Youth"};
+function typeCatalog(type) { return TM_PRODUCT_CATALOG.find(c => c.type === type); }
 var cart=[];
 function cartTotal(){return cart.reduce((s,i)=>s+(i.price*i.qty),0);}
 function cartQty(){return cart.reduce((s,i)=>s+i.qty,0);}
@@ -2805,7 +2790,7 @@ function updateCartUI(){
       <div class="ci-img">${item.icon}</div>
       <div class="ci-info">
         <div class="ci-name">${item.name}</div>
-        <div class="ci-meta">${item.cat_label}</div>
+        <div class="ci-meta">${item.cat_label} · Size ${item.size}</div>
         <div class="ci-row">
           <div class="ci-price">$${(item.price*item.qty).toFixed(2)}</div>
           <div class="qty-ctrl">
@@ -2818,14 +2803,17 @@ function updateCartUI(){
       </div>
     </div>`).join("");
 }
-function addToCart(id){
+function addToCart(id,cardId){
   const p=upProducts.find(x=>x.id===id);
   if(!p){showToast("Product not found");return;}
-  const pnum=parseFloat(p.pnum)||0;
-  if(!pnum){showToast("Set a numeric price first (edit this product)");return;}
-  const ex=cart.find(i=>i.id===id);
-  if(ex){ex.qty++;}else{cart.push({id,name:p.name,price:pnum,qty:1,icon:catIcons[p.cat]||"👕",cat_label:catLabels[p.cat]||p.cat});}
-  updateCartUI();showToast(`"${p.name}" added to cart!`);
+  const sizeEl=document.querySelector(`#psizes-${cardId} .tm-size-chip.selected`);
+  const size=sizeEl?sizeEl.dataset.size:null;
+  if(!size){showToast("Please select a size");return;}
+  const cat=typeCatalog(p.type);
+  const unitPrice=resolveSizePrice(p.sizePrices,cat?.defaultPrice,size);
+  const ex=cart.find(i=>i.id===id&&i.size===size);
+  if(ex){ex.qty++;}else{cart.push({id,name:p.name,price:unitPrice,qty:1,size,icon:cat?.icon||"👕",cat_label:cat?.label||p.type});}
+  updateCartUI();showToast(`"${p.name}" (${size}) added to cart!`);
 }
 function changeQty(idx,d){cart[idx].qty+=d;if(cart[idx].qty<=0)cart.splice(idx,1);updateCartUI();}
 function removeFromCart(idx){cart.splice(idx,1);updateCartUI();}
@@ -3074,7 +3062,7 @@ function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts)
 function renderUP(filter="all"){
   upFilter=filter;
   const grid=document.getElementById("upGrid");
-  const data=filter==="all"?upProducts:upProducts.filter(p=>p.cat===filter);
+  const data=filter==="all"?upProducts:upProducts.filter(p=>typeCatalog(p.type)?.category===filter);
   if(!data.length){
     const cta = filter==="all"
       ? `<button class="btn-save-up" onclick="document.getElementById('upProducts').scrollIntoView({behavior:'smooth'});" style="margin-top:6px;">Browse Team Stores</button>`
@@ -3083,8 +3071,10 @@ function renderUP(filter="all"){
     return;
   }
   grid.innerHTML=data.map((p,i)=>{
-    const icon=catIcons[p.cat]||"👕",lbl=catLabels[p.cat]||p.cat,ri=upProducts.indexOf(p),hasP=parseFloat(p.pnum)>0;
+    const cat=typeCatalog(p.type),icon=cat?.icon||"👕",lbl=cat?.label||p.type,ri=upProducts.indexOf(p);
     const cardId = 'up-' + p.id;
+    const sizes = p.sizes && p.sizes.length ? p.sizes : ['S','M','L','XL','2XL'];
+    const priceDisplay = sizePriceRangeText(p.sizePrices, cat?.defaultPrice, sizes);
     // colors: array of color names e.g. ["Navy","Red","White"]
     const colors = p.colors && p.colors.length ? (Array.isArray(p.colors) ? p.colors : Object.keys(p.colors)) : null;
     const firstColor = colors ? getColorHex(colors[0]) : '#fff';
@@ -3096,14 +3086,14 @@ function renderUP(filter="all"){
           `<span style="position:relative;z-index:2;mix-blend-mode:normal;">${icon}</span>`}
         <div class="p-badge blue">UP Original</div>
         <div class="p-hover">
-          ${hasP?`<button class="btn-cart-add" onclick="addToCart(${p.id})">+ Add to Cart</button>`:""}
-          <a href="tel:3046336401" class="btn-printavo" style="margin-top:${hasP?"6px":"0"}">📋 Click for Team Quote</a>
+          <button class="btn-cart-add" onclick="addToCart(${p.id},'${cardId}')">+ Add to Cart</button>
+          <a href="tel:3046336401" class="btn-printavo" style="margin-top:6px">📋 Click for Team Quote</a>
         </div>
       </div>
       <div class="p-info">
-        <div class="p-brand blue">${lbl}${p.sport?" · "+p.sport:""}</div>
+        <div class="p-brand blue">${lbl}</div>
         <div class="p-name">${p.name}</div>
-        <div class="p-price">$${p.pnum||p.price||"TBD"}</div>
+        <div class="p-price" id="pprice-${cardId}">${priceDisplay}</div>
         ${p.desc?`<div class="p-desc">${p.desc}</div>`:""}
       </div>
       ${colors ? `
@@ -3111,6 +3101,9 @@ function renderUP(filter="all"){
         ${buildSwatches(cardId, colors)}
         <span class="p-swatch-label" id="pcolor-label-${cardId}">${firstName}</span>
       </div>` : ''}
+      <div class="p-sizes" id="psizes-${cardId}">
+        ${sizes.map(s => `<span class="tm-size-chip" data-size="${s}" onclick="setPSize('${cardId}',${p.id},'${s}',this)">${s}</span>`).join('')}
+      </div>
       <div class="p-controls">
         <button class="btn-edit-p" onclick="openEdit(${ri})">✏ Edit</button>
         <button class="btn-del-p" onclick="deleteProduct(${ri})">✕ Remove</button>
@@ -3118,7 +3111,20 @@ function renderUP(filter="all"){
     </div>`;
   }).join("");
 }
+function setPSize(cardId, id, size, chipEl) {
+  const wrap = document.getElementById('psizes-' + cardId);
+  if (wrap) wrap.querySelectorAll('.tm-size-chip').forEach(c => c.classList.toggle('selected', c === chipEl));
+  const p = upProducts.find(x => x.id === id);
+  const priceEl = document.getElementById('pprice-' + cardId);
+  if (p && priceEl) priceEl.textContent = `$${resolveSizePrice(p.sizePrices, typeCatalog(p.type)?.defaultPrice, size).toFixed(2)}`;
+}
 function filterUP(cat,el){document.querySelectorAll("#upFilters .chip").forEach(c=>c.classList.remove("on"));if(el)el.classList.add("on");renderUP(cat);}
+function renderUPFilters(){
+  const wrap = document.getElementById('upFilters');
+  if (!wrap) return;
+  wrap.innerHTML = Object.keys(CATEGORY_LABELS).map(c =>
+    `<button class="chip${c==='all'?' on':''}" onclick="filterUP('${c}',this)">${CATEGORY_LABELS[c]}</button>`).join('');
+}
 
 // ══════════════════════════════════════════════════════
 //  BRAND ITEMS ADMIN PANEL
@@ -3127,15 +3133,16 @@ function filterUP(cat,el){document.querySelectorAll("#upFilters .chip").forEach(
 // ══════════════════════════════════════════════════════
 function renderBrandAdmin() {
   const rows = upProducts.length ? upProducts.map((p, i) => {
-    const icon = catIcons[p.cat] || '👕', lbl = catLabels[p.cat] || p.cat;
-    const priceLabel = p.pnum ? `$${parseFloat(p.pnum).toFixed(2)}` : (p.price || 'TBD');
+    const cat = TM_PRODUCT_CATALOG.find(c => c.type === p.type);
+    const icon = cat?.icon || '👕', lbl = cat?.label || p.type;
+    const priceLabel = sizePriceRangeText(p.sizePrices, cat?.defaultPrice, p.sizes);
     return `<div class="tm-inst-card">
       ${p.img
         ? `<img class="tm-inst-card-thumb" src="${p.img}" alt="${escHtml(p.name)}" onerror="this.style.display='none'">`
         : `<div class="tm-inst-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">${icon}</div>`}
       <div class="tm-inst-card-info">
         <div class="tm-inst-card-name">${escHtml(p.name)}</div>
-        <div class="tm-inst-card-meta">${lbl}${p.sport ? ' · ' + escHtml(p.sport) : ''} · ${priceLabel}</div>
+        <div class="tm-inst-card-meta">${lbl} · ${(p.sizes||[]).length} sizes · ${priceLabel}</div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
         <button class="btn-add-note" onclick="openEdit(${i})">✏ Edit</button>
@@ -3161,22 +3168,26 @@ function renderBrandAdmin() {
     <div class="disc-add-form">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:14px;">+ Add Brand Item</div>
       <div class="admin-grid">
-        <div class="f"><label>Product Name *</label><input id="f-name" type="text" placeholder="e.g. UP Performance Tee"></div>
-        <div class="f"><label>Display Price *</label><input id="f-price" type="text" placeholder="e.g. $28 or $28–$34"></div>
-        <div class="f"><label>Numeric Price (for checkout)</label><input id="f-pnum" type="number" step="0.01" placeholder="28.00"></div>
-        <div class="f"><label>Category</label>
-          <select id="f-cat">
-            <option value="sportswear-tees">Performance Tees</option>
-            <option value="sportswear-hoodies">Hoodies &amp; Sweatshirts</option>
-            <option value="sportswear-shorts">Shorts &amp; Bottoms</option>
-            <option value="sportswear-jackets">Jackets &amp; Outerwear</option>
-            <option value="sportswear-hats">Hats &amp; Headwear</option>
-            <option value="sportswear-accessories">Accessories &amp; Gear</option>
-            <option value="sportswear-womens">Women's Sportswear</option>
-            <option value="sportswear-youth">Youth &amp; Kids</option>
-          </select>
+        <div class="f full"><label>Product Name *</label><input id="f-name" type="text" placeholder="e.g. UP Performance Tee"></div>
+        <div class="f full">
+          <label>Product Type *</label>
+          <div class="tm-type-chip-wrap" id="f-types">
+            ${TM_PRODUCT_CATALOG.map(p => `<span class="tm-type-chip" data-type="${p.type}" onclick="brandToggleType(this)">${p.icon} ${p.label}</span>`).join('')}
+          </div>
         </div>
-        <div class="f"><label>Sport / Team</label><input id="f-sport" type="text" placeholder="e.g. Baseball, Football"></div>
+        <div class="f full">
+          <label>Sizes &amp; Pricing <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— each size offered gets its own price; leave a box blank to use the catalog default</span></label>
+          <div class="tm-sizes-wrap" id="f-sizes">
+            ${TM_SIZE_LIST.map(s =>
+              `<div class="tm-size-price-box">
+                <span class="tm-size-chip${TM_DEFAULT_SIZES.includes(s)?' selected':''}"
+                  data-size="${s}" onclick="brandToggleSizeChip(this)">${s}</span>
+                <input type="text" class="tm-size-price-input" id="f-sizeprice-${s}" data-size="${s}"
+                  placeholder="e.g. $25" style="display:${TM_DEFAULT_SIZES.includes(s)?'':'none'};">
+              </div>`
+            ).join('')}
+          </div>
+        </div>
         <div class="f full">
           <label>Product Image</label>
           <div class="img-field-wrap">
@@ -3220,19 +3231,81 @@ function renderBrandAdmin() {
     </div>`;
 }
 
-function clearForm(){["f-name","f-price","f-sport","f-img","f-desc","f-pnum"].forEach(id=>document.getElementById(id).value="");document.getElementById("f-cat").value="sportswear-tees";formColors=[];renderColorChips("f");}
+// Brand Items use a single product type per item (unlike Team Store's
+// multi-select, which fans one design out across several types) — selecting
+// a new chip replaces whichever was selected, click-to-deselect the active one.
+// Shared by both the add form (#f-types) and edit modal (#e-types).
+function brandToggleType(el) {
+  const wasSelected = el.classList.contains('selected');
+  el.closest('.tm-type-chip-wrap').querySelectorAll('.tm-type-chip').forEach(c => c.classList.remove('selected'));
+  if (!wasSelected) el.classList.add('selected');
+}
+
+// Shows/hides that size's price box and clears it when the size is
+// deselected, so a stale price can't linger for a size no longer offered.
+// Shared by both the add form (#f-sizes) and edit modal (#e-sizes).
+function brandToggleSizeChip(el) {
+  el.classList.toggle('selected');
+  const wrap = el.closest('.tm-sizes-wrap');
+  const prefix = wrap.id.replace('-sizes', '');
+  const size = el.dataset.size;
+  const input = document.getElementById(`${prefix}-sizeprice-${size}`);
+  if (!input) return;
+  const selected = el.classList.contains('selected');
+  input.style.display = selected ? '' : 'none';
+  if (!selected) input.value = '';
+}
+
+function clearForm(){
+  ["f-name","f-img","f-desc"].forEach(id=>document.getElementById(id).value="");
+  document.querySelectorAll("#f-types .tm-type-chip").forEach(c=>c.classList.remove("selected"));
+  document.querySelectorAll("#f-sizes .tm-size-chip").forEach(s=>{
+    const size=s.dataset.size, isDefault=TM_DEFAULT_SIZES.includes(size);
+    s.classList.toggle("selected",isDefault);
+    const priceInput=document.getElementById("f-sizeprice-"+size);
+    if(priceInput){priceInput.style.display=isDefault?"":"none";priceInput.value="";}
+  });
+  formColors=[];renderColorChips("f");
+}
+function getBrandSizesAndPrices(prefix){
+  const sizes=[],sizePrices={};
+  document.querySelectorAll(`#${prefix}-sizes .tm-size-chip.selected`).forEach(chip=>{
+    const size=chip.dataset.size;
+    sizes.push(size);
+    const val=document.getElementById(`${prefix}-sizeprice-${size}`)?.value.trim();
+    if(val) sizePrices[size]=val;
+  });
+  return { sizes: sizes.length?sizes:['S','M','L','XL','2XL'], sizePrices };
+}
 function saveProduct(){
-  const name=document.getElementById("f-name").value.trim(),price=document.getElementById("f-price").value.trim();
-  if(!name||!price){showToast("Name and price are required");return;}
+  const name=document.getElementById("f-name").value.trim();
+  const type=document.querySelector("#f-types .tm-type-chip.selected")?.dataset.type;
+  if(!name){showToast("Enter a product name");return;}
+  if(!type){showToast("Choose a product type");return;}
   const colors = getFormColors();
-  upProducts.unshift({name,price,pnum:document.getElementById("f-pnum").value.trim(),cat:document.getElementById("f-cat").value,sport:document.getElementById("f-sport").value.trim(),img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now()});
+  const { sizes, sizePrices } = getBrandSizesAndPrices('f');
+  upProducts.unshift({name,type,sizes,sizePrices,img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now()});
   saveUP();renderUP(upFilter);renderAdminPanel('brand');
   showToast(`"${name}" added!`);
 }
 function openEdit(idx){
   editIdx=idx;const p=upProducts[idx];
-  ["name","price","pnum","sport","img","desc"].forEach(k=>{const el=document.getElementById("e-"+k);if(el)el.value=p[k]||"";});
-  document.getElementById("e-cat").value=p.cat||"sportswear-tees";
+  ["name","img","desc"].forEach(k=>{const el=document.getElementById("e-"+k);if(el)el.value=p[k]||"";});
+
+  // The edit modal's type/size chips are static empty containers in the DOM
+  // (unlike the add form, which renders fresh each time) — build them here.
+  document.getElementById("e-types").innerHTML = TM_PRODUCT_CATALOG.map(c =>
+    `<span class="tm-type-chip${c.type===p.type?' selected':''}" data-type="${c.type}" onclick="brandToggleType(this)">${c.icon} ${c.label}</span>`
+  ).join('');
+  document.getElementById("e-sizes").innerHTML = TM_SIZE_LIST.map(s => {
+    const offered = (p.sizes||[]).includes(s);
+    return `<div class="tm-size-price-box">
+      <span class="tm-size-chip${offered?' selected':''}" data-size="${s}" onclick="brandToggleSizeChip(this)">${s}</span>
+      <input type="text" class="tm-size-price-input" id="e-sizeprice-${s}" data-size="${s}"
+        placeholder="e.g. $25" value="${offered?(p.sizePrices?.[s]||''):''}" style="display:${offered?'':'none'};">
+    </div>`;
+  }).join('');
+
   loadColorsIntoForm("e", p.colors||null);
   document.getElementById("editModal").classList.add("open");
   a11yOpenTrap(document.getElementById("editModal"));
@@ -3241,7 +3314,10 @@ function openEdit(idx){
 function closeEditModal(){document.getElementById("editModal").classList.remove("open");a11yCloseTrap();}
 function saveEdit(){
   if(editIdx===null)return;
-  upProducts[editIdx]={...upProducts[editIdx],name:document.getElementById("e-name").value.trim(),price:document.getElementById("e-price").value.trim(),pnum:document.getElementById("e-pnum").value.trim(),cat:document.getElementById("e-cat").value,sport:document.getElementById("e-sport").value.trim(),img:document.getElementById("e-img").value.trim(),desc:document.getElementById("e-desc").value.trim(),colors:getFormColors()};
+  const type=document.querySelector("#e-types .tm-type-chip.selected")?.dataset.type;
+  if(!type){showToast("Choose a product type");return;}
+  const { sizes, sizePrices } = getBrandSizesAndPrices('e');
+  upProducts[editIdx]={...upProducts[editIdx],name:document.getElementById("e-name").value.trim(),type,sizes,sizePrices,img:document.getElementById("e-img").value.trim(),desc:document.getElementById("e-desc").value.trim(),colors:getFormColors()};
   saveUP();renderUP(upFilter);renderAdminPanel('brand');closeEditModal();showToast("Product updated!");
 }
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
@@ -3458,6 +3534,15 @@ const TM_PRODUCT_CATALOG = [
 
 const TM_SIZE_LIST = ['YXS','YS','YM','YL','YXL','XS','S','M','L','XL','2XL','3XL','4XL'];
 const TM_DEFAULT_SIZES = ['S','M','L','XL','2XL'];
+
+const CATEGORY_LABELS = {
+  all:     'All',
+  tops:    'T-Shirts & Tops',
+  fleece:  'Hoodies & Fleece',
+  tanks:   'Tanks',
+  bottoms: 'Bottoms',
+  extras:  'Extras',
+};
 
 // Backward-compat: newer products price each size individually
 // (inst.sizePrices); older ones just have one flat inst.price applied to
@@ -8192,10 +8277,11 @@ function buildSearchIndex() {
 
   // UP Sportswear products
   upProducts.forEach(p => {
+    const cat = typeCatalog(p.type);
     index.push({
-      name: p.name, price: '$' + parseFloat(p.price||0).toFixed(2),
+      name: p.name, price: sizePriceRangeText(p.sizePrices, cat?.defaultPrice, p.sizes),
       store: 'UP Sportswear', storeColor: 'var(--up-blue)',
-      img: p.img || '', category: p.cat || '',
+      img: p.img || '', category: cat?.category || '',
       action: () => { showPage('up'); }
     });
   });
@@ -9482,12 +9568,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Cloudflare Access handles authentication — open admin directly
   document.getElementById('adminOverlay').style.display = 'flex';
   await loadFromKV();
+  renderUPFilters();
   renderUP();
   renderAdminPanel('dashboard');
 });
 // Also run immediately in case DOMContentLoaded already fired
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   document.getElementById('adminOverlay').style.display = 'flex';
-  loadFromKV().then(() => { renderUP(); renderAdminPanel('dashboard'); });
+  loadFromKV().then(() => { renderUPFilters(); renderUP(); renderAdminPanel('dashboard'); });
 }
 </script>
