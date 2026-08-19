@@ -1,6 +1,7 @@
 """Command-line entry point.
 
-    mtr-merger build --invoice 12345 --heats 4181794 6602127 --drive-folder <url>
+    mtr-merger build --invoice 12345 --heats 4181794 6602127
+    mtr-merger build --invoice 12345 --heats 4181794 6602127 --drive-folder <url>  (overrides the default folder)
     mtr-merger redact input.pdf output.pdf
     mtr-merger learn --original orig.pdf --edited edited.pdf --id my_mill --name "My Mill" --detect "PHRASE"
     mtr-merger list-templates
@@ -15,6 +16,8 @@ from pathlib import Path
 from .learn import learn_template
 from .redact import merge_pdfs, redact_pdf
 from .templates import load_templates, save_template
+
+DEFAULT_DRIVE_FOLDER = "https://drive.google.com/drive/u/0/folders/1iPCviCsmM1A4sCifS7a-TEFtKTX3qyAV"
 
 
 def cmd_list_templates(args: argparse.Namespace) -> int:
@@ -162,7 +165,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_build = sub.add_parser("build", help="find MTRs by heat number in Drive, redact, and merge")
     p_build.add_argument("--invoice", required=True, help="invoice number; output is '<invoice> MTRs.pdf'")
     p_build.add_argument("--heats", nargs="+", required=True, help="one or more heat numbers")
-    p_build.add_argument("--drive-folder", required=True, help="shared Drive folder URL or ID")
+    p_build.add_argument("--drive-folder", default=DEFAULT_DRIVE_FOLDER,
+                          help=f"shared Drive folder URL or ID (default: {DEFAULT_DRIVE_FOLDER})")
     p_build.add_argument("--out", help="output directory (default: current directory)")
     p_build.set_defaults(func=cmd_build)
 

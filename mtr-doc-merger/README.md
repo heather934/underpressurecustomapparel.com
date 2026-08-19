@@ -61,9 +61,12 @@ pip install -r requirements.txt
 ```bash
 python3 -m mtr_merger.cli build \
   --invoice 12345 \
-  --heats 4181794 6602127 3600052696 B5L689 \
-  --drive-folder "https://drive.google.com/drive/folders/XXXXXXXXXXXX"
+  --heats 4181794 6602127 3600052696 B5L689
 ```
+
+This defaults to the shared Drive folder configured in `cli.py`
+(`DEFAULT_DRIVE_FOLDER`). Pass `--drive-folder "<url or ID>"` to search a
+different folder instead.
 
 Writes `12345 MTRs.pdf` to the current directory. For each heat number, it
 searches the given folder (and its subfolders) by filename first, then by
