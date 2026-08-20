@@ -5447,14 +5447,19 @@ function clearImg(prefix) {
   if (status) { status.className = 'canva-status'; status.textContent = ''; }
 }
 
-// ── FILE UPLOAD — reads image from device and converts to base64 ──
+// ── FILE UPLOAD — sends image to Cloudflare Images, stores the hosted URL ──
+// (Previously read the file as a base64 data: URI and stored that directly in
+// KV. That bloated the `teams` record with every logo/photo embedded inline —
+// one team's KV payload alone reached 2.5MB, causing live store pages to fail
+// to load on slow connections. Every upload now goes through the same hosted
+// /images/upload endpoint the design/gallery uploaders already use.)
 function uploadImgFile(prefix) {
   const fileInput = document.getElementById(prefix + '-file-input');
   if (!fileInput) return;
   fileInput.click();
 }
 
-function handleImgFileChange(prefix, fileInput) {
+async function handleImgFileChange(prefix, fileInput) {
   const file = fileInput.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) {
@@ -5465,23 +5470,25 @@ function handleImgFileChange(prefix, fileInput) {
     setCanvaStatus(prefix, 'err', '⚠ File is too large. Please use an image under 5 MB.');
     return;
   }
-  setCanvaStatus(prefix, 'loading', 'Reading file…');
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const dataUrl = e.target.result;
+  setCanvaStatus(prefix, 'loading', 'Uploading to Cloudflare Images…');
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('filename', file.name);
+    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
     // tm prefix uses tm-logo input, all others use {prefix}-img
     const inputId = (prefix === 'tm') ? 'tm-logo' : (prefix + '-img');
     const imgInput = document.getElementById(inputId);
     if (imgInput) {
-      imgInput.value = dataUrl;
+      imgInput.value = data.url;
       previewImg(prefix);
-      setCanvaStatus(prefix, 'ok', `✓ "${file.name}" uploaded from device.`);
+      setCanvaStatus(prefix, 'ok', `✓ "${file.name}" uploaded.`);
     }
-  };
-  reader.onerror = () => {
-    setCanvaStatus(prefix, 'err', '⚠ Could not read file. Try a different image.');
-  };
-  reader.readAsDataURL(file);
+  } catch (e) {
+    setCanvaStatus(prefix, 'err', `⚠ ${e.message || 'Could not upload file. Try a different image.'}`);
+  }
   // Reset so the same file can be re-selected if needed
   fileInput.value = '';
 }
