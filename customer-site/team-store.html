@@ -996,6 +996,8 @@ const PRODUCT_CATALOG = {
   hat:        { label: 'Hat / Cap',             category: 'extras',  icon: '🧢', views: [], placeholder: true },
   bag:        { label: 'Bag / Backpack',        category: 'extras',  icon: '🎒', views: [], placeholder: true },
   misc:       { label: 'Miscellaneous Item',    category: 'extras',  icon: '📦', views: [], placeholder: true },
+  sticker:    { label: 'Sticker',               category: 'stickers', icon: '🏷️',
+                views: [{ key:'front', label:'Front', src:'/assets/sticker-mockup.png' }] },
 };
 
 // Backward-compat: a product's design(s) live either in the current
@@ -1040,12 +1042,13 @@ function sizePriceRangeText(sizePrices, basePrice, sizes) {
 }
 
 const CATEGORY_LABELS = {
-  all:     'All',
-  tops:    'T-Shirts & Tops',
-  fleece:  'Hoodies & Fleece',
-  tanks:   'Tanks',
-  bottoms: 'Bottoms',
-  extras:  'Extras',
+  all:      'All',
+  tops:     'T-Shirts & Tops',
+  fleece:   'Hoodies & Fleece',
+  tanks:    'Tanks',
+  bottoms:  'Bottoms',
+  extras:   'Extras',
+  stickers: 'Stickers',
 };
 
 const COLOR_HEX_MAP = {
@@ -1389,12 +1392,54 @@ function renderCard(product, index) {
   if (!meta) return '';
 
   const cardId  = product.instanceId || `${product.type}-${index}`;
+  const designs = getProductDesigns(product);
+
+  // Stickers don't wear like a garment — no colors, no sizes, no front/back
+  // toggle. Just whichever image Erin chose (the graphic or a mockup photo)
+  // plus price, qty, and Add to Cart. The actual assigned graphic (designs.front)
+  // always ships with the order for production, regardless of what's shown here.
+  if (product.type === 'sticker') {
+    if (!cardStates[cardId]) {
+      cardStates[cardId] = { color: '', view: 'front', qty: 1, size: 'OS', personalization: '' };
+    }
+    const stState = cardStates[cardId];
+    stState.sizePrices = product.sizePrices || null;
+    stState.basePrice  = product.price || '5';
+    const unitPrice = resolveSizePrice(stState.sizePrices, stState.basePrice, 'OS');
+    const design = designs.front;
+    const mockupSrc = isMockupAvailable(meta.views[0]?.src) ? getMockupSrc(meta.views[0].src) : '';
+    const imgSrc = (product.displayMode !== 'mockup' && design?.designUrl) ? design.designUrl : mockupSrc;
+    return `
+      <div class="ts-card" id="tscard-${cardId}">
+        <div class="ts-card-previewer">
+          ${imgSrc ? `<img class="ts-card-mockup" src="${imgSrc}" alt="${product.label || meta.label}" style="object-fit:contain;" loading="lazy">`
+            : `<div class="ts-card-placeholder"><div class="ts-card-placeholder-icon">${meta.icon}</div><div class="ts-card-placeholder-text">Mockup Coming Soon</div></div>`}
+        </div>
+        <div class="ts-card-body">
+          <div class="ts-card-labels">
+            <div><div class="ts-card-name">${product.label || meta.label}</div></div>
+            <div class="ts-card-price" id="tsprice-${cardId}">$${unitPrice.toFixed(2)}</div>
+          </div>
+          <div class="ts-qty-row">
+            <button class="ts-qty-btn" onclick="changeCardQty('${cardId}',-1)">−</button>
+            <span class="ts-qty-val" id="tsqty-${cardId}">${stState.qty}</span>
+            <button class="ts-qty-btn" onclick="changeCardQty('${cardId}',1)">+</button>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;margin-left:4px;text-transform:uppercase;">qty</span>
+          </div>
+          <button class="ts-add-btn" id="tsaddbtn-${cardId}"
+            style="background:${teamData?.color||'var(--up-blue)'};"
+            onclick="addToCart('${cardId}','${product.type}','${encodeURIComponent(design?.designName||'')}','${encodeURIComponent(design?.designUrl||'')}','','','${encodeURIComponent(product.label || meta.label)}')">
+            Add to Cart
+          </button>
+        </div>
+      </div>`;
+  }
+
   const colors  = product.colors && product.colors.length ? product.colors : ['Black','Navy','White'];
   const sizes   = product.sizes  && product.sizes.length  ? product.sizes  : ['S','M','L','XL','2XL'];
   const firstColor = colors[0];
   const colorHex   = getColorHex(firstColor);
 
-  const designs = getProductDesigns(product);
   // Default to a view that actually carries a design when one exists.
   const defaultView = meta.views.find(v => designs[v.key])?.key || meta.graphicView || meta.views[0]?.key || 'front';
 

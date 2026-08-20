@@ -2686,7 +2686,18 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
           <label>Product Type *</label>
           <div class="tm-type-chip-wrap" id="e-types"></div>
         </div>
-        <div class="f full">
+        <div class="f full" id="e-sticker-wrap" style="display:none;">
+          <label>Sticker Price</label>
+          <input type="text" id="e-sticker-price" placeholder="e.g. $5">
+          <label style="margin-top:10px;">Display
+            <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">Choose what customers see for this sticker</span>
+          </label>
+          <div style="display:flex;gap:16px;margin-top:6px;font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-white);">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="e-displaymode" value="graphic" checked> My graphic (Product Image below)</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="e-displaymode" value="mockup"> Mockup photo</label>
+          </div>
+        </div>
+        <div class="f full" id="e-sizes-outer">
           <label>Sizes &amp; Pricing <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— each size offered gets its own price; leave a box blank to use the catalog default</span></label>
           <div class="tm-sizes-wrap" id="e-sizes"></div>
         </div>
@@ -2712,7 +2723,7 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
           </div>
         </div>
         <div class="f full"><label>Description (optional)</label><textarea id="e-desc" placeholder="Brief product description..."></textarea></div>
-        <div class="f full">
+        <div class="f full" id="e-colors-outer">
           <label>Available Colors
             <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">Customers see color swatches and the shirt tints to match</span>
           </label>
@@ -3095,6 +3106,43 @@ function renderUP(filter="all"){
   grid.innerHTML=data.map((p,i)=>{
     const cat=typeCatalog(p.type),icon=cat?.icon||"👕",lbl=cat?.label||p.type,ri=upProducts.indexOf(p);
     const cardId = 'up-' + p.id;
+
+    // Stickers don't wear like a garment — no colors, no sizes, no front/back
+    // toggle. Just whichever image Erin chose (her graphic or a mockup photo)
+    // plus price, qty, and Add to Cart.
+    if (p.type === 'sticker') {
+      if (!brandCardStates[cardId]) brandCardStates[cardId] = { color: null, view: 'front', qty: 1, size: 'OS' };
+      const state = brandCardStates[cardId];
+      const mockupView = cat?.views?.[0];
+      const mockupSrc = mockupView && isMockupAvailable(mockupView.src) ? getMockupSrc(mockupView.src) : '';
+      const imgSrc = (p.displayMode !== 'mockup' && p.img) ? p.img : mockupSrc;
+      const priceDisplay = sizePriceRangeText(p.sizePrices, cat?.defaultPrice, ['OS']);
+      return `<div class="p-card" style="animation:slideUp .5s ${i*.05}s ease both">
+        <div class="p-img has-img">
+          ${imgSrc ? `<img src="${imgSrc}" alt="${p.name}" style="object-fit:contain;" onerror="this.style.display='none'">` : `<span style="position:relative;z-index:2;">${icon}</span>`}
+          <div class="p-badge blue">UP Original</div>
+        </div>
+        <div class="p-info">
+          <div class="p-brand blue">${lbl}</div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-price" id="pprice-${cardId}">${priceDisplay}</div>
+          ${p.desc?`<div class="p-desc">${p.desc}</div>`:""}
+        </div>
+        <div class="p-qty-row">
+          <button class="p-qty-btn" onclick="changeBrandCardQty('${cardId}',-1)">−</button>
+          <span class="p-qty-val" id="pqty-${cardId}">${state.qty}</span>
+          <button class="p-qty-btn" onclick="changeBrandCardQty('${cardId}',1)">+</button>
+          <span class="p-qty-label">qty</span>
+        </div>
+        <button class="p-add-btn" onclick="addToCart(${p.id},'${cardId}')">Add to Cart</button>
+        <a href="tel:3046336401" class="p-quote-link">📋 Click for Team Quote</a>
+        <div class="p-controls">
+          <button class="btn-edit-p" onclick="openEdit(${ri})">✏ Edit</button>
+          <button class="btn-del-p" onclick="deleteProduct(${ri})">✕ Remove</button>
+        </div>
+      </div>`;
+    }
+
     const sizes = p.sizes && p.sizes.length ? p.sizes : ['S','M','L','XL','2XL'];
     const priceDisplay = sizePriceRangeText(p.sizePrices, cat?.defaultPrice, sizes);
     // colors: array of color names e.g. ["Navy","Red","White"]
@@ -3272,10 +3320,21 @@ function renderBrandAdmin() {
         <div class="f full">
           <label>Product Type *</label>
           <div class="tm-type-chip-wrap" id="f-types">
-            ${TM_PRODUCT_CATALOG.map(p => `<span class="tm-type-chip" data-type="${p.type}" onclick="brandToggleType(this)">${p.icon} ${p.label}</span>`).join('')}
+            ${TM_PRODUCT_CATALOG.map(p => `<span class="tm-type-chip" data-type="${p.type}" onclick="brandToggleType(this);brandTypeChanged('f');">${p.icon} ${p.label}</span>`).join('')}
           </div>
         </div>
-        <div class="f full">
+        <div class="f full" id="f-sticker-wrap" style="display:none;">
+          <label>Sticker Price</label>
+          <input type="text" id="f-sticker-price" placeholder="e.g. $5">
+          <label style="margin-top:10px;">Display
+            <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">Choose what customers see for this sticker</span>
+          </label>
+          <div style="display:flex;gap:16px;margin-top:6px;font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-white);">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f-displaymode" value="graphic" checked> My graphic (Product Image below)</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f-displaymode" value="mockup"> Mockup photo</label>
+          </div>
+        </div>
+        <div class="f full" id="f-sizes-outer">
           <label>Sizes &amp; Pricing <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— each size offered gets its own price; leave a box blank to use the catalog default</span></label>
           <div class="tm-sizes-wrap" id="f-sizes">
             ${TM_SIZE_LIST.map(s =>
@@ -3312,7 +3371,7 @@ function renderBrandAdmin() {
           </div>
         </div>
         <div class="f full"><label>Description (optional)</label><textarea id="f-desc" placeholder="Brief product description..."></textarea></div>
-        <div class="f full">
+        <div class="f full" id="f-colors-outer">
           <label>Available Colors
             <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">Customers see color swatches and the shirt tints to match</span>
           </label>
@@ -3341,6 +3400,20 @@ function brandToggleType(el) {
   if (!wasSelected) el.classList.add('selected');
 }
 
+// Stickers don't wear like a garment — no colors, no sizes, just a flat
+// price and a choice between showing the graphic or a mockup photo. Swaps
+// which sections of the Brand Item form are visible based on the selected type.
+function brandTypeChanged(prefix) {
+  const type = document.querySelector(`#${prefix}-types .tm-type-chip.selected`)?.dataset.type;
+  const isSticker = type === 'sticker';
+  const stickerWrap = document.getElementById(`${prefix}-sticker-wrap`);
+  const sizesWrap   = document.getElementById(`${prefix}-sizes-outer`);
+  const colorsWrap  = document.getElementById(`${prefix}-colors-outer`);
+  if (stickerWrap) stickerWrap.style.display = isSticker ? '' : 'none';
+  if (sizesWrap)   sizesWrap.style.display   = isSticker ? 'none' : '';
+  if (colorsWrap)  colorsWrap.style.display  = isSticker ? 'none' : '';
+}
+
 // Shows/hides that size's price box and clears it when the size is
 // deselected, so a stale price can't linger for a size no longer offered.
 // Shared by both the add form (#f-sizes) and edit modal (#e-sizes).
@@ -3357,7 +3430,7 @@ function brandToggleSizeChip(el) {
 }
 
 function clearForm(){
-  ["f-name","f-img","f-desc"].forEach(id=>document.getElementById(id).value="");
+  ["f-name","f-img","f-desc","f-sticker-price"].forEach(id=>document.getElementById(id).value="");
   document.querySelectorAll("#f-types .tm-type-chip").forEach(c=>c.classList.remove("selected"));
   document.querySelectorAll("#f-sizes .tm-size-chip").forEach(s=>{
     const size=s.dataset.size, isDefault=TM_DEFAULT_SIZES.includes(size);
@@ -3365,6 +3438,9 @@ function clearForm(){
     const priceInput=document.getElementById("f-sizeprice-"+size);
     if(priceInput){priceInput.style.display=isDefault?"":"none";priceInput.value="";}
   });
+  const gRadio=document.querySelector('input[name="f-displaymode"][value="graphic"]');
+  if(gRadio) gRadio.checked=true;
+  brandTypeChanged('f');
   formColors=[];renderColorChips("f");
 }
 function getBrandSizesAndPrices(prefix){
@@ -3382,9 +3458,13 @@ function saveProduct(){
   const type=document.querySelector("#f-types .tm-type-chip.selected")?.dataset.type;
   if(!name){showToast("Enter a product name");return;}
   if(!type){showToast("Choose a product type");return;}
-  const colors = getFormColors();
-  const { sizes, sizePrices } = getBrandSizesAndPrices('f');
-  const newProduct={name,type,sizes,sizePrices,img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now()};
+  const isSticker = type === 'sticker';
+  const colors = isSticker ? [] : getFormColors();
+  const { sizes, sizePrices } = isSticker
+    ? { sizes:['OS'], sizePrices:{ OS: document.getElementById("f-sticker-price").value.trim() } }
+    : getBrandSizesAndPrices('f');
+  const displayMode = document.querySelector('input[name="f-displaymode"]:checked')?.value || 'graphic';
+  const newProduct={name,type,sizes,sizePrices,img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now(),...(isSticker?{displayMode}:{})};
   upProducts.unshift(newProduct);
   saveUP();renderUP(upFilter);renderAdminPanel('brand');
   showToast(`"${name}" added!`);
@@ -3403,7 +3483,7 @@ function openEdit(idx){
   // The edit modal's type/size chips are static empty containers in the DOM
   // (unlike the add form, which renders fresh each time) — build them here.
   document.getElementById("e-types").innerHTML = TM_PRODUCT_CATALOG.map(c =>
-    `<span class="tm-type-chip${c.type===p.type?' selected':''}" data-type="${c.type}" onclick="brandToggleType(this)">${c.icon} ${c.label}</span>`
+    `<span class="tm-type-chip${c.type===p.type?' selected':''}" data-type="${c.type}" onclick="brandToggleType(this);brandTypeChanged('e');">${c.icon} ${c.label}</span>`
   ).join('');
   document.getElementById("e-sizes").innerHTML = TM_SIZE_LIST.map(s => {
     const offered = (p.sizes||[]).includes(s);
@@ -3413,6 +3493,10 @@ function openEdit(idx){
         placeholder="e.g. $25" value="${offered?(p.sizePrices?.[s]||''):''}" style="display:${offered?'':'none'};">
     </div>`;
   }).join('');
+  document.getElementById("e-sticker-price").value = p.type==='sticker' ? (p.sizePrices?.OS||'') : '';
+  const eDisplayRadio = document.querySelector(`input[name="e-displaymode"][value="${p.displayMode||'graphic'}"]`);
+  if (eDisplayRadio) eDisplayRadio.checked = true;
+  brandTypeChanged('e');
 
   loadColorsIntoForm("e", p.colors||null);
   document.getElementById("editModal").classList.add("open");
@@ -3424,8 +3508,13 @@ function saveEdit(){
   if(editIdx===null)return;
   const type=document.querySelector("#e-types .tm-type-chip.selected")?.dataset.type;
   if(!type){showToast("Choose a product type");return;}
-  const { sizes, sizePrices } = getBrandSizesAndPrices('e');
-  const updated={...upProducts[editIdx],name:document.getElementById("e-name").value.trim(),type,sizes,sizePrices,img:document.getElementById("e-img").value.trim(),desc:document.getElementById("e-desc").value.trim(),colors:getFormColors()};
+  const isSticker = type === 'sticker';
+  const { sizes, sizePrices } = isSticker
+    ? { sizes:['OS'], sizePrices:{ OS: document.getElementById("e-sticker-price").value.trim() } }
+    : getBrandSizesAndPrices('e');
+  const displayMode = document.querySelector('input[name="e-displaymode"]:checked')?.value || 'graphic';
+  const updated={...upProducts[editIdx],name:document.getElementById("e-name").value.trim(),type,sizes,sizePrices,img:document.getElementById("e-img").value.trim(),desc:document.getElementById("e-desc").value.trim(),colors:isSticker?[]:getFormColors()};
+  if (isSticker) updated.displayMode = displayMode; else delete updated.displayMode;
   upProducts[editIdx]=updated;
   saveUP();renderUP(upFilter);renderAdminPanel('brand');closeEditModal();showToast("Product updated!");
   preloadMockups([updated]).then(()=>{
@@ -3645,18 +3734,21 @@ const TM_PRODUCT_CATALOG = [
   { type:'hat',         icon:'🧢', label:'Hat / Cap',             category:'extras',  defaultPrice:'$22–$28', placeholder:true },
   { type:'bag',         icon:'🎒', label:'Bag / Backpack',        category:'extras',  defaultPrice:'$28–$36', placeholder:true },
   { type:'misc',        icon:'📦', label:'Miscellaneous Item',    category:'extras',  defaultPrice:'$10–$25', placeholder:true },
+  // ── Stickers ──────────────────────────────────────
+  { type:'sticker',     icon:'🏷️', label:'Sticker',               category:'stickers', defaultPrice:'$3–$5' },
 ];
 
 const TM_SIZE_LIST = ['YXS','YS','YM','YL','YXL','XS','S','M','L','XL','2XL','3XL','4XL'];
 const TM_DEFAULT_SIZES = ['S','M','L','XL','2XL'];
 
 const CATEGORY_LABELS = {
-  all:     'All',
-  tops:    'T-Shirts & Tops',
-  fleece:  'Hoodies & Fleece',
-  tanks:   'Tanks',
-  bottoms: 'Bottoms',
-  extras:  'Extras',
+  all:      'All',
+  tops:     'T-Shirts & Tops',
+  fleece:   'Hoodies & Fleece',
+  tanks:    'Tanks',
+  bottoms:  'Bottoms',
+  extras:   'Extras',
+  stickers: 'Stickers',
 };
 
 // Backward-compat: newer products price each size individually
@@ -3987,6 +4079,19 @@ function teamFormHTML(t) {
             </div>
           </div>
 
+          <!-- STICKERS ONLY: flat price + display choice (no sizes, no colors) -->
+          <div class="tm-inst-field full" id="tm-inew-sticker-wrap" style="display:none;">
+            <label>Sticker Price</label>
+            <input type="text" id="tm-inew-sticker-price" placeholder="e.g. $5">
+            <label style="margin-top:10px;">Display
+              <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">Choose what customers see for this sticker</span>
+            </label>
+            <div style="display:flex;gap:16px;margin-top:6px;font-family:'Barlow',sans-serif;font-size:12px;color:var(--up-white);">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="tm-inew-displaymode" value="graphic" checked> Her graphic (chosen above)</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="tm-inew-displaymode" value="mockup"> Mockup photo</label>
+            </div>
+          </div>
+
         </div>
         <div style="display:flex;gap:8px;">
           <button class="tm-add-inst-btn" id="tm-add-inst-btn" onclick="tmAddProductInstance()">+ Add This Product to Store</button>
@@ -4235,6 +4340,7 @@ const MOCKUP_VIEWS = {
   sweatpants:  { front:'/products/sweatpants-front.png',       side:'/products/sweatpants-side.png' },
   mensshorts:  { front:'/products/mens-shorts-front.png',      side:'/products/mens-shorts-side.png' },
   womensshorts:{ front:'/products/womens-shorts.png' },
+  sticker:     { front:'/products/sticker-mockup.png' },
 };
 
 // Attach a Team-Store-style views[] list to each catalog entry, derived
@@ -4291,18 +4397,24 @@ function renderInstList() {
   list.innerHTML = tmProductInstances.map((inst, i) => {
     const designs = getInstanceDesigns(inst);
     const thumbView = designs.front ? 'front' : Object.keys(designs)[0];
-    const mockupSrc = inst.type && MOCKUP_VIEWS[inst.type]
-      ? (MOCKUP_VIEWS[inst.type][thumbView] || MOCKUP_VIEWS[inst.type].front || Object.values(MOCKUP_VIEWS[inst.type])[0])
-      : '';
+    const isSticker = inst.type === 'sticker';
+    const mockupSrc = isSticker
+      ? ((inst.displayMode !== 'mockup' && designs.front?.designUrl) ? designs.front.designUrl : MOCKUP_VIEWS.sticker?.front)
+      : (inst.type && MOCKUP_VIEWS[inst.type]
+        ? (MOCKUP_VIEWS[inst.type][thumbView] || MOCKUP_VIEWS[inst.type].front || Object.values(MOCKUP_VIEWS[inst.type])[0])
+        : '');
     const designSummary = ['front','back','side']
       .filter(v => designs[v]?.designName)
       .map(v => `${v.charAt(0).toUpperCase()+v.slice(1)}: ${escHtml(designs[v].designName)}`)
       .join(' · ') || 'No design';
+    const metaLine = isSticker
+      ? `${designSummary} · ${escHtml(sizePriceRangeText(inst.sizePrices, inst.price, inst.sizes))}`
+      : `${designSummary} · ${(inst.colors||[]).length} colors · ${escHtml(sizePriceRangeText(inst.sizePrices, inst.price, inst.sizes))}`;
     return `<div class="tm-inst-card" style="${inst.featured ? 'border-color:rgba(255,200,0,.4);background:rgba(255,200,0,.04);' : ''}">
       ${mockupSrc ? `<img class="tm-inst-card-thumb" src="${mockupSrc}" alt="${escHtml(inst.label)}" onerror="this.style.display='none'">` : `<div style="width:40px;height:40px;background:var(--up-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">${TM_PRODUCT_CATALOG.find(p=>p.type===inst.type)?.icon||'👕'}</div>`}
       <div class="tm-inst-card-info">
         <div class="tm-inst-card-name">${inst.featured ? '&#11088; ' : ''}${escHtml(inst.label||inst.type)}</div>
-        <div class="tm-inst-card-meta">${designSummary} · ${(inst.colors||[]).length} colors · ${escHtml(sizePriceRangeText(inst.sizePrices, inst.price, inst.sizes))}</div>
+        <div class="tm-inst-card-meta">${metaLine}</div>
       </div>
       <div style="display:flex;gap:2px;flex-shrink:0;">
         <button onclick="tmMoveInstance(${i},-1)" ${i===0?'disabled':''} title="Move left" aria-label="Move product earlier in the list"
@@ -4370,17 +4482,30 @@ function tmInstTypesChanged() {
     inp.placeholder = cat?.defaultPrice || 'e.g. $25';
   });
 
+  // Stickers don't wear like a garment — no colors, no sizes, just a flat
+  // price and a choice between showing the graphic or a mockup photo.
+  const isSticker = types.length === 1 && primaryType === 'sticker';
   const colWrap = document.getElementById('tm-inew-colors-wrap');
   const sizWrap = document.getElementById('tm-inew-sizes-wrap');
   const designWrap = document.getElementById('tm-inew-design-wrap');
-  if (colWrap) colWrap.style.display = types.length ? '' : 'none';
-  if (sizWrap) sizWrap.style.display = types.length ? '' : 'none';
+  const stickerWrap = document.getElementById('tm-inew-sticker-wrap');
+  if (colWrap) colWrap.style.display = (types.length && !isSticker) ? '' : 'none';
+  if (sizWrap) sizWrap.style.display = (types.length && !isSticker) ? '' : 'none';
   if (designWrap) designWrap.style.display = types.length ? '' : 'none';
+  if (stickerWrap) stickerWrap.style.display = isSticker ? '' : 'none';
 
   if (!types.length) {
     // Back to nothing selected — fully reset for whatever product comes next.
     tmInstDesigns = {};
     tmInstActiveView = 'front';
+    const posWrap = document.getElementById('tm-positioner-wrap');
+    if (posWrap) posWrap.style.display = 'none';
+    return;
+  }
+
+  if (isSticker) {
+    // A sticker's design IS the whole product image — nothing to drag/position
+    // onto a garment mockup, so skip the positioner entirely.
     const posWrap = document.getElementById('tm-positioner-wrap');
     if (posWrap) posWrap.style.display = 'none';
     return;
@@ -4465,7 +4590,9 @@ function updatePositioner() {
   // Placeholder types (Jersey, Batting Jacket, Hat/Cap, Bag/Backpack, Misc)
   // have no mockup photo at all by design — there's nothing to position a
   // design against, so hide the positioner instead of showing a broken image.
-  if (!type || !designUrl || !Object.keys(views).length) { wrap.style.display = 'none'; return; }
+  // A sticker's design IS the whole product image, not something overlaid
+  // on a garment — never positioned.
+  if (!type || !designUrl || !Object.keys(views).length || type === 'sticker') { wrap.style.display = 'none'; return; }
   wrap.style.display = 'flex';
 
   const src = views[tmInstActiveView] || views.front || Object.values(views)[0] || '';
@@ -4583,6 +4710,9 @@ function tmAddProductInstance() {
     if (val) sizePrices[size] = val;
   });
 
+  const stickerPrice = document.getElementById('tm-inew-sticker-price')?.value.trim();
+  const displayMode = document.querySelector('input[name="tm-inew-displaymode"]:checked')?.value || 'graphic';
+
   const buildInstance = (type, useMultiLabel, existing) => {
     const cat = TM_PRODUCT_CATALOG.find(p => p.type === type);
     const views = MOCKUP_VIEWS[type] || {};
@@ -4590,18 +4720,20 @@ function tmAddProductInstance() {
     // e.g. a staged back design is dropped for a type with no back view.
     const designs = {};
     Object.keys(tmInstDesigns).forEach(v => { if (views[v]) designs[v] = tmInstDesigns[v]; });
+    const isSticker = type === 'sticker';
 
     return {
       instanceId: existing?.instanceId || ('inst-' + Date.now() + '-' + type),
       type,
       label:      useMultiLabel ? `${name} — ${cat?.label || type}` : name,
       icon:       cat?.icon || '👕',
-      price:      cat?.defaultPrice || '$25', // fallback for any size left with a blank price box
-      sizePrices,
+      price:      isSticker ? (stickerPrice || cat?.defaultPrice || '$5') : (cat?.defaultPrice || '$25'), // fallback for any size left with a blank price box
+      sizePrices: isSticker ? {} : sizePrices,
       designs,
-      colors:     colors.length ? colors : ['Black','Navy','White','Sport Grey','Red'],
-      sizes:      sizes.length  ? sizes  : ['S','M','L','XL','2XL'],
+      colors:     isSticker ? [] : (colors.length ? colors : ['Black','Navy','White','Sport Grey','Red']),
+      sizes:      isSticker ? ['OS'] : (sizes.length  ? sizes  : ['S','M','L','XL','2XL']),
       featured:   existing?.featured || false,
+      ...(isSticker ? { displayMode } : {}),
     };
   };
 
@@ -4663,6 +4795,11 @@ function tmEditProductInstance(idx) {
     }
   });
 
+  const stickerPriceEl = document.getElementById('tm-inew-sticker-price');
+  if (stickerPriceEl) stickerPriceEl.value = inst.type === 'sticker' ? (inst.price || '') : '';
+  const displayRadio = document.querySelector(`input[name="tm-inew-displaymode"][value="${inst.displayMode||'graphic'}"]`);
+  if (displayRadio) displayRadio.checked = true;
+
   updatePositioner();
   renderInstList(); // so the card being edited highlights
 
@@ -4698,6 +4835,11 @@ function tmResetProductForm() {
   document.getElementById('tm-inew-colors-wrap') && (document.getElementById('tm-inew-colors-wrap').style.display = 'none');
   document.getElementById('tm-inew-sizes-wrap')  && (document.getElementById('tm-inew-sizes-wrap').style.display  = 'none');
   document.getElementById('tm-inew-design-wrap') && (document.getElementById('tm-inew-design-wrap').style.display = 'none');
+  document.getElementById('tm-inew-sticker-wrap') && (document.getElementById('tm-inew-sticker-wrap').style.display = 'none');
+  const stickerPriceReset = document.getElementById('tm-inew-sticker-price');
+  if (stickerPriceReset) stickerPriceReset.value = '';
+  const graphicRadio = document.querySelector('input[name="tm-inew-displaymode"][value="graphic"]');
+  if (graphicRadio) graphicRadio.checked = true;
   document.querySelectorAll('.tm-placement-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('.tm-placement-btn[data-view="front"]')?.classList.add('active');
   const viewLbl = document.getElementById('tm-inew-view-label');

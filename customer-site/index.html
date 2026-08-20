@@ -3152,6 +3152,39 @@ function renderUP(filter="all"){
   grid.innerHTML=data.map((p,i)=>{
     const cat=typeCatalog(p.type),icon=cat?.icon||"👕",lbl=cat?.label||p.type;
     const cardId = 'up-' + p.id;
+
+    // Stickers don't wear like a garment — no colors, no sizes, no front/back
+    // toggle. Just whichever image Erin chose (her graphic or a mockup photo)
+    // plus price, qty, and Add to Cart.
+    if (p.type === 'sticker') {
+      if (!brandCardStates[cardId]) brandCardStates[cardId] = { color: null, view: 'front', qty: 1, size: 'OS' };
+      const state = brandCardStates[cardId];
+      const mockupView = cat?.views?.[0];
+      const mockupSrc = mockupView && isMockupAvailable(mockupView.src) ? getMockupSrc(mockupView.src) : '';
+      const imgSrc = (p.displayMode !== 'mockup' && p.img) ? p.img : mockupSrc;
+      const priceDisplay = sizePriceRangeText(p.sizePrices, cat?.defaultPrice, ['OS']);
+      return `<div class="p-card" style="animation:slideUp .5s ${i*.05}s ease both">
+        <div class="p-img has-img">
+          ${imgSrc ? `<img src="${imgSrc}" alt="${p.name}" style="object-fit:contain;" onerror="this.style.display='none'">` : `<span style="position:relative;z-index:2;">${icon}</span>`}
+          <div class="p-badge blue">UP Original</div>
+        </div>
+        <div class="p-info">
+          <div class="p-brand blue">${lbl}</div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-price" id="pprice-${cardId}">${priceDisplay}</div>
+          ${p.desc?`<div class="p-desc">${p.desc}</div>`:""}
+        </div>
+        <div class="p-qty-row">
+          <button class="p-qty-btn" onclick="changeBrandCardQty('${cardId}',-1)">−</button>
+          <span class="p-qty-val" id="pqty-${cardId}">${state.qty}</span>
+          <button class="p-qty-btn" onclick="changeBrandCardQty('${cardId}',1)">+</button>
+          <span class="p-qty-label">qty</span>
+        </div>
+        <button class="p-add-btn" onclick="addToCart(${p.id},'${cardId}')">Add to Cart</button>
+        <a href="tel:3046336401" class="p-quote-link">📋 Click for Team Quote</a>
+      </div>`;
+    }
+
     const sizes = p.sizes && p.sizes.length ? p.sizes : ['S','M','L','XL','2XL'];
     const priceDisplay = sizePriceRangeText(p.sizePrices, cat?.defaultPrice, sizes);
     // colors: array of color names e.g. ["Navy","Red","White"]
@@ -3512,15 +3545,19 @@ const TM_PRODUCT_CATALOG = [
   // ── Extras ────────────────────────────────────────
   { type:'hat',         icon:'🧢', label:'Hat / Cap',             category:'extras',  defaultPrice:'$22–$28', placeholder:true },
   { type:'bag',         icon:'🎒', label:'Bag / Backpack',        category:'extras',  defaultPrice:'$28–$36', placeholder:true },
+  // ── Stickers ──────────────────────────────────────
+  { type:'sticker',     icon:'🏷️', label:'Sticker',               category:'stickers', defaultPrice:'$3–$5',
+    views:[{key:'front',label:'Front',src:'/assets/sticker-mockup.png'}] },
 ];
 
 const CATEGORY_LABELS = {
-  all:     'All',
-  tops:    'T-Shirts & Tops',
-  fleece:  'Hoodies & Fleece',
-  tanks:   'Tanks',
-  bottoms: 'Bottoms',
-  extras:  'Extras',
+  all:      'All',
+  tops:     'T-Shirts & Tops',
+  fleece:   'Hoodies & Fleece',
+  tanks:    'Tanks',
+  bottoms:  'Bottoms',
+  extras:   'Extras',
+  stickers: 'Stickers',
 };
 
 // Backward-compat: newer products price each size individually
