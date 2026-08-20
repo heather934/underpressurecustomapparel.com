@@ -2152,6 +2152,17 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
 .processing-overlay-text{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--up-white);text-align:center;padding:0 24px;}
 .paypal-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px 0;color:var(--up-mist);font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;}
 .paypal-loading .processing-spinner-lg{width:26px;height:26px;border-width:2px;}
+
+/* ════════════════════════════
+   SITE FOOTER
+════════════════════════════ */
+.site-footer{border-top:1px solid var(--up-border);padding:32px 20px;margin-top:24px;background:var(--up-navy);}
+.site-footer-inner{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.site-footer-brand{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--up-mist);}
+.site-footer-social{display:flex;gap:14px;}
+.site-footer-social-link{width:38px;height:38px;border-radius:50%;border:1px solid var(--up-border);display:flex;align-items:center;justify-content:center;color:var(--up-mist);transition:all .2s;}
+.site-footer-social-link:hover{border-color:var(--up-blue);color:var(--up-sky);background:rgba(21,101,255,.1);}
+.site-footer-social-link svg{width:17px;height:17px;fill:currentColor;}
 </style>
 </head>
 <body>
@@ -2551,7 +2562,20 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
 
 </div>
 
-
+<!-- ══ SITE FOOTER ══ -->
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div class="site-footer-brand">Under Pressure Custom Apparel</div>
+    <div class="site-footer-social">
+      <a href="https://www.facebook.com/share/1FiVfkpznq/?mibextid=wwXIfr" target="_blank" rel="noopener" class="site-footer-social-link" aria-label="Under Pressure Custom Apparel on Facebook">
+        <svg viewBox="0 0 320 512" aria-hidden="true"><path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/under_pressure_custom_apparel?igsi=dXQ3bGJjbXkyYnMx" target="_blank" rel="noopener" class="site-footer-social-link" aria-label="Under Pressure Custom Apparel on Instagram">
+        <svg viewBox="0 0 448 512" aria-hidden="true"><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/></svg>
+      </a>
+    </div>
+  </div>
+</footer>
 
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toastMsg"></span></div>
 
