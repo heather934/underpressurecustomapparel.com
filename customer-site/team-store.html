@@ -1112,6 +1112,13 @@ function getShipping(qty) {
   return getUspsRate(qty);
 }
 
+// Flat per-unit fee for adding a name or jersey number to a design — folded
+// directly into each personalized cart item's unitPrice (rather than tracked
+// as a separate total) so it automatically flows through every place that
+// already reads unitPrice: cart display, checkout summary, PayPal amount,
+// the order confirmation email, and the admin production board.
+const PERSONALIZATION_FEE = 5;
+
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
@@ -1480,7 +1487,9 @@ function renderCard(product, index) {
 
   // Price — the exact price for the selected size once one's picked,
   // otherwise a range summary across every size this product offers.
-  const unitPrice = state.size ? resolveSizePrice(state.sizePrices, state.basePrice, state.size) : null;
+  // A $5/unit fee is added once personalization (a name or number) is entered.
+  const personalizationFee = (state.personalization||'').trim() ? PERSONALIZATION_FEE : 0;
+  const unitPrice = state.size ? resolveSizePrice(state.sizePrices, state.basePrice, state.size) + personalizationFee : null;
   const priceDisplay = unitPrice !== null ? `$${unitPrice.toFixed(2)}` : sizePriceRangeText(state.sizePrices, state.basePrice, sizes);
 
   // Mockup — a placement is offered (toggle button or split pane) whenever
@@ -1602,9 +1611,10 @@ function renderCard(product, index) {
 
         <!-- PERSONALIZATION -->
         <div class="ts-form-f" style="margin-bottom:10px;">
-          <label>Personalization <span style="font-weight:300;text-transform:none;letter-spacing:0;opacity:.7;">(optional)</span></label>
+          <label>Personalization <span style="font-weight:300;text-transform:none;letter-spacing:0;opacity:.7;">(optional — adding a name or number adds $5/item)</span></label>
           <input type="text" id="tspersonalize-${cardId}" placeholder="Name, number, or note for this item" maxlength="60"
             value="${state.personalization || ''}" oninput="setCardPersonalization('${cardId}', this.value)">
+          <div id="tspersonalize-fee-${cardId}" style="display:${(state.personalization||'').trim()?'':'none'};font-size:11px;color:var(--up-sky);margin-top:4px;">+ $5.00 customization fee</div>
         </div>
 
         <!-- ADD TO CART -->
@@ -1693,12 +1703,31 @@ function setCardSize(cardId, size, chipEl) {
     c.classList.toggle('selected', c.textContent === size));
 
   // Prices can differ per size, so swap in the exact price for this one.
+  updateCardPriceDisplay(cardId);
+}
+
+// Keeps the on-card price in sync with size + whether a $5 personalization
+// fee currently applies — shared by setCardSize and setCardPersonalization
+// so both stay correct regardless of which one the customer touches first.
+function updateCardPriceDisplay(cardId) {
+  const state = cardStates[cardId];
   const priceEl = document.getElementById('tsprice-' + cardId);
-  if (priceEl) priceEl.textContent = `$${resolveSizePrice(state.sizePrices, state.basePrice, size).toFixed(2)}`;
+  if (!state || !priceEl || !state.size) return;
+  const fee = (state.personalization||'').trim() ? PERSONALIZATION_FEE : 0;
+  priceEl.textContent = `$${(resolveSizePrice(state.sizePrices, state.basePrice, state.size) + fee).toFixed(2)}`;
 }
 
 function setCardPersonalization(cardId, val) {
-  if (cardStates[cardId]) cardStates[cardId].personalization = val;
+  const state = cardStates[cardId];
+  if (!state) return;
+  const hadFee = (state.personalization||'').trim().length > 0;
+  state.personalization = val;
+  const hasFee = val.trim().length > 0;
+  updateCardPriceDisplay(cardId);
+  if (hadFee !== hasFee) {
+    const hint = document.getElementById('tspersonalize-fee-' + cardId);
+    if (hint) hint.style.display = hasFee ? '' : 'none';
+  }
 }
 
 function changeCardQty(cardId, delta) {
@@ -1719,7 +1748,9 @@ function addToCart(cardId, prodType, frontNameEnc, frontUrlEnc, backNameEnc, bac
 
   // Prices can differ per size — resolve it now that a size is locked in,
   // rather than trusting a value baked into the button at render time.
-  const unitPrice = resolveSizePrice(state.sizePrices, state.basePrice, state.size);
+  // A $5/unit fee applies whenever a name or number was entered for this item.
+  const personalizationFee = (state.personalization||'').trim() ? PERSONALIZATION_FEE : 0;
+  const unitPrice = resolveSizePrice(state.sizePrices, state.basePrice, state.size) + personalizationFee;
 
   const frontDesignName = decodeURIComponent(frontNameEnc);
   const frontDesignUrl  = decodeURIComponent(frontUrlEnc);
@@ -1807,7 +1838,7 @@ function renderCartItems() {
         <div class="ts-cart-item-meta">
           ${[item.frontDesignName, item.backDesignName].filter(Boolean).join(' / ')}${item.frontDesignName||item.backDesignName ? ' · ' : ''}${item.color} · ${item.size} · Qty ${item.qty}
         </div>
-        ${item.personalization ? `<div class="ts-cart-item-meta" style="color:var(--up-sky);">📝 ${item.personalization}</div>` : ''}
+        ${item.personalization ? `<div class="ts-cart-item-meta" style="color:var(--up-sky);">📝 ${item.personalization} (+$${PERSONALIZATION_FEE.toFixed(2)}/ea customization)</div>` : ''}
       </div>
       <div class="ts-cart-item-price">$${(item.unitPrice * item.qty).toFixed(2)}</div>
       <button class="ts-cart-item-del" onclick="removeFromCart(${item.id})" title="Remove">✕</button>
@@ -1852,7 +1883,7 @@ function openCheckout() {
     const designs = [i.frontDesignName, i.backDesignName].filter(Boolean).join(' / ');
     return `
     <div class="ts-order-row">
-      <span>${i.label} ${designs?'('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty}${i.personalization?' · 📝 '+i.personalization:''}</span>
+      <span>${i.label} ${designs?'('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty}${i.personalization?' · 📝 '+i.personalization+' (+$'+PERSONALIZATION_FEE.toFixed(2)+'/ea customization)':''}</span>
       <span>$${(i.unitPrice * i.qty).toFixed(2)}</span>
     </div>`;
   }).join('');
@@ -1943,7 +1974,7 @@ function payWithPayPal(amount) {
     const v = id => document.getElementById(id)?.value || '';
     const lineItems = cart.map(i => {
       const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
-      return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} x ${i.qty}${i.personalization?' — Personalization: '+i.personalization:''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
+      return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} x ${i.qty}${i.personalization?' — Personalization: '+i.personalization+' (+$'+PERSONALIZATION_FEE.toFixed(2)+'/ea customization)':''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
     }).join('\n');
     fetch(`${KV_API}/api/save-cart`, {
       method: 'POST',
@@ -2005,7 +2036,7 @@ async function sendOrderEmail(details) {
   const designSummary = i => [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
   const lineItems = cart.map(i => {
     const designs = designSummary(i);
-    return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty}${i.personalization?' — Personalization: '+i.personalization:''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
+    return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} × ${i.qty}${i.personalization?' — Personalization: '+i.personalization+' (+$'+PERSONALIZATION_FEE.toFixed(2)+'/ea customization)':''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
   }).join('\n');
   const customerName    = `${v('co-first')} ${v('co-last')}`.trim();
   const customerEmail   = v('co-email');
@@ -2024,7 +2055,7 @@ async function sendOrderEmail(details) {
     const designs = designSummary(i);
     return {
       image_url:        i.designUrl || '',
-      name:              `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size}${i.personalization?' — '+i.personalization:''}`,
+      name:              `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size}${i.personalization?' — '+i.personalization+' (+$'+PERSONALIZATION_FEE.toFixed(2)+'/ea customization)':''}`,
       units:             i.qty,
       price:             i.unitPrice.toFixed(2),
       customer_email:    customerEmail,
