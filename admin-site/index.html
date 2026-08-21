@@ -9149,6 +9149,180 @@ function renderInvoiceAdmin() {
     <div class="invoice-list">${listHTML}</div>
     <div class="cm-tip">📄 Invoices open in a new window ready to print or save as PDF. Share with team coaches for reimbursement.</div>`;
 }
+
+// ══════════════════════════════════════════════════════
+//  HELP / USER MANUAL
+// ══════════════════════════════════════════════════════
+function helpScrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+const HELP_SECTIONS = [
+  { id:'help-access', icon:'🔑', color:'#4d9fff', title:'Getting In', body: `
+    <p>This admin site is a separate deployment from the public storefront. Its pages are marked <code>noindex, nofollow</code> so search engines skip them, and access is gated at the network level by <strong>Cloudflare Access</strong> — not by a password inside the app. If you can load the site at all, Cloudflare has already confirmed you're an authorized user.</p>
+    <ol>
+      <li>Go to the admin site's URL and sign in with the email/method your Cloudflare Access policy requires (magic link, SSO, etc.). This is configured in the Cloudflare dashboard, not in this app — see Cloudflare Zero Trust → Access if someone new needs to be added.</li>
+      <li>Once you're through Access, the site loads straight into this <strong>Admin Dashboard</strong> — there's no separate in-app login step.</li>
+      <li>Click <strong>🚪 Exit Admin</strong> (top right) to close the admin panel and view the underlying storefront page. Reloading the site brings you straight back into the dashboard.</li>
+    </ol>
+    <p>Use the <strong>Search admin...</strong> box at the top of the sidebar to filter the section list by keyword if you're not sure which section you need.</p>` },
+
+  { id:'help-dashboard', icon:'📊', color:'#4d9fff', title:'Dashboard', body: `
+    <p>The landing screen. At a glance:</p>
+    <ul>
+      <li><strong>Pending Orders</strong> — orders on the Production Board not yet marked complete.</li>
+      <li><strong>Today's Orders</strong> — new orders placed today.</li>
+      <li><strong>Graphics Needed</strong> — total print locations (front/back/etc.) still owed across pending orders — useful for planning a DTF print run.</li>
+      <li><strong>This Week's Revenue</strong> — last 7 days, based on order sale prices.</li>
+      <li><strong>Low Stock Items</strong> — items at or below their reorder threshold in Inventory (click the card to jump to Inventory).</li>
+      <li><strong>Urgent Deadlines</strong> — deadlines due within 3 days.</li>
+    </ul>
+    <p><strong>Recent Orders</strong> and <strong>Upcoming Deadlines</strong> lists each have a shortcut button into the full section.</p>` },
+
+  { id:'help-orders', icon:'📦', color:'#4ade80', title:'Orders (Production Board)', body: `
+    <p>The main day-to-day fulfillment screen. Every order — from the UP Sportswear cart, a team store checkout, or one you added manually via Reorder — lands here automatically.</p>
+    <p><strong>Filtering:</strong> search box, status chips (All / Pending / Completed), and a chip per store. Click <strong>✕ Clear</strong> to reset the store filter.</p>
+    <p><strong>Per-order actions:</strong></p>
+    <ul>
+      <li><strong>Checkbox</strong> — marks the order complete. This also automatically deducts matching quantities from Inventory (by name + color + size); un-checking restores them. If deducting pushes an item at or below its reorder threshold, a toast warns you.</li>
+      <li><strong>🖨 Print Sheet</strong> (per line item, when a graphic is on file) — opens a print-ready sheet with the graphic image, customer, qty, size, color, and player name/number. Use Print / Save as PDF to send it to your DTF printer.</li>
+      <li><strong>📦 Mark Ready</strong> — emails the customer that their order is ready, using the "Order Ready" EmailJS template (set this up under Integrations first). This is a deliberate, separate action from the completion checkbox — it won't fire automatically.</li>
+      <li><strong>↺ Reorder</strong> — duplicates the order as a brand-new pending order (handy for repeat/reprint requests).</li>
+      <li><strong>+ Note</strong> — attach a short internal note to the order.</li>
+      <li><strong>✕</strong> — remove the order from the board entirely.</li>
+    </ul>
+    <p><strong>⬇ Export CSV</strong> downloads every order/line item for spreadsheets or backup.</p>` },
+
+  { id:'help-storeorders', icon:'📬', color:'#4d9fff', title:'Store Orders', body: `
+    <p>Orders paid through PayPal on a team store, pulled in from Cloudflare KV (populated by the <code>up-store-api</code> Worker's PayPal IPN handler). Separate from the Production Board until you promote an order:</p>
+    <ul>
+      <li><strong>📧 Send Order Received</strong> — emails the customer an order confirmation (EmailJS "Order Confirmation" template). Shows "✅ Resend Confirmation" once sent, and asks before sending twice.</li>
+      <li><strong>📋 Add to Production Board</strong> — copies the order onto the Orders board for fulfillment tracking. Already-added orders show "✓ On Board".</li>
+      <li><strong>🔄 Refresh</strong> — re-pulls the latest orders from KV (in case a payment just came in).</li>
+      <li><strong>🗑 Clear On-Board Orders</strong> — bulk-clears store orders already added to the board, to tidy up the list.</li>
+    </ul>` },
+
+  { id:'help-purchaselist', icon:'🛒', color:'#fbbf24', title:'Purchase List', body: `
+    <p>An automatically-generated shopping list, built from every pending (not-yet-completed) order on the Production Board, broken down by store → item → color × size.</p>
+    <ul>
+      <li>Toggle each item's status: 🔴 <strong>Need to Order</strong>, ⚠ <strong>Partially In Stock</strong>, ✅ <strong>In Stock</strong>.</li>
+      <li>Log what you actually spent per item and attach a receipt image/URL — this feeds the <strong>Purchase Log</strong> below the list and its own CSV export.</li>
+      <li><strong>⬇ Export CSV</strong> for the full breakdown.</li>
+    </ul>
+    <p>Nothing to configure here — it's read-only aggregation of order data, plus your manual status/spend tracking on top.</p>` },
+
+  { id:'help-teamstores', icon:'🏆', color:'#7c3aed', title:'Team Stores', body: `
+    <p>Manage every team/partner storefront (including the built-in River City Rampage and Rome CoC Youth T-Shirts stores, which are fully editable here even though they're seeded by default).</p>
+    <p><strong>+ Add Team Store</strong> / <strong>✏ Edit</strong> opens the store builder:</p>
+    <ul>
+      <li><strong>Team Name</strong> and <strong>Subdomain</strong> — the subdomain drives the store's URL; it auto-fills from the name but you can override it.</li>
+      <li><strong>Primary / Accent Color</strong> — used for the store's branding; add an accent to get a gradient instead of a solid color.</li>
+      <li><strong>Team Logo / Banner Image</strong> — paste a URL, <strong>🎨 Import from Canva</strong> (paste a Canva share link and it extracts a thumbnail), or <strong>📁 Upload</strong> a file from your device.</li>
+      <li><strong>Designs Library</strong> — upload every graphic this store will use. Each design becomes selectable on any product you add below.</li>
+      <li><strong>Products</strong> — name, one or more product types, price, a design per side (Front/Back/Side) with a drag positioner to place it on the garment mockup exactly as the customer will see it, plus available colors and sizes.</li>
+      <li><strong>Gallery Photos</strong> — finished-order photos shown on the storefront, each with an optional caption.</li>
+      <li><strong>Homepage Feature</strong> checkbox — surfaces this store in a Featured section on the customer homepage.</li>
+    </ul>
+    <p><strong>Visibility</strong> (from the Team Stores table): <strong>🌐 Public</strong> (anyone can shop it), <strong>🔑 Code Only</strong> (hidden until a customer enters the access code you set), or <strong>🔒 Private</strong> (hidden from customers entirely).</p>` },
+
+  { id:'help-customers', icon:'👥', color:'#4ade80', title:'Customers', body: `
+    <p>A customer database is built automatically from order history — there's nothing to manually enter. Customers are grouped by email/phone/name and show total spend, order count, and stores shopped.</p>
+    <ul>
+      <li><strong>🔍 Search</strong> by name, email, or phone.</li>
+      <li>Click a card to expand and see recent order history.</li>
+      <li><strong>↺ Reorder</strong> on any past order duplicates it onto the Production Board.</li>
+      <li><strong>⬇ Export CSV</strong> for the full customer list.</li>
+    </ul>` },
+
+  { id:'help-costanalysis', icon:'💰', color:'#4ade80', title:'Cost Analysis', body: `
+    <p>Revenue, cost, and profit margin reporting.</p>
+    <ol>
+      <li>Click <strong>💰 Set Costs</strong> first: enter a flat <strong>DTF Print Cost</strong> per item (applies to everything), then a <strong>Blank Cost</strong> per item name based on what you actually pay. Sale prices are shown for reference from the order data itself.</li>
+      <li>Choose a period: Last 30 Days, Last 90 Days, All Time, or a Custom date range.</li>
+      <li>Switch between <strong>By Store</strong>, <strong>By Order</strong>, and <strong>By Product</strong> views.</li>
+      <li>Summary cards show Total Revenue, Blank Cost, Print Cost, Gross Profit, and Profit Margin (green ≥40%, yellow 20–39%, red under 20%).</li>
+    </ol>
+    <p><strong>⬇ Export CSV</strong> for the full breakdown. Until you set at least one cost, revenue still shows but cost/profit/margin display as "—".</p>` },
+
+  { id:'help-inventory', icon:'📦', color:'#4d9fff', title:'Inventory', body: `
+    <p>Track blank stock on hand.</p>
+    <ul>
+      <li><strong>+ Add Item</strong> — name, color, size, quantity on hand, unit cost, and a reorder threshold (defaults to 5 if left blank).</li>
+      <li>Adjust quantity with the +/− buttons or type a new value directly.</li>
+      <li>Items at or below their reorder threshold are flagged low stock and show up on the Dashboard.</li>
+      <li>Quantities auto-deduct when you mark a matching order complete on the Production Board (and restore if you un-mark it).</li>
+      <li><strong>⬇ Export CSV</strong> for a full inventory report with value totals.</li>
+    </ul>` },
+
+  { id:'help-deadlines', icon:'📅', color:'#fbbf24', title:'Deadlines', body: `
+    <p>A simple deadline tracker, separate from individual order line items.</p>
+    <ul>
+      <li><strong>+ Add Deadline</strong> — title, optional team/store, due date, and optional notes.</li>
+      <li>Cards are color-coded by urgency: overdue (gray), urgent (red, ≤2 days), soon (yellow, ≤7 days), and OK (green).</li>
+      <li><strong>✓ Done / ↩ Undo</strong> toggles completion; <strong>✕</strong> deletes.</li>
+      <li>Deadlines due within 3 days also surface on the Dashboard.</li>
+    </ul>` },
+
+  { id:'help-invoices', icon:'🧾', color:'#4ade80', title:'Invoices', body: `
+    <p>Every real order gets an auto-generated, human-readable invoice number (<code>UP-YYMM-####</code>).</p>
+    <p>Click <strong>🧾 Generate</strong> on any order to open a printable invoice in a new tab — print it or save as PDF to share with a coach/customer for reimbursement.</p>` },
+
+  { id:'help-discounts', icon:'🏷', color:'#fbbf24', title:'Discounts', body: `
+    <p>Create and manage promo codes used at checkout.</p>
+    <ul>
+      <li><strong>Code</strong> (auto-uppercased, no spaces), <strong>Type</strong> (Percentage or Fixed $ amount), and <strong>Value</strong>.</li>
+      <li>Optional: minimum order amount, max number of uses, expiry date, and which store the code applies to (All Stores or a specific one).</li>
+      <li><strong>Activate / Deactivate</strong> toggles a code without deleting it; deleting removes it permanently.</li>
+      <li>Status shows as Active, Inactive, Expired, or Used Up automatically based on your settings and usage count.</li>
+      <li><strong>⬇ Export Usage</strong> for a CSV of codes and how often they've been redeemed.</li>
+    </ul>` },
+
+  { id:'help-integrations', icon:'🔌', color:'#a78bfa', title:'Integrations', body: `
+    <p>Connect the third-party services the storefront depends on. Each service shows a ● Connected / ○ Not Configured status badge.</p>
+    <ul>
+      <li><strong>💳 PayPal Checkout</strong> — paste your PayPal Client ID (from developer.paypal.com → Apps &amp; Credentials). This is a public/publishable ID, safe to store here.</li>
+      <li><strong>✉️ EmailJS</strong> — Public Key and Service ID, plus a Default Template used as a fallback. You can also set a dedicated template per flow: Submit a Player, Request a Quote, Order Confirmation (to customer) and New Order Made (to Erin) — sent automatically right after checkout — Quote Details (2nd copy to Erin) — sent automatically alongside the quote email — and Order Ready (to customer) — sent only when you click 📦 Mark Ready on the Production Board. Flow-specific templates with no default fallback are simply skipped (not sent) if left blank, rather than risk sending the wrong template.</li>
+      <li><strong>☁️ Cloudflare Images</strong> — Account ID and Images API Token. This is saved here for reference only — the actual uploads run through the <code>up-store-api</code> Worker's <code>/images/upload</code> endpoint using its own <code>CF_IMAGES_TOKEN</code> secret. To rotate the real key, update that secret directly in Cloudflare, not just this field.</li>
+    </ul>
+    <p>Click <strong>💾 Save</strong> under each service — saved values are written permanently to Cloudflare KV (shared across anyone using this admin site) and also mirrored to your browser's local storage.</p>` },
+
+  { id:'help-data', icon:'💾', color:'#a78bfa', title:'Data & Where It Lives', body: `
+    <p>Not everything on this site is stored the same way — worth knowing before you assume something will "just show up" on another computer:</p>
+    <p><strong>Synced everywhere</strong> (saved to Cloudflare KV — same for every admin, any device): Team Stores &amp; their products/designs, store visibility settings and access codes, discount codes, Store Orders (from PayPal), and Integrations credentials.</p>
+    <p><strong>Local to this browser only</strong> (saved to <code>localStorage</code> — won't appear if you log in from a different browser or device): the Orders/Production Board, Inventory, Deadlines, order notes, Cost Analysis settings, the Purchase List's status/spend tracking, and the Customer database (derived from the Production Board).</p>
+    <div class="help-note">💡 If you regularly switch devices, stick to one browser for day-to-day order management, or export CSVs regularly as a backup.</div>` },
+
+  { id:'help-limitation', icon:'⚠️', color:'#c8102e', title:'Known Limitation', body: `
+    <p>The ⚙ Manage button and the "UP Sportswear Line" quick-add product form that appear in the underlying storefront markup are currently inactive on this deployment (the flag that enables them is never set true here, since Cloudflare Access replaced the old in-page admin toggle). Clicking them does nothing.</p>
+    <div class="help-warn">This doesn't affect anything documented above — team-store products are managed entirely through <strong>Team Stores</strong>. If the general "UP Sportswear Line" catalog needs new items added going forward, that code path needs to be reconnected or replaced.</div>` },
+];
+
+function renderHelp() {
+  const tocHTML = HELP_SECTIONS.map(s =>
+    `<button class="help-toc-link" onclick="helpScrollTo('${s.id}')">${s.icon} ${s.title}</button>`
+  ).join('');
+
+  const sectionsHTML = HELP_SECTIONS.map(s => `
+    <div class="help-section" id="${s.id}" style="border-top-color:${s.color};">
+      <div class="help-section-title">${s.icon} ${s.title}</div>
+      <div class="help-content">${s.body}</div>
+      <button class="help-backtotop" onclick="helpScrollTo('help-top')">↑ Back to top</button>
+    </div>`).join('');
+
+  return `
+    <div id="help-top" class="cm-section-head">
+      <div>
+        <div class="cm-section-title" style="color:var(--up-sky);">Admin <span style="color:var(--up-white)">User Manual</span></div>
+        <div class="help-intro" style="margin-top:6px;">How to use every section of this admin dashboard — Under Pressure Custom Apparel.</div>
+      </div>
+    </div>
+    <div class="help-toc">
+      <div class="help-toc-title">Jump to a section</div>
+      <div class="help-toc-grid">${tocHTML}</div>
+    </div>
+    ${sectionsHTML}`;
+}
 </script>
 
 <style>
@@ -9173,6 +9347,30 @@ function renderInvoiceAdmin() {
 .admin-topbar-title span{color:#4d9fff;}
 .admin-close-btn{background:rgba(200,16,46,.15);border:1px solid rgba(200,16,46,.3);color:#c8102e;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 18px;cursor:pointer;transition:all .15s;}
 .admin-close-btn:hover{background:rgba(200,16,46,.3);}
+
+/* ═══ HELP / MANUAL ═══ */
+.help-intro{font-size:14px;color:var(--up-silver);font-weight:300;line-height:1.7;margin-bottom:4px;}
+.help-toc{background:var(--up-card);border:1px solid var(--up-border);padding:18px 20px;margin-bottom:22px;}
+.help-toc-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-bottom:10px;}
+.help-toc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 18px;}
+.help-toc-link{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:.5px;color:var(--up-sky);cursor:pointer;padding:3px 0;border:none;background:none;text-align:left;transition:color .15s;}
+.help-toc-link:hover{color:var(--up-white);text-decoration:underline;}
+.help-section{background:var(--up-card);border:1px solid var(--up-border);border-top:3px solid var(--up-sky);padding:22px;margin-bottom:16px;scroll-margin-top:20px;}
+.help-section-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--up-white);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.help-content p{font-size:13.5px;color:var(--up-silver);font-weight:300;line-height:1.7;margin-bottom:10px;}
+.help-content p:last-child{margin-bottom:0;}
+.help-content ul,.help-content ol{margin:0 0 10px 20px;font-size:13.5px;color:var(--up-silver);font-weight:300;line-height:1.7;}
+.help-content li{margin-bottom:4px;}
+.help-content li:last-child{margin-bottom:0;}
+.help-content li ul,.help-content li ol{margin-top:4px;}
+.help-content strong{color:var(--up-white);font-weight:600;}
+.help-content code{background:rgba(255,255,255,.06);border:1px solid var(--up-border);color:var(--up-sky);padding:1px 6px;font-family:monospace;font-size:12px;border-radius:2px;}
+.help-note{background:rgba(232,180,0,.08);border:1px solid rgba(232,180,0,.25);color:var(--accent);padding:12px 16px;font-size:13px;font-weight:300;line-height:1.6;margin-top:10px;}
+.help-note strong{color:var(--accent);}
+.help-warn{background:rgba(200,16,46,.08);border:1px solid rgba(200,16,46,.25);color:#ff8a9a;padding:12px 16px;font-size:13px;font-weight:300;line-height:1.6;margin-top:10px;}
+.help-warn strong{color:#ff8a9a;}
+.help-backtotop{display:inline-block;margin-top:14px;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;color:var(--up-mist);text-transform:uppercase;cursor:pointer;background:none;border:none;padding:0;}
+.help-backtotop:hover{color:var(--up-sky);}
 </style>
 
 
@@ -9203,6 +9401,7 @@ function renderInvoiceAdmin() {
         <div class="admin-nav-item" id="anav-discounts" onclick="renderAdminPanel('discounts')">🏷 <span class="admin-nav-item-label">Discounts</span></div>
 
         <div class="admin-nav-item" id="anav-integrations" onclick="renderAdminPanel('integrations')">🔌 <span class="admin-nav-item-label">Integrations</span></div>
+        <div class="admin-nav-item" id="anav-help" onclick="renderAdminPanel('help')">❓ <span class="admin-nav-item-label">Help</span></div>
         <div class="admin-nav-no-results" id="adminNavNoResults" style="display:none;">No matching sections</div>
       </div>
     </div>
@@ -9742,6 +9941,7 @@ function renderAdminPanel(tab) {
 
       case 'storeorders':   content.innerHTML = ''; renderStoreOrdersAsync(content); break;
       case 'integrations': content.innerHTML = renderIntegrations();   break;
+      case 'help':          content.innerHTML = renderHelp();          break;
       default:             content.innerHTML = renderDashboard();       break;
     }
   } catch(e) {
