@@ -2841,6 +2841,10 @@ function showPage(p){
 // CART
 // ══════════════════════════════
 function typeCatalog(type) { return TM_PRODUCT_CATALOG.find(c => c.type === type); }
+// Product types (stickers, hats) that don't wear/tint like a garment — no
+// colors, no sizes, no front/back toggle, just a flat price and a choice
+// between showing Erin's graphic or a mockup photo.
+function isSimpleDisplayType(type) { return !!typeCatalog(type)?.simpleDisplay; }
 var cart=[];
 function cartTotal(){return cart.reduce((s,i)=>s+(i.price*i.qty),0);}
 function cartQty(){return cart.reduce((s,i)=>s+i.qty,0);}
@@ -3177,10 +3181,10 @@ function renderUP(filter="all"){
     const cat=typeCatalog(p.type),icon=cat?.icon||"👕",lbl=cat?.label||p.type;
     const cardId = 'up-' + p.id;
 
-    // Stickers don't wear like a garment — no colors, no sizes, no front/back
-    // toggle. Just whichever image Erin chose (her graphic or a mockup photo)
-    // plus price, qty, and Add to Cart.
-    if (p.type === 'sticker') {
+    // Simple-display types (stickers, hats) don't wear like a garment — no
+    // colors, no sizes, no front/back toggle. Just whichever image Erin chose
+    // (her graphic or a mockup photo) plus price, qty, and Add to Cart.
+    if (isSimpleDisplayType(p.type)) {
       if (!brandCardStates[cardId]) brandCardStates[cardId] = { color: null, view: 'front', qty: 1, size: 'OS' };
       const state = brandCardStates[cardId];
       const mockupView = cat?.views?.[0];
@@ -3567,10 +3571,11 @@ const TM_PRODUCT_CATALOG = [
   { type:'womensshorts',icon:'🩳', label:"Women's Shorts",        category:'bottoms', defaultPrice:'$22–$28',
     views:[{key:'front',label:'Front',src:'/assets/womens-shorts.b64'}] },
   // ── Extras ────────────────────────────────────────
-  { type:'hat',         icon:'🧢', label:'Hat / Cap',             category:'extras',  defaultPrice:'$22–$28', placeholder:true },
+  { type:'hat',         icon:'🧢', label:'Hat / Cap',             category:'extras',  defaultPrice:'$22–$28', simpleDisplay:true,
+    views:[{key:'front',label:'Front',src:'/assets/hat-mockup.png'}] },
   { type:'bag',         icon:'🎒', label:'Bag / Backpack',        category:'extras',  defaultPrice:'$28–$36', placeholder:true },
   // ── Stickers ──────────────────────────────────────
-  { type:'sticker',     icon:'🏷️', label:'Sticker',               category:'stickers', defaultPrice:'$3–$5',
+  { type:'sticker',     icon:'🏷️', label:'Sticker',               category:'stickers', defaultPrice:'$3–$5', simpleDisplay:true,
     views:[{key:'front',label:'Front',src:'/assets/sticker-mockup.png'}] },
 ];
 

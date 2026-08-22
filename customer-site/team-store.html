@@ -1017,12 +1017,18 @@ const PRODUCT_CATALOG = {
                 graphicView:'front', graphicTop:'38%', graphicLeft:'42%', graphicWidth:'24%' },
   jersey:     { label: 'Jersey',                category: 'tops',    icon: '🏃', views: [], placeholder: true },
   jacket:     { label: 'Batting Jacket',        category: 'tops',    icon: '🧤', views: [], placeholder: true },
-  hat:        { label: 'Hat / Cap',             category: 'extras',  icon: '🧢', views: [], placeholder: true },
+  hat:        { label: 'Hat / Cap',             category: 'extras',  icon: '🧢', simpleDisplay: true,
+                views: [{ key:'front', label:'Front', src:'/assets/hat-mockup.png' }] },
   bag:        { label: 'Bag / Backpack',        category: 'extras',  icon: '🎒', views: [], placeholder: true },
   misc:       { label: 'Miscellaneous Item',    category: 'extras',  icon: '📦', views: [], placeholder: true },
-  sticker:    { label: 'Sticker',               category: 'stickers', icon: '🏷️',
+  sticker:    { label: 'Sticker',               category: 'stickers', icon: '🏷️', simpleDisplay: true,
                 views: [{ key:'front', label:'Front', src:'/assets/sticker-mockup.png' }] },
 };
+
+// Simple-display types (stickers, hats) don't wear like a garment — no
+// colors, no sizes, no front/back toggle, just a flat price and a choice
+// between showing Erin's graphic or a mockup photo.
+function isSimpleDisplayType(type) { return !!PRODUCT_CATALOG[type]?.simpleDisplay; }
 
 // Backward-compat: a product's design(s) live either in the current
 // designs{front,back,side} shape or, for older team stores not yet re-saved
@@ -1425,11 +1431,12 @@ function renderCard(product, index) {
   const cardId  = product.instanceId || `${product.type}-${index}`;
   const designs = getProductDesigns(product);
 
-  // Stickers don't wear like a garment — no colors, no sizes, no front/back
-  // toggle. Just whichever image Erin chose (the graphic or a mockup photo)
-  // plus price, qty, and Add to Cart. The actual assigned graphic (designs.front)
-  // always ships with the order for production, regardless of what's shown here.
-  if (product.type === 'sticker') {
+  // Simple-display types (stickers, hats) don't wear like a garment — no
+  // colors, no sizes, no front/back toggle. Just whichever image Erin chose
+  // (the graphic or a mockup photo) plus price, qty, and Add to Cart. The
+  // actual assigned graphic (designs.front) always ships with the order for
+  // production, regardless of what's shown here.
+  if (isSimpleDisplayType(product.type)) {
     if (!cardStates[cardId]) {
       cardStates[cardId] = { color: '', view: 'front', qty: 1, size: 'OS', personalization: '' };
     }
