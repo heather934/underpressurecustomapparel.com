@@ -1,0 +1,15 @@
+{
+  "id": "nucor_mill_certification_broker",
+  "display_name": "Nucor Mill Certification (broker-stamped, scanned)",
+  "detect_all_of": ["Customer Name", "Customer PO#", "Shipper No", "Heat Number"],
+  "redact_rects": [
+    [10, 14, 570, 84],
+    [378, 100, 525, 162],
+    [28, 153, 420, 192],
+    [16, 213, 517, 228],
+    [349, 258, 517, 273],
+    [349, 286, 517, 301],
+    [349, 297, 517, 318]
+  ],
+  "notes": "This source document is a flattened scan (only a broker's routing stamp at the very top is real selectable text; everything else, including the Nucor letterhead and the Sold To/Ship To/table fields, is raster image content). Rects were located by rendering the page at 4x and visually verifying pixel positions, not by a text diff -- treat this template as best-effort and double-check output visually, especially if a document's row heights differ even slightly. Blanks: the broker's routing-stamp band (Customer Name/PO#/Shipper No/Invoice No, both rows seen), Nucor's MTR#/Lot#/address/phone/fax block, the Sold To/Ship To block, and the Customer PO/Sales Order#/Load#/Qty Shipped LBS/Qty Shipped EA table cells. Kept: Nucor logo, 'Mill Certification' title+date, Product Group/Grade/Size/BOL#/Product#/Lot#/Heat#/Description/Production Date, Melt&Roll Country of Origin, chemistry table, tensile testing, comments, and signature. Learned from a 612x792pt page at 4x render zoom."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "ssab_test_certificate",
+  "display_name": "SSAB - Test Certificate",
+  "detect_all_of": ["Test Certificate", "KILLED STEEL", "MTR EN 10204"],
+  "redact_rects": [
+    [22, 66, 200, 137],
+    [258, 63, 383, 79],
+    [452, 63, 583, 79],
+    [602, 61, 737, 79],
+    [548, 78, 741, 92],
+    [548, 88, 715, 102],
+    [540, 50, 715, 69]
+  ],
+  "notes": "Blanks the Customer name/address block, Customer P.O. No., Mill Order No., Shipping Manifest, Ship Date, Cert No, Cert Date, and the Form TC1 revision stamp. SSAB's own address, the Prop 65 warning, product description, and the full test-results table are kept. Learned from a 792x612pt (landscape) page."
+}

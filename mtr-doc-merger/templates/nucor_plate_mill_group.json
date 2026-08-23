@@ -1,0 +1,16 @@
+{
+  "id": "nucor_plate_mill_group",
+  "display_name": "Nucor Plate Mill Group - Mill Test Report",
+  "detect_all_of": ["NUCOR STEEL HERTFORD COUNTY", "Mill Test Report"],
+  "redact_rects": [
+    [15, 76, 150, 92],
+    [178, 75, 250, 93],
+    [313, 75, 390, 93],
+    [420, 77, 524, 92],
+    [563, 76, 671, 92],
+    [15, 92, 181, 108],
+    [335, 93, 510, 127],
+    [550, 92, 778, 127]
+  ],
+  "notes": "Blanks Issuing Date, Vehicle No, B/L No, Load No, Our Order No, Cust Order No, and the Sold To / Ship To blocks. Nucor's own letterhead (top of page) and the Specification/Marking/heat-chemistry table are kept -- Nucor is the actual producing mill here, so its identity isn't chain-of-custody info. Learned from a 792x612pt (landscape) page."
+}
