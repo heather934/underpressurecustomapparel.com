@@ -318,6 +318,21 @@ export default {
       }
     }
 
+    // Admin Integrations panel saves EmailJS/PayPal/Cloudflare credentials
+    // here. Merge into the existing app_config so saving one integration
+    // (e.g. EmailJS) doesn't wipe out the others (e.g. PayPal).
+    if (request.method === 'POST' && path === '/api/config') {
+      try {
+        const updates = await request.json();
+        const raw = await env.UP_DATA.get('app_config');
+        const config = Object.assign({}, raw ? JSON.parse(raw) : {}, updates);
+        await env.UP_DATA.put('app_config', JSON.stringify(config));
+        return json({ ok: true, config });
+      } catch (e) {
+        return error('Failed to save config: ' + e.message, 500);
+      }
+    }
+
     if (request.method === 'POST' && path === '/images/upload') {
       try {
         const formData = await request.formData();
