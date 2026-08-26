@@ -3030,6 +3030,29 @@ function payWithPayPal(amount){
     email:customerInfo.email||'',
     items:orderItems
   });
+  // Save cart to KV so the PayPal IPN handler — which fires once payment is
+  // actually confirmed, unlike this optimistic client-side email — can send
+  // Erin a "New Order Made" email with real order/customer details instead
+  // of falling back to PayPal's bare item_name field.
+  try {
+    const t = calcOrderTotals();
+    fetch(`${KV_API}/api/save-cart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: customerInfo.email || '',
+        customer_name: `${customerInfo.first} ${customerInfo.last}`,
+        phone: customerInfo.phone || '',
+        address: `${customerInfo.addr}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip}`,
+        notes: customerInfo.notes || '',
+        order_items: orderItems.map(i=>`${i.name}${i.size?' (Size: '+i.size+')':''}${i.color?', '+i.color:''} x ${i.qty} = $${(i.salePrice*i.qty).toFixed(2)}`).join('\n'),
+        items: orderItems.map(i=>({name:i.name,units:i.qty,price:(i.salePrice||0).toFixed(2),color:i.color||'',size:i.size||''})),
+        shipping_cost: t.ship.toFixed(2),
+        total: `$${t.grand.toFixed(2)}`,
+        store_name: 'UP Sportswear',
+      })
+    }).catch(e => console.warn('Cart save failed:', e));
+  } catch(e) {}
   sendOrderEmails({id:'PAYPAL-DIRECT'}, orderItems);
   cart=[];updateCartUI();
   document.getElementById("checkoutContent").innerHTML=`

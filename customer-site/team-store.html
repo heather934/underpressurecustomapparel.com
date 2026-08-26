@@ -1985,6 +1985,22 @@ function payWithPayPal(amount) {
       const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
       return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} x ${i.qty}${i.personalization?' — Personalization: '+i.personalization+' (+$'+PERSONALIZATION_FEE.toFixed(2)+'/ea customization)':''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
     }).join('\n');
+    // Structured per-item data, so the IPN-triggered "New Order Made" email
+    // to Erin can build the same {{#orders}} loop the client-side email does
+    // — the flat order_items string above is kept for the Store Orders list.
+    const structuredItems = cart.map(i => {
+      const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
+      return {
+        image_url: i.frontDesignUrl || i.backDesignUrl || '',
+        name: `${i.label}${designs?' ('+designs+')':''}`,
+        units: i.qty,
+        price: i.unitPrice.toFixed(2),
+        color: i.color || '',
+        design_name: designs || '',
+        size: i.size || '',
+        personalization: i.personalization || '',
+      };
+    });
     fetch(`${KV_API}/api/save-cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1995,7 +2011,9 @@ function payWithPayPal(amount) {
         address: `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
         notes: v('co-notes'),
         order_items: lineItems,
+        items: structuredItems,
         shipping_method: document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
+        shipping_cost: getShipping(cartQty()).toFixed(2),
         total: `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
         store_name: teamData?.name || 'Team Store',
       })
