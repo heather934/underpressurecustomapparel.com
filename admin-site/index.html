@@ -9713,18 +9713,52 @@ async function notifyErinAboutOrder(txnId) {
     if (!again) return;
   }
 
+  // The "New Order Made" template renders an {{#orders}} loop of line
+  // items (see worker.js's sendErinNewOrderEmail, which builds this same
+  // shape for the automatic PayPal-triggered email) — sending only the
+  // flat fields below made the email arrive with the item list blank.
+  // Store Orders only keeps the flattened order_items string per order
+  // (not structured per-item data), so build one synthetic {{#orders}}
+  // entry per line of it.
+  const customerEmail = order.email || order.payerEmail || '';
+  const totalStr = order.total || ('$' + order.amount);
+  const totalNumeric = parseFloat(String(totalStr).replace(/[^0-9.]/g, '')) || parseFloat(order.amount) || 0;
+  const itemLines = (order.orderItems || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const orders = (itemLines.length ? itemLines : [order.orderItems || `Order ${order.txnId || ''}`]).map(line => ({
+    image_url:        '',
+    name:             line,
+    units:            1,
+    price:            '',
+    customer_email:   customerEmail,
+    customer_phone:   order.phone || '',
+    shipping_address: order.address || '',
+    shipping_method:  order.shippingMethod || '',
+    color:            '',
+    design_name:      '',
+    size:             '',
+    personalization:  '',
+  }));
+
   const params = {
     to_email:        'erin@underpressurecustomapparel.com',
     to_name:          'Erin',
-    reply_to:         order.email || order.payerEmail || '',
+    reply_to:         customerEmail,
+    name:             order.customerName || order.payerName || '',
     customer_name:    order.customerName || order.payerName || '',
-    email:            order.email || order.payerEmail || '',
+    email:            customerEmail,
+    customer_email:   customerEmail,
     phone:            order.phone || '',
+    customer_phone:   order.phone || '',
     address:          order.address || '',
+    shipping_address: order.address || '',
     shipping_method:  order.shippingMethod || '',
-    total:            order.total || ('$' + order.amount),
+    total:            totalStr,
+    order_total:      totalStr,
+    order_id:         order.txnId || '',
     paypal_id:        order.txnId || '',
     order_items:      order.orderItems || '',
+    orders,
+    cost: { shipping: '0.00', tax: '0.00', total: totalNumeric.toFixed(2) },
     notes:            order.notes || '',
     store_name:       order.storeName || 'Under Pressure Custom Apparel',
   };
