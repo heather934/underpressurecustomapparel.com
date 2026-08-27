@@ -15,6 +15,26 @@ function error(msg, status = 400) {
   return json({ error: msg }, status);
 }
 
+// KV values are occasionally stored double-JSON-encoded (a caller sent an
+// already-stringified body, so JSON.stringify wrapped it a second time on
+// write) — a single JSON.parse then yields a string, not an object, and
+// every field lookup on it silently comes back undefined. Parse repeatedly
+// until we hit a real object, so a write-side bug degrades gracefully
+// instead of breaking every reader silently.
+function parseConfigValue(raw) {
+  let value = raw;
+  let iterations = 0;
+  while (typeof value === 'string' && iterations < 5) {
+    try {
+      value = JSON.parse(value);
+    } catch (e) {
+      return {};
+    }
+    iterations++;
+  }
+  return (value && typeof value === 'object') ? value : {};
+}
+
 // =======================================================
 //  ACCESS CONTROL
 // =======================================================
@@ -61,7 +81,7 @@ async function sendErinNewOrderEmail(env, params) {
   let config = {};
   try {
     const raw = await env.UP_DATA.get('app_config');
-    config = raw ? JSON.parse(raw) : {};
+    config = raw ? parseConfigValue(raw) : {};
   } catch (e) { /* fall through with empty config */ }
   const publicKey  = config.emailjsPublicKey;
   const serviceId  = config.emailjsServiceId;
@@ -352,7 +372,7 @@ export default {
     if (request.method === 'GET' && path === '/api/config') {
       try {
         const raw = await env.UP_DATA.get('app_config');
-        const config = raw ? JSON.parse(raw) : {};
+        const config = raw ? parseConfigValue(raw) : {};
         return json({ config });
       } catch(e) {
         return json({ config: {} });
@@ -366,7 +386,7 @@ export default {
       try {
         const updates = await request.json();
         const raw = await env.UP_DATA.get('app_config');
-        const config = Object.assign({}, raw ? JSON.parse(raw) : {}, updates);
+        const config = Object.assign({}, raw ? parseConfigValue(raw) : {}, updates);
         await env.UP_DATA.put('app_config', JSON.stringify(config));
         return json({ ok: true, config });
       } catch (e) {
