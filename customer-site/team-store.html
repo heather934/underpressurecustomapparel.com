@@ -715,6 +715,7 @@ body {
   margin-top: 8px;
 }
 .ts-submit-btn:hover { opacity: .88; }
+.ts-submit-btn-secondary { background: transparent; border: 1px solid var(--up-border); color: var(--up-silver); }
 
 /* ── GALLERY ── */
 .ts-gallery-wrap {
@@ -1132,6 +1133,7 @@ let teamData   = null;
 let teamId     = '';
 let cart       = [];       // [{ type, label, designName, designUrl, color, size, qty, price, unitPrice }]
 let activeCategory = 'all';
+let lastOrderFirstName = ''; // captured from the checkout form before it's replaced by the PayPal success screen
 
 // Per-card UI state: cardStates[cardId] = { color, view, qty, size }
 const cardStates = {};
@@ -1983,6 +1985,22 @@ function payWithPayPal(amount) {
       const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
       return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} x ${i.qty}${i.personalization?' — Personalization: '+i.personalization+' (+$'+PERSONALIZATION_FEE.toFixed(2)+'/ea customization)':''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
     }).join('\n');
+    // Structured per-item data, so the IPN-triggered "New Order Made" email
+    // to Erin can build the same {{#orders}} loop the client-side email does
+    // — the flat order_items string above is kept for the Store Orders list.
+    const structuredItems = cart.map(i => {
+      const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
+      return {
+        image_url: i.frontDesignUrl || i.backDesignUrl || '',
+        name: `${i.label}${designs?' ('+designs+')':''}`,
+        units: i.qty,
+        price: i.unitPrice.toFixed(2),
+        color: i.color || '',
+        design_name: designs || '',
+        size: i.size || '',
+        personalization: i.personalization || '',
+      };
+    });
     fetch(`${KV_API}/api/save-cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1993,14 +2011,17 @@ function payWithPayPal(amount) {
         address: `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
         notes: v('co-notes'),
         order_items: lineItems,
+        items: structuredItems,
         shipping_method: document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
+        shipping_cost: getShipping(cartQty()).toFixed(2),
         total: `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
         store_name: teamData?.name || 'Team Store',
       })
     }).catch(e => console.warn('Cart save failed:', e));
   } catch(e) {}
   window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`, '_blank', 'noopener,noreferrer');
-  // Must send while cart/form fields are still intact — both get wiped out below.
+  // Must capture/send while cart/form fields are still intact — both get wiped out below.
+  lastOrderFirstName = document.getElementById('co-first')?.value || '';
   sendOrderEmail({id:'PAYPAL-DIRECT'});
   cart = []; updateCartUI();
   document.getElementById('tsCheckoutContent').innerHTML = `
@@ -2014,18 +2035,23 @@ function payWithPayPal(amount) {
            target="_blank" rel="noopener noreferrer" style="color:#4d9fff;">click here to pay</a>.<br><br>
         Questions? Call <strong>(304) 633-6401</strong>
       </div>
-      <button class="ts-submit-btn" onclick="closeCheckout()" style="max-width:200px;">Done</button>
+      <button class="ts-submit-btn" onclick="showSuccess()" style="max-width:280px;">✅ I've Completed My Payment</button>
+      <button class="ts-submit-btn ts-submit-btn-secondary" onclick="closeCheckout()" style="max-width:200px;">Done</button>
     </div>`;
   document.getElementById('tsCheckoutModal').classList.add('open');
 }
 
-function showSuccess(details) {
+// Shown once the customer confirms they've actually finished paying on the
+// PayPal tab — a real "order complete" screen, distinct from the optimistic
+// ALMOST DONE screen above, so they have clear closure instead of wondering
+// whether anything happened and restarting the whole order from scratch.
+function showSuccess() {
   document.getElementById('tsCheckoutContent').innerHTML = `
     <div class="ts-success">
       <div class="ts-success-icon">✅</div>
       <div class="ts-success-title">Order Placed!</div>
       <div class="ts-success-msg">
-        Thank you, ${details.payer?.name?.given_name||''}! Your order has been received.<br>
+        Thank you${lastOrderFirstName ? ', ' + escHtml(lastOrderFirstName) : ''}! Your order has been received.<br>
         You'll receive a confirmation email from Erin shortly.<br><br>
         Custom items ship in 7–10 business days.
       </div>

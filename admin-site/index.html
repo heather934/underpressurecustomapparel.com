@@ -12,7 +12,7 @@
 // Falls back to localStorage if KV is unavailable (e.g. during local dev).
 (async function loadCredsFromKV() {
   try {
-    const res = await fetch('/api/config');
+    const res = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
     if (!res.ok) return;
     const { config } = await res.json();
     if (!config) return;
@@ -9080,7 +9080,7 @@ function renderIntegrations() {
 async function _saveToKV(payload, btn) {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
   try {
-    const res = await fetch('/api/config', {
+    const res = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -9800,18 +9800,11 @@ async function sendStoreOrderConfirmation(txnId) {
   }
 }
 
-// Push a KV order onto the production board (localStorage) for fulfillment tracking.
-function addKvOrderToProductionBoard(txnId) {
-  const order = kvOrdersList.find(o => o.txnId === txnId);
-  if (!order) { showToast('Order not found.'); return; }
-
-  loadProductionOrders();
-
-  if (productionOrders.some(p => p._kvTxnId === txnId)) {
-    showToast('This order is already on the Production Board.');
-    return;
-  }
-
+// Build a Production Board entry from a KV Store Order record. Shared by
+// the manual "Add to Production Board" button and the automatic sync that
+// runs whenever the board is viewed, so a paid order shows up as pending
+// without Erin having to find it under Store Orders first.
+function kvOrderToProductionEntry(order) {
   // Parse order items from the multi-line string
   // Format: "Product Name (Design) — Color, Size x Qty = $Price"
   const rawLines = (order.orderItems || '').split('\n').filter(Boolean);
@@ -9830,8 +9823,8 @@ function addKvOrderToProductionBoard(txnId) {
       })
     : [{ name: 'Team Store Order', color: '', size: '', qty: 1 }];
 
-  productionOrders.unshift({
-    id:        Date.now(),
+  return {
+    id:        Date.now() + Math.random(),
     timestamp: order.receivedAt || new Date().toISOString(),
     store:     order.storeName  || 'Team Store',
     customer:  order.customerName || order.payerName || '',
@@ -9839,12 +9832,53 @@ function addKvOrderToProductionBoard(txnId) {
     email:     order.email     || order.payerEmail || '',
     items,
     completed: false,
-    _kvTxnId:  txnId,   // link back to KV record so we can detect duplicates
-  });
+    _kvTxnId:  order.txnId,   // link back to KV record so we can detect duplicates
+  };
+}
 
+// Push a KV order onto the production board (localStorage) for fulfillment tracking.
+function addKvOrderToProductionBoard(txnId) {
+  const order = kvOrdersList.find(o => o.txnId === txnId);
+  if (!order) { showToast('Order not found.'); return; }
+
+  loadProductionOrders();
+
+  if (productionOrders.some(p => p._kvTxnId === txnId)) {
+    showToast('This order is already on the Production Board.');
+    return;
+  }
+
+  productionOrders.unshift(kvOrderToProductionEntry(order));
   saveProductionOrders();
   showToast('📋 Order added to Production Board!');
   renderAdminPanel('storeorders');
+}
+
+// Automatically pull any paid Store Order that isn't on the Production
+// Board yet onto it, so "Pending Orders" actually reflects what customers
+// have paid for instead of requiring a manual "Add to Production Board"
+// click per order. Fetches KV orders-list (cheap — cached after first call
+// per admin session) and re-renders the active tab if anything new landed.
+let kvAutoSyncInFlight = false;
+async function autoSyncKvOrdersToProductionBoard() {
+  if (kvAutoSyncInFlight) return;
+  kvAutoSyncInFlight = true;
+  try {
+    if (!kvOrdersLoaded) await loadKvOrders();
+    loadProductionOrders();
+    const known = new Set(productionOrders.filter(p => p._kvTxnId).map(p => p._kvTxnId));
+    const newOnes = kvOrdersList.filter(o => o.txnId && !known.has(o.txnId));
+    if (!newOnes.length) return;
+    newOnes.forEach(o => productionOrders.unshift(kvOrderToProductionEntry(o)));
+    saveProductionOrders();
+    const active = document.querySelector('.admin-nav-item.active');
+    const activeTab = active && active.id ? active.id.replace('anav-', '') : '';
+    if (['dashboard', 'production', 'purchaselist'].includes(activeTab)) {
+      renderAdminPanel(activeTab);
+    }
+  } finally {
+    kvAutoSyncInFlight = false;
+  }
 }
 
 // Removes every production-board entry that originated from a Store Order
@@ -9887,9 +9921,9 @@ function renderAdminPanel(tab) {
 
   try {
     switch(tab) {
-      case 'dashboard':    content.innerHTML = renderDashboard();       break;
-      case 'production':   content.innerHTML = renderProductionAdmin(); break;
-      case 'purchaselist': content.innerHTML = renderPurchaseList();    break;
+      case 'dashboard':    content.innerHTML = renderDashboard();       autoSyncKvOrdersToProductionBoard(); break;
+      case 'production':   content.innerHTML = renderProductionAdmin(); autoSyncKvOrdersToProductionBoard(); break;
+      case 'purchaselist': content.innerHTML = renderPurchaseList();    autoSyncKvOrdersToProductionBoard(); break;
       case 'teams':        content.innerHTML = renderTeamAdmin();       break;
       case 'brand':        content.innerHTML = renderBrandAdmin();      break;
       case 'customers':    content.innerHTML = renderCustomers();       break;

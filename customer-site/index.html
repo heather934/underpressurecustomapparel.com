@@ -417,7 +417,8 @@ nav{display:flex;gap:6px;align-items:center;}
 .suc-icon{font-size:52px;margin-bottom:14px;}
 .suc-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:var(--up-sky);margin-bottom:9px;}
 .suc-text{font-size:14px;color:var(--up-silver);font-weight:300;line-height:1.6;margin-bottom:22px;}
-.btn-suc{background:var(--up-blue);color:#fff;border:none;padding:12px 30px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+.btn-suc{background:var(--up-blue);color:#fff;border:none;padding:12px 30px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:6px;}
+.btn-suc-secondary{background:transparent;border:1px solid var(--up-border);color:var(--up-silver);}
 
 /* EDIT MODAL */
 .modal-box2{background:var(--up-card);border:1px solid var(--up-border);border-top:3px solid var(--up-sky);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .3s;}
@@ -3029,6 +3030,29 @@ function payWithPayPal(amount){
     email:customerInfo.email||'',
     items:orderItems
   });
+  // Save cart to KV so the PayPal IPN handler — which fires once payment is
+  // actually confirmed, unlike this optimistic client-side email — can send
+  // Erin a "New Order Made" email with real order/customer details instead
+  // of falling back to PayPal's bare item_name field.
+  try {
+    const t = calcOrderTotals();
+    fetch(`${KV_API}/api/save-cart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: customerInfo.email || '',
+        customer_name: `${customerInfo.first} ${customerInfo.last}`,
+        phone: customerInfo.phone || '',
+        address: `${customerInfo.addr}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip}`,
+        notes: customerInfo.notes || '',
+        order_items: orderItems.map(i=>`${i.name}${i.size?' (Size: '+i.size+')':''}${i.color?', '+i.color:''} x ${i.qty} = $${(i.salePrice*i.qty).toFixed(2)}`).join('\n'),
+        items: orderItems.map(i=>({name:i.name,units:i.qty,price:(i.salePrice||0).toFixed(2),color:i.color||'',size:i.size||''})),
+        shipping_cost: t.ship.toFixed(2),
+        total: `$${t.grand.toFixed(2)}`,
+        store_name: 'UP Sportswear',
+      })
+    }).catch(e => console.warn('Cart save failed:', e));
+  } catch(e) {}
   sendOrderEmails({id:'PAYPAL-DIRECT'}, orderItems);
   cart=[];updateCartUI();
   document.getElementById("checkoutContent").innerHTML=`
@@ -3043,7 +3067,26 @@ function payWithPayPal(amount){
            style="color:var(--up-sky);">click here to pay</a>.<br><br>
         Questions? Call <strong>(304) 633-6401</strong>
       </div>
-      <button class="btn-suc" onclick="closeCheckout()">Done</button>
+      <button class="btn-suc" onclick="showOrderComplete()">✅ I've Completed My Payment</button>
+      <button class="btn-suc btn-suc-secondary" onclick="closeCheckout()">Done</button>
+    </div>`;
+}
+
+// Shown once the customer confirms they've actually finished paying on the
+// PayPal tab — a real "order complete" screen, distinct from the optimistic
+// ALMOST DONE screen above, so they have clear closure instead of wondering
+// whether anything happened and restarting the whole order from scratch.
+function showOrderComplete(){
+  document.getElementById("checkoutContent").innerHTML=`
+    <div class="success-screen">
+      <div class="suc-icon">✅</div>
+      <div class="suc-title">Order Placed!</div>
+      <div class="suc-text">
+        Thank you${customerInfo.first ? ', ' + escHtml(customerInfo.first) : ''}! Your order has been received.<br>
+        You'll receive a confirmation email from Erin shortly.<br><br>
+        Custom items ship in 7–10 business days.
+      </div>
+      <button class="btn-suc" onclick="closeCheckout()">Continue Shopping</button>
     </div>`;
 }
 
@@ -3340,6 +3383,7 @@ function renderUPFilters(){
     `<button class="chip${c==='all'?' on':''}" onclick="filterUP('${c}',this)">${CATEGORY_LABELS[c]}</button>`).join('');
 }
 function showToast(msg){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
+function escHtml(str){return String(str==null?'':str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 // ══════════════════════════════════════════════════════
 //  TEAM STORES SYSTEM
 // ══════════════════════════════════════════════════════

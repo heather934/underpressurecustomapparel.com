@@ -55,11 +55,17 @@ const ERIN_EMAIL = 'erin@underpressurecustomapparel.com';
 
 async function sendErinNewOrderEmail(env, params) {
   const privateKey = env.EMAILJS_PRIVATE_KEY;
-  const [publicKey, serviceId, templateId] = await Promise.all([
-    env.UP_DATA.get('emailjs_public_key'),
-    env.UP_DATA.get('emailjs_service_id'),
-    env.UP_DATA.get('emailjs_template_id_new_order_made'),
-  ]);
+  // Credentials live in the app_config KV blob — the same place the admin
+  // Integrations panel saves them — not in standalone keys, which nothing
+  // ever wrote to.
+  let config = {};
+  try {
+    const raw = await env.UP_DATA.get('app_config');
+    config = raw ? JSON.parse(raw) : {};
+  } catch (e) { /* fall through with empty config */ }
+  const publicKey  = config.emailjsPublicKey;
+  const serviceId  = config.emailjsServiceId;
+  const templateId = config.emailjsNewOrderTemplateId;
 
   if (!publicKey || !serviceId || !templateId) {
     console.error('IPN: EmailJS config missing from KV', {
@@ -192,9 +198,11 @@ async function handleIPN(request, env, ctx) {
       let customerPhone = '';
       let customerAddress = '';
       let shippingMethod = '';
+      let shippingCost = 0;
       let customerNotes = order.note;
       let storeName = 'Under Pressure Custom Apparel';
       let totalStr = '$' + order.amount + ' ' + order.currency;
+      let cartItems = []; // structured per-item data, when the storefront sent it
 
       if (pendingCart) {
         // Use the rich cart data from the storefront
@@ -204,13 +212,38 @@ async function handleIPN(request, env, ctx) {
         if (pendingCart.phone) customerPhone = pendingCart.phone;
         if (pendingCart.address) customerAddress = pendingCart.address;
         if (pendingCart.shipping_method) shippingMethod = pendingCart.shipping_method;
+        if (pendingCart.shipping_cost) shippingCost = parseFloat(pendingCart.shipping_cost) || 0;
         if (pendingCart.notes) customerNotes = pendingCart.notes;
         if (pendingCart.store_name) storeName = pendingCart.store_name;
         if (pendingCart.total) totalStr = pendingCart.total;
+        if (Array.isArray(pendingCart.items)) cartItems = pendingCart.items;
         console.log('IPN: matched pending cart for', payerEmail);
       } else {
         console.log('IPN: no pending cart found for', payerEmail, '- using PayPal data only');
       }
+
+      // EmailJS's "New Order Made" template expects an {{#orders}} loop of
+      // {{image_url}}/{{name}}/{{units}}/{{price}} plus customer/shipping
+      // fields repeated per line (see sendOrderEmail(s) in the storefront
+      // pages, which build this same shape client-side). Build it from the
+      // structured cart items when we have them; otherwise fall back to a
+      // single synthetic line so the email isn't blank.
+      const orders = (cartItems.length ? cartItems : [{ name: orderItemsStr, units: 1, price: order.amount || '' }])
+        .map(i => ({
+          image_url:       i.image_url || '',
+          name:             i.name || '',
+          units:            i.units || i.qty || 1,
+          price:            i.price != null ? String(i.price) : '',
+          customer_email:   customerEmail,
+          customer_phone:   customerPhone,
+          shipping_address: customerAddress,
+          shipping_method:  shippingMethod,
+          color:            i.color || '',
+          design_name:      i.design_name || '',
+          size:             i.size || '',
+          personalization:  i.personalization || '',
+        }));
+      const totalNumeric = parseFloat(String(totalStr).replace(/[^0-9.]/g, '')) || parseFloat(order.amount) || 0;
 
       if (txnId) {
         await env.UP_DATA.put('order-' + txnId, JSON.stringify(order));
@@ -246,14 +279,22 @@ async function handleIPN(request, env, ctx) {
         to_email: ERIN_EMAIL,
         to_name: 'Erin',
         reply_to: customerEmail,
+        name: customerName,
         customer_name: customerName,
         email: customerEmail,
+        customer_email: customerEmail,
         phone: customerPhone,
+        customer_phone: customerPhone,
         address: customerAddress,
+        shipping_address: customerAddress,
         shipping_method: shippingMethod,
         total: totalStr,
+        order_total: totalStr,
+        order_id: order.txnId,
         paypal_id: order.txnId,
         order_items: orderItemsStr,
+        orders,
+        cost: { shipping: shippingCost.toFixed(2), tax: '0.00', total: totalNumeric.toFixed(2) },
         notes: customerNotes,
         store_name: storeName,
       });
@@ -315,6 +356,21 @@ export default {
         return json({ config });
       } catch(e) {
         return json({ config: {} });
+      }
+    }
+
+    // Admin Integrations panel saves EmailJS/PayPal/Cloudflare credentials
+    // here. Merge into the existing app_config so saving one integration
+    // (e.g. EmailJS) doesn't wipe out the others (e.g. PayPal).
+    if (request.method === 'POST' && path === '/api/config') {
+      try {
+        const updates = await request.json();
+        const raw = await env.UP_DATA.get('app_config');
+        const config = Object.assign({}, raw ? JSON.parse(raw) : {}, updates);
+        await env.UP_DATA.put('app_config', JSON.stringify(config));
+        return json({ ok: true, config });
+      } catch (e) {
+        return error('Failed to save config: ' + e.message, 500);
       }
     }
 
