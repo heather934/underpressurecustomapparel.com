@@ -1532,6 +1532,14 @@ nav { position: relative; }
 .dash-deadline-days { font-family:'Bebas Neue',sans-serif; font-size:28px; line-height:1; min-width:44px; text-align:center; }
 .dash-deadline-label { font-family:'Barlow Condensed',sans-serif; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--up-mist); }
 .dash-empty { font-family:'Barlow Condensed',sans-serif; font-size:13px; color:var(--up-mist); padding:24px; text-align:center; border:1px dashed var(--up-border); letter-spacing:1px; }
+.dash-store-list { display:flex; flex-direction:column; gap:2px; }
+.dash-store-item { background:var(--up-card); border:1px solid var(--up-border); padding:12px 16px; }
+.dash-store-item-top { display:flex; align-items:center; gap:14px; margin-bottom:8px; }
+.dash-store-name { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:var(--up-white); flex:1; }
+.dash-store-sub { font-size:12px; color:var(--up-mist); white-space:nowrap; }
+.dash-store-amount { font-family:'Bebas Neue',sans-serif; font-size:20px; color:#4ade80; white-space:nowrap; }
+.dash-store-bar-wrap { height:5px; background:var(--up-navy); border-radius:3px; overflow:hidden; }
+.dash-store-bar { height:100%; border-radius:3px; }
 
 /* ════════════════════════════
    CUSTOMER DATABASE
@@ -7472,6 +7480,28 @@ function renderDashboard() {
     </div>`;
   }).join('') : `<div class="dash-empty">No urgent deadlines</div>`;
 
+  // Revenue by store (all-time)
+  const storeRevenue = {};
+  real.forEach(o => {
+    if (!storeRevenue[o.store]) storeRevenue[o.store] = { revenue:0, orders:0 };
+    storeRevenue[o.store].orders++;
+    storeRevenue[o.store].revenue += (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
+  });
+  const storeRows = Object.entries(storeRevenue).sort((a,b)=>b[1].revenue-a[1].revenue);
+  const maxStoreRevenue = storeRows.length ? Math.max(...storeRows.map(([,d])=>d.revenue)) : 0;
+  const storeHTML = storeRows.length ? storeRows.map(([store,d]) => {
+    const sc = store==='River City Rampage'?'#1a6b2f':store==='Rome CoC Youth T-Shirts'?'#7c3aed':'var(--up-blue)';
+    const pct = maxStoreRevenue > 0 ? (d.revenue/maxStoreRevenue*100) : 0;
+    return `<div class="dash-store-item">
+      <div class="dash-store-item-top">
+        <div class="dash-store-name">${escHtml(store)}</div>
+        <div class="dash-store-sub">${d.orders} order${d.orders!==1?'s':''}</div>
+        <div class="dash-store-amount">$${d.revenue.toFixed(2)}</div>
+      </div>
+      <div class="dash-store-bar-wrap"><div class="dash-store-bar" style="width:${pct}%;background:${sc};"></div></div>
+    </div>`;
+  }).join('') : `<div class="dash-empty">No orders yet</div>`;
+
   return `
     <div class="cm-section-head">
       <div><div class="cm-section-title" style="color:var(--up-sky);">${greeting}, <span style="color:var(--up-white)">Erin</span> 👋</div>
@@ -7528,6 +7558,12 @@ function renderDashboard() {
         ${urgentHTML}
         <button class="btn-prod-export" style="margin-top:10px;width:100%;justify-content:center;" onclick="renderAdminPanel('deadlines')">Manage Deadlines →</button>
       </div>
+    </div>
+
+    <div>
+      <div class="dash-section-title">Revenue by Store</div>
+      <div class="dash-store-list">${storeHTML}</div>
+      <button class="btn-prod-export" style="margin-top:10px;width:100%;justify-content:center;" onclick="costView='store';renderAdminPanel('costanalysis')">View Full Cost Breakdown →</button>
     </div>`;
 }
 
