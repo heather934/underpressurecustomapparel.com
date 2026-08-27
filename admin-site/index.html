@@ -9771,8 +9771,9 @@ async function notifyErinAboutOrder(txnId) {
     showToast(`✅ Erin notified about this order!`);
     renderAdminPanel('storeorders');
   } catch (err) {
+    const detail = (err && (err.text || err.message)) || JSON.stringify(err);
     console.error('Notify Erin email failed:', err);
-    showToast('Failed to send — check EmailJS settings in Integrations (this is the exact call the PayPal worker makes automatically, so a failure here explains why Erin isn\'t getting them).');
+    showToast(`Failed to send (${err && err.status ? err.status : '?'}): ${detail}`);
   }
 }
 
@@ -9841,8 +9842,15 @@ async function sendStoreOrderConfirmation(txnId) {
     showToast(`✅ Confirmation sent to ${order.email}!`);
     renderAdminPanel('storeorders');
   } catch (err) {
+    // The @emailjs/browser SDK rejects with { status, text } — text is
+    // EmailJS's actual validation message (e.g. a bad template/service ID
+    // pairing, or the template's configured recipient field not matching
+    // what we send). Surface it directly instead of a generic toast, since
+    // that message is the only way to tell what's actually wrong without
+    // digging through devtools every time.
+    const detail = (err && (err.text || err.message)) || JSON.stringify(err);
     console.error('Confirmation email failed:', err);
-    showToast('Failed to send — check EmailJS settings in Integrations.');
+    showToast(`Failed to send (${err && err.status ? err.status : '?'}): ${detail}`);
   }
 }
 
