@@ -9607,6 +9607,10 @@ function renderStoreOrders() {
     const confirmedBadge = confirmed
       ? `<span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:#4ade80;">✓ Confirmed ${o.confirmationSentAt ? new Date(o.confirmationSentAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}</span>`
       : '';
+    const erinNotified = !!o.erinNotified;
+    const erinNotifiedBadge = erinNotified
+      ? `<span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:#4ade80;">🔔 Erin notified ${o.erinNotifiedAt ? new Date(o.erinNotifiedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}</span>`
+      : `<span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:var(--accent);">⚠ Erin not yet notified</span>`;
 
     return `
       <div style="background:var(--up-card);border:1px solid var(--up-border);border-top:3px solid ${accentColor};padding:20px;margin-bottom:14px;">
@@ -9637,17 +9641,93 @@ function renderStoreOrders() {
               style="padding:8px 16px;background:${confirmed ? 'rgba(74,222,128,.1)' : 'rgba(21,101,255,.12)'};border:1px solid ${confirmed ? '#4ade80' : '#1565ff'};color:${confirmed ? '#4ade80' : '#4d9fff'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
               ${confirmed ? '✅ Resend Confirmation' : '📧 Send Order Received'}
             </button>` : ''}
+          <button onclick="notifyErinAboutOrder(${jsAttr(o.txnId)})"
+            style="padding:8px 16px;background:${erinNotified ? 'rgba(74,222,128,.1)' : 'rgba(232,180,0,.12)'};border:1px solid ${erinNotified ? '#4ade80' : 'var(--accent)'};color:${erinNotified ? '#4ade80' : 'var(--accent)'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
+            ${erinNotified ? '✅ Resend to Erin' : '🔔 Notify Erin'}
+          </button>
           <button onclick="addKvOrderToProductionBoard(${jsAttr(o.txnId)})"
             style="padding:8px 16px;background:${alreadyOnBoard ? 'rgba(74,222,128,.08)' : 'rgba(167,139,250,.12)'};border:1px solid ${alreadyOnBoard ? 'rgba(74,222,128,.3)' : 'rgba(167,139,250,.3)'};color:${alreadyOnBoard ? '#4ade80' : '#a78bfa'};font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">
             ${alreadyOnBoard ? '✓ On Board' : '📋 Add to Production Board'}
           </button>
           ${confirmedBadge}
+          ${erinNotifiedBadge}
           <span style="margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-border);letter-spacing:1px;" title="PayPal Transaction ID">TXN ${escHtml(o.txnId) || '—'}</span>
         </div>
       </div>`;
   }).join('');
 
   return header + cardsHTML;
+}
+
+// Manually (re)send the "New Order Made" notification to Erin — the same
+// EmailJS template the PayPal IPN worker tries to fire automatically.
+// This exists because that server-side send is a fire-and-forget best-effort
+// call with no visibility if it fails (bad/rotated private key, EmailJS
+// quota, etc.) — this button lets Erin/Heather confirm and retry it from
+// the browser, which surfaces the real EmailJS error if something's wrong.
+async function notifyErinAboutOrder(txnId) {
+  const order = kvOrdersList.find(o => o.txnId === txnId);
+  if (!order) { showToast('Order not found.'); return; }
+
+  let serviceId = '', templateId = '', publicKey = '';
+  try {
+    const cfgRes = await fetch('https://up-store-api.h-m-ward1846.workers.dev/api/config');
+    const cfgData = await cfgRes.json();
+    const cfg = cfgData.config || cfgData;
+    serviceId  = cfg.emailjsServiceId          || '';
+    templateId = cfg.emailjsNewOrderTemplateId || '';
+    publicKey  = cfg.emailjsPublicKey          || '';
+  } catch(e) {
+    showToast('Could not load email config — check Worker is running.');
+    console.error('notifyErinAboutOrder: config fetch failed', e);
+    return;
+  }
+
+  if (!serviceId || !templateId || !publicKey) {
+    showToast('EmailJS not configured in KV — check app_config has emailjsServiceId and emailjsNewOrderTemplateId.');
+    console.warn('notifyErinAboutOrder: missing config', { serviceId, templateId, publicKey });
+    return;
+  }
+
+  if (typeof emailjs === 'undefined') {
+    showToast('EmailJS SDK not loaded — please refresh and try again.');
+    return;
+  }
+
+  try { emailjs.init(publicKey); } catch(e) {}
+
+  if (order.erinNotified) {
+    const again = confirm(`Erin was already notified about this order on ${order.erinNotifiedAt ? new Date(order.erinNotifiedAt).toLocaleString() : 'an earlier date'}.\n\nSend again?`);
+    if (!again) return;
+  }
+
+  const params = {
+    to_email:        'erin@underpressurecustomapparel.com',
+    to_name:          'Erin',
+    reply_to:         order.email || order.payerEmail || '',
+    customer_name:    order.customerName || order.payerName || '',
+    email:            order.email || order.payerEmail || '',
+    phone:            order.phone || '',
+    address:          order.address || '',
+    shipping_method:  order.shippingMethod || '',
+    total:            order.total || ('$' + order.amount),
+    paypal_id:        order.txnId || '',
+    order_items:      order.orderItems || '',
+    notes:            order.notes || '',
+    store_name:       order.storeName || 'Under Pressure Custom Apparel',
+  };
+
+  try {
+    await emailjs.send(serviceId, templateId, params);
+    order.erinNotified   = true;
+    order.erinNotifiedAt = new Date().toISOString();
+    kvSet('orders-list', kvOrdersList).catch(e => console.warn('KV orders-list update failed:', e));
+    showToast(`✅ Erin notified about this order!`);
+    renderAdminPanel('storeorders');
+  } catch (err) {
+    console.error('Notify Erin email failed:', err);
+    showToast('Failed to send — check EmailJS settings in Integrations (this is the exact call the PayPal worker makes automatically, so a failure here explains why Erin isn\'t getting them).');
+  }
 }
 
 // Send order-received confirmation email to the customer using the
