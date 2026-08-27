@@ -7480,12 +7480,24 @@ function renderDashboard() {
     </div>`;
   }).join('') : `<div class="dash-empty">No urgent deadlines</div>`;
 
-  // Revenue by store (all-time)
+  // Revenue by store — a rolling total sourced from the KV orders-list (the
+  // PayPal-confirmed record of what was actually paid), not the local
+  // Production Board, which only reflects orders someone's manually added
+  // and can lag behind or be edited. Uses PayPal's own gross amount per
+  // order (order.amount, straight from mc_gross) as the dollar figure, so
+  // this tracks what's actually coming in and grows automatically as new
+  // orders land — falls back to the storefront-supplied total only if
+  // PayPal's amount is missing on an older record.
+  const parseMoney = v => {
+    const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.-]/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
   const storeRevenue = {};
-  real.forEach(o => {
-    if (!storeRevenue[o.store]) storeRevenue[o.store] = { revenue:0, orders:0 };
-    storeRevenue[o.store].orders++;
-    storeRevenue[o.store].revenue += (o.items||[]).reduce((s,i)=>s+(parseFloat(i.salePrice)||0)*(parseInt(i.qty)||1),0);
+  kvOrdersList.forEach(o => {
+    const store = o.storeName || 'Team Store';
+    if (!storeRevenue[store]) storeRevenue[store] = { revenue:0, orders:0 };
+    storeRevenue[store].orders++;
+    storeRevenue[store].revenue += parseMoney(o.amount) || parseMoney(o.total);
   });
   const storeRows = Object.entries(storeRevenue).sort((a,b)=>b[1].revenue-a[1].revenue);
   const maxStoreRevenue = storeRows.length ? Math.max(...storeRows.map(([,d])=>d.revenue)) : 0;
@@ -7547,6 +7559,12 @@ function renderDashboard() {
       </div>
     </div>
 
+    <div>
+      <div class="dash-section-title">Revenue by Store</div>
+      <div class="dash-store-list">${storeHTML}</div>
+      <button class="btn-prod-export" style="margin-top:10px;width:100%;justify-content:center;" onclick="costView='store';renderAdminPanel('costanalysis')">View Full Cost Breakdown →</button>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div>
         <div class="dash-section-title">Recent Orders</div>
@@ -7558,12 +7576,6 @@ function renderDashboard() {
         ${urgentHTML}
         <button class="btn-prod-export" style="margin-top:10px;width:100%;justify-content:center;" onclick="renderAdminPanel('deadlines')">Manage Deadlines →</button>
       </div>
-    </div>
-
-    <div>
-      <div class="dash-section-title">Revenue by Store</div>
-      <div class="dash-store-list">${storeHTML}</div>
-      <button class="btn-prod-export" style="margin-top:10px;width:100%;justify-content:center;" onclick="costView='store';renderAdminPanel('costanalysis')">View Full Cost Breakdown →</button>
     </div>`;
 }
 
