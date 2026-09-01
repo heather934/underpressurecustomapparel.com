@@ -159,6 +159,79 @@ async function appendToOrdersList(env, enrichedOrder) {
   }
 }
 
+// Every checkout is logged here permanently the instant the storefront
+// saves a cart (i.e. the moment the customer clicks "Pay with PayPal") —
+// independent of PayPal ever confirming the payment. This is what makes
+// the admin "Order Archive" panel work even when the IPN webhook never
+// fires or its payer_email doesn't match what the customer typed at
+// checkout: the cart details are already durably recorded here, not just
+// sitting in the 24h pending-cart-{email} key used for IPN matching.
+// Capped at 1000 entries, no expiry.
+async function appendToCheckoutLog(env, cart) {
+  try {
+    const raw = await env.UP_DATA.get('checkout-log');
+    const list = raw ? JSON.parse(raw) : [];
+    list.unshift({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      receivedAt: new Date().toISOString(),
+      email: cart.email || '',
+      customerName: cart.customer_name || '',
+      phone: cart.phone || '',
+      address: cart.address || '',
+      notes: cart.notes || '',
+      orderItems: cart.order_items || '',
+      items: Array.isArray(cart.items) ? cart.items : [],
+      shippingMethod: cart.shipping_method || '',
+      shippingCost: cart.shipping_cost || '',
+      total: cart.total || '',
+      storeName: cart.store_name || '',
+      status: 'awaiting_payment',
+      matchedTxnId: null,
+      matchedAt: null,
+      matchedVia: null,
+    });
+    await env.UP_DATA.put('checkout-log', JSON.stringify(list.slice(0, 1000)));
+  } catch (e) {
+    console.error('checkout-log append failed:', e && e.message ? e.message : e);
+  }
+}
+
+// Link a confirmed PayPal payment back to the checkout-log entry it came
+// from, so the archive shows "paid" instead of leaving it stuck at
+// "awaiting payment" forever. Matches by email first; falls back to the
+// most recent unmatched entry with the same dollar total, since the email
+// a customer types at checkout often differs from their PayPal account's
+// email (the same mismatch that can make IPN's pending-cart lookup miss),
+// while the amount charged rarely does.
+async function reconcileCheckoutLog(env, payerEmail, amount, txnId) {
+  try {
+    const raw = await env.UP_DATA.get('checkout-log');
+    if (!raw) return;
+    const list = JSON.parse(raw);
+    const normalizedEmail = (payerEmail || '').toLowerCase().trim();
+    const amountNum = parseFloat(amount) || 0;
+
+    let match = normalizedEmail
+      ? list.find(e => e.status === 'awaiting_payment' && (e.email || '').toLowerCase().trim() === normalizedEmail)
+      : null;
+    let matchedVia = 'email';
+    if (!match && amountNum) {
+      match = list.find(e => e.status === 'awaiting_payment' &&
+        Math.abs((parseFloat(String(e.total || '').replace(/[^0-9.]/g, '')) || 0) - amountNum) < 0.01);
+      matchedVia = 'amount';
+    }
+    if (match) {
+      match.status = 'paid';
+      match.matchedTxnId = txnId;
+      match.matchedAt = new Date().toISOString();
+      match.matchedVia = matchedVia;
+      await env.UP_DATA.put('checkout-log', JSON.stringify(list));
+    }
+  } catch (e) {
+    console.error('checkout-log reconcile failed:', e && e.message ? e.message : e);
+  }
+}
+
 async function handleIPN(request, env, ctx) {
   const rawBody = await request.text();
 
@@ -294,6 +367,7 @@ async function handleIPN(request, env, ctx) {
         confirmationSentAt: null,
       };
       await appendToOrdersList(env, enrichedOrder);
+      await reconcileCheckoutLog(env, payerEmail, order.amount, txnId);
 
       await sendErinNewOrderEmail(env, {
         to_email: ERIN_EMAIL,
@@ -340,6 +414,9 @@ async function handleSaveCart(request, env) {
     const key = 'pending-cart-' + email;
     // TTL of 24 hours — if payment doesn't come through, it auto-cleans
     await env.UP_DATA.put(key, JSON.stringify(cart), { expirationTtl: 60 * 60 * 24 });
+    // Also record it permanently in the checkout-log archive, independent
+    // of whether PayPal ever confirms this payment — see appendToCheckoutLog.
+    await appendToCheckoutLog(env, cart);
     return json({ success: true });
   } catch (e) {
     console.error('Save cart error:', e);
