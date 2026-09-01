@@ -594,13 +594,6 @@ function renderPayPal(total){
 }
 function payWithPayPal(amount){
   if(!validateCustomer()) return;
-  logProductionOrder({
-    store:'UP Sportswear',
-    customer:`${customerInfo.first} ${customerInfo.last}`,
-    phone:customerInfo.phone||'',
-    email:customerInfo.email||'',
-    items:cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}))
-  });
   window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`,'_blank','noopener,noreferrer');
   cart=[];updateCartUI();
   document.getElementById("checkoutContent").innerHTML=`
