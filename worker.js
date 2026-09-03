@@ -454,10 +454,10 @@ async function getPayPalAccessToken(env) {
   if (!clientId || !secret) {
     throw new Error('PAYPAL_LIVE_CLIENT_ID / PAYPAL_LIVE_SECRET not configured on this Worker');
   }
-  const res = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+  const res = await fetch(PAYPAL_API_BASE + '/v1/oauth2/token', {
     method: 'POST',
     headers: {
-      'Authorization': 'Basic ' + btoa(`${clientId}:${secret}`),
+      'Authorization': 'Basic ' + btoa(clientId + ':' + secret),
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: 'grant_type=client_credentials',
@@ -478,10 +478,10 @@ async function handlePayPalCreateOrder(request, env) {
 
     const accessToken = await getPayPalAccessToken(env);
 
-    const ppRes = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
+    const ppRes = await fetch(PAYPAL_API_BASE + '/v2/checkout/orders', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -529,10 +529,10 @@ async function handlePayPalCaptureOrder(request, env) {
     const cart = JSON.parse(pendingRaw);
 
     const accessToken = await getPayPalAccessToken(env);
-    const ppRes = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders/${orderID}/capture`, {
+    const ppRes = await fetch(PAYPAL_API_BASE + '/v2/checkout/orders/' + orderID + '/capture', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'application/json',
       },
     });
@@ -551,7 +551,7 @@ async function handlePayPalCaptureOrder(request, env) {
     // took, rather than silently trusting the client.
     const expectedAmount = parseFloat(cart.amount).toFixed(2);
     if (capturedAmount !== expectedAmount) {
-      console.warn(`Captured amount ${capturedAmount} does not match expected ${expectedAmount} for order ${orderID}`);
+      console.warn('Captured amount ' + capturedAmount + ' does not match expected ' + expectedAmount + ' for order ' + orderID);
     }
 
     const txnId = capture?.id || orderID;
@@ -571,7 +571,7 @@ async function handlePayPalCaptureOrder(request, env) {
       shippingMethod: cart.shipping_method || '',
       notes: cart.notes || '',
       storeName: cart.store_name || 'Under Pressure Custom Apparel',
-      total: `$${capturedAmount || cart.amount}`,
+      total: '$' + (capturedAmount || cart.amount),
       orderItems: cart.order_items || '',
       confirmationSent: false,
       confirmationSentAt: null,
