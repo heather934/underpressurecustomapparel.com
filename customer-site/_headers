@@ -4,7 +4,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.paypal.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.emailjs.com https://www.paypal.com https://up-store-api.h-m-ward1846.workers.dev; frame-src 'self' https://www.paypal.com
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.paypal.com https://www.sandbox.paypal.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.emailjs.com https://www.paypal.com https://www.sandbox.paypal.com https://up-store-api.h-m-ward1846.workers.dev https://up-store-api-dev.h-m-ward1846.workers.dev; frame-src 'self' https://www.paypal.com https://www.sandbox.paypal.com
 /*.html
   Cache-Control: public, max-age=3600
 /*.js
