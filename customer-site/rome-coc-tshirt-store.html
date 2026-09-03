@@ -5,12 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rome CoC Youth Ministries — T-Shirt Shop</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
-<!-- DEV/SANDBOX ONLY — real PayPal Orders API integration under test on the
-     claude/paypal-real-checkout-dev branch. Talks to the isolated
-     up-store-api-dev Worker with PayPal Sandbox credentials; no real money
-     moves. Swap for the production client-id + up-store-api before this
-     ever reaches main. -->
-<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AYJIp9dGfV7S6-XHEkihax6fIhB_60UOPZeOaV0iPd9GT1F10ilchavgai5kOvkEZenkerZYO4fb6tXr&currency=USD"></script>
 <style>
 :root {
   --team-primary:   #7c3aed;
@@ -584,7 +579,7 @@ function validateCustomer(){
 }
 // DEV/SANDBOX ONLY — isolated Worker + KV, PayPal Sandbox credentials.
 // See worker-paypal-dev.js for the create-order/capture-order endpoints.
-const PAYPAL_DEV_API = 'https://up-store-api-dev.h-m-ward1846.workers.dev';
+const PAYPAL_API = 'https://up-store-api.h-m-ward1846.workers.dev';
 
 function renderPayPal(total){
   document.getElementById("paypal-container").innerHTML = `<div id="rome-paypal-buttons"></div>`;
@@ -601,7 +596,7 @@ function renderPayPal(total){
       if (!validateCustomer()) throw new Error('Please fill in the required fields above.');
       const sub=cartTotal(), ship=getUPShipping(), grand=sub+ship;
       const orderItems = cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}));
-      const res = await fetch(`${PAYPAL_DEV_API}/api/paypal/create-order`, {
+      const res = await fetch(`${PAYPAL_API}/api/paypal/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -626,7 +621,7 @@ function renderPayPal(total){
     // shows anything below once capture-order confirms a real, captured payment.
     onApprove: async (data) => {
       try {
-        const res = await fetch(`${PAYPAL_DEV_API}/api/paypal/capture-order`, {
+        const res = await fetch(`${PAYPAL_API}/api/paypal/capture-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ orderID: data.orderID }),
