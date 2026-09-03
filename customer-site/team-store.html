@@ -8,6 +8,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- DEV/SANDBOX ONLY — real PayPal Orders API integration under test on the
+     claude/paypal-real-checkout-dev branch. Talks to the isolated
+     up-store-api-dev Worker with PayPal Sandbox credentials; no real money
+     moves. Swap for the production client-id + up-store-api before this
+     ever reaches main. -->
+<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD"></script>
 <style>
 :root {
   --up-black:  #060810;
@@ -1945,100 +1951,130 @@ function closeCheckout() {
   document.getElementById('tsCheckoutModal').classList.remove('open');
   document.body.style.overflow = '';
 }
-function renderPayPal(amount) {
-  const fixed = parseFloat(amount).toFixed(2);
-  document.getElementById('co-paypal').innerHTML = `
-    <button onclick="payWithPayPal(${fixed})" style="
-      display:block;width:100%;padding:14px 20px;
-      background:#0070ba;color:#fff;border:none;cursor:pointer;
-      font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
-      letter-spacing:2px;text-transform:uppercase;transition:background .2s;">
-      💳 PAY $${fixed} WITH PAYPAL
-    </button>
-    <p style="margin-top:8px;font-size:11px;color:#5a7296;text-align:center;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">
-      Opens PayPal in a new tab — complete your payment there, then return here.
-    </p>`;
+// DEV/SANDBOX ONLY — isolated Worker + KV, PayPal Sandbox credentials.
+// See worker-paypal-dev.js for the create-order/capture-order endpoints.
+const PAYPAL_DEV_API = 'https://up-store-api-dev.h-m-ward1846.workers.dev';
+
+function validateTeamCheckout() {
+  const v = id => document.getElementById(id)?.value.trim();
+  const missing = [];
+  if (!v('co-first')) missing.push('First Name');
+  if (!v('co-last')) missing.push('Last Name');
+  if (!v('co-email')) missing.push('Email');
+  if (!v('co-addr')) missing.push('Shipping Address');
+  if (!v('co-city')) missing.push('City');
+  if (!v('co-zip')) missing.push('ZIP');
+  if (missing.length) {
+    showToast('Please fill in: ' + missing.join(', '));
+    return false;
+  }
+  return true;
 }
-function payWithPayPal(amount) {
-  try {
-    const existing = JSON.parse(localStorage.getItem('productionOrders') || '[]');
-    existing.unshift({
-      id: Date.now(), timestamp: new Date().toISOString(),
-      store: teamData?.name || 'Team Store',
-      customer: `${document.getElementById('co-first')?.value||''} ${document.getElementById('co-last')?.value||''}`.trim(),
-      phone: document.getElementById('co-phone')?.value || '',
-      email: document.getElementById('co-email')?.value || '',
-      items: cart.map(i => ({
-        name: i.label, size: i.size||'', color: i.color||'', qty: i.qty,
-        graphicName: i.frontDesignName||'', graphicImg: i.frontDesignUrl||'',
-        graphicNameBack: i.backDesignName||'', graphicImgBack: i.backDesignUrl||'',
-        personalization: i.personalization||'',
-      })),
-      completed: false
-    });
-    localStorage.setItem('productionOrders', JSON.stringify(existing));
-  } catch(e) {}
-  // Save cart to KV so the IPN email includes order details
-  try {
-    const v = id => document.getElementById(id)?.value || '';
-    const lineItems = cart.map(i => {
-      const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
-      return `${i.label}${designs?' ('+designs+')':''} — ${i.color}, ${i.size} x ${i.qty}${i.personalization?' — Personalization: '+i.personalization+' (+$'+PERSONALIZATION_FEE.toFixed(2)+'/ea customization)':''} = $${(i.unitPrice*i.qty).toFixed(2)}`;
-    }).join('\n');
-    // Structured per-item data, so the IPN-triggered "New Order Made" email
-    // to Erin can build the same {{#orders}} loop the client-side email does
-    // — the flat order_items string above is kept for the Store Orders list.
-    const structuredItems = cart.map(i => {
-      const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
-      return {
-        image_url: i.frontDesignUrl || i.backDesignUrl || '',
-        name: `${i.label}${designs?' ('+designs+')':''}`,
-        units: i.qty,
-        price: i.unitPrice.toFixed(2),
-        color: i.color || '',
-        design_name: designs || '',
-        size: i.size || '',
-        personalization: i.personalization || '',
-      };
-    });
-    fetch(`${KV_API}/api/save-cart`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: v('co-email'),
-        customer_name: `${v('co-first')} ${v('co-last')}`,
-        phone: v('co-phone'),
-        address: `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
-        notes: v('co-notes'),
-        order_items: lineItems,
-        items: structuredItems,
-        shipping_method: document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
-        shipping_cost: getShipping(cartQty()).toFixed(2),
-        total: `$${(cartTotal()+getShipping(cartQty())).toFixed(2)}`,
-        store_name: teamData?.name || 'Team Store',
-      })
-    }).catch(e => console.warn('Cart save failed:', e));
-  } catch(e) {}
-  window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`, '_blank', 'noopener,noreferrer');
-  // Must capture/send while cart/form fields are still intact — both get wiped out below.
-  lastOrderFirstName = document.getElementById('co-first')?.value || '';
-  sendOrderEmail({id:'PAYPAL-DIRECT'});
-  cart = []; updateCartUI();
-  document.getElementById('tsCheckoutContent').innerHTML = `
-    <div class="ts-success">
-      <div class="ts-success-icon">💳</div>
-      <div class="ts-success-title">ALMOST DONE!</div>
-      <div class="ts-success-msg">
-        A PayPal tab just opened — complete your $${amount} payment there.<br><br>
-        Your order has been logged. If the tab didn't open,
-        <a href="https://www.paypal.com/paypalme/theonlymrscarver/${amount}"
-           target="_blank" rel="noopener noreferrer" style="color:#4d9fff;">click here to pay</a>.<br><br>
-        Questions? Call <strong>(304) 633-6401</strong>
-      </div>
-      <button class="ts-submit-btn" onclick="showSuccess()" style="max-width:280px;">✅ I've Completed My Payment</button>
-      <button class="ts-submit-btn ts-submit-btn-secondary" onclick="closeCheckout()" style="max-width:200px;">Done</button>
-    </div>`;
-  document.getElementById('tsCheckoutModal').classList.add('open');
+
+function renderPayPal(amount) {
+  document.getElementById('co-paypal').innerHTML = `<div id="ts-paypal-buttons"></div>`;
+  if (typeof paypal === 'undefined') {
+    document.getElementById('co-paypal').innerHTML =
+      '<p style="color:#f87171;font-size:12px;">PayPal failed to load — please refresh and try again.</p>';
+    return;
+  }
+
+  paypal.Buttons({
+    // Order is created server-side (exact cart total) BEFORE PayPal ever
+    // shows the customer anything — no public link to jump straight to.
+    createOrder: async () => {
+      if (!validateTeamCheckout()) throw new Error('Please fill in the required fields above.');
+      const v = id => document.getElementById(id)?.value || '';
+      const lineItems = cart.map(i => {
+        const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
+        return `${i.label}${designs ? ' (' + designs + ')' : ''} — ${i.color}, ${i.size} x ${i.qty}${i.personalization ? ' — Personalization: ' + i.personalization + ' (+$' + PERSONALIZATION_FEE.toFixed(2) + '/ea customization)' : ''} = $${(i.unitPrice * i.qty).toFixed(2)}`;
+      }).join('\n');
+      const structuredItems = cart.map(i => {
+        const designs = [i.frontDesignName && `Front: ${i.frontDesignName}`, i.backDesignName && `Back: ${i.backDesignName}`].filter(Boolean).join(', ');
+        return {
+          image_url: i.frontDesignUrl || i.backDesignUrl || '',
+          name: `${i.label}${designs ? ' (' + designs + ')' : ''}`,
+          units: i.qty,
+          price: i.unitPrice.toFixed(2),
+          color: i.color || '',
+          design_name: designs || '',
+          size: i.size || '',
+          personalization: i.personalization || '',
+        };
+      });
+      const res = await fetch(`${PAYPAL_DEV_API}/api/paypal/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: parseFloat(amount).toFixed(2),
+          currency: 'USD',
+          store_name: teamData?.name || 'Team Store',
+          customer_name: `${v('co-first')} ${v('co-last')}`,
+          email: v('co-email'),
+          phone: v('co-phone'),
+          address: `${v('co-addr')}, ${v('co-city')}, ${v('co-state')} ${v('co-zip')}`,
+          notes: v('co-notes'),
+          order_items: lineItems,
+          items: structuredItems,
+          shipping_method: document.getElementById('co-ship-method')?.options[document.getElementById('co-ship-method')?.selectedIndex]?.text || '',
+          shipping_cost: getShipping(cartQty()).toFixed(2),
+          total: `$${(cartTotal() + getShipping(cartQty())).toFixed(2)}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not start checkout — please try again.');
+      return data.id;
+    },
+    // Only runs once the customer approves inside PayPal's popup, and only
+    // shows/records anything below once capture-order confirms a real,
+    // captured payment.
+    onApprove: async (data) => {
+      try {
+        const res = await fetch(`${PAYPAL_DEV_API}/api/paypal/capture-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderID: data.orderID }),
+        });
+        const result = await res.json();
+        if (!res.ok) {
+          showToast('Payment could not be confirmed: ' + (result.error || 'unknown error'));
+          return;
+        }
+        try {
+          const existing = JSON.parse(localStorage.getItem('productionOrders') || '[]');
+          existing.unshift({
+            id: Date.now(), timestamp: new Date().toISOString(),
+            store: teamData?.name || 'Team Store',
+            customer: `${document.getElementById('co-first')?.value||''} ${document.getElementById('co-last')?.value||''}`.trim(),
+            phone: document.getElementById('co-phone')?.value || '',
+            email: document.getElementById('co-email')?.value || '',
+            items: cart.map(i => ({
+              name: i.label, size: i.size||'', color: i.color||'', qty: i.qty,
+              graphicName: i.frontDesignName||'', graphicImg: i.frontDesignUrl||'',
+              graphicNameBack: i.backDesignName||'', graphicImgBack: i.backDesignUrl||'',
+              personalization: i.personalization||'',
+            })),
+            completed: false
+          });
+          localStorage.setItem('productionOrders', JSON.stringify(existing));
+        } catch(e) {}
+        // Must capture before cart/form fields get wiped out below.
+        lastOrderFirstName = document.getElementById('co-first')?.value || '';
+        sendOrderEmail({ id: result.order?.txnId || data.orderID });
+        cart = []; updateCartUI();
+        showSuccess();
+      } catch (e) {
+        showToast('Payment could not be confirmed — please try again or contact us.');
+      }
+    },
+    onError: (err) => {
+      console.error('PayPal Buttons error:', err);
+      showToast('PayPal error — please try again.');
+    },
+    onCancel: () => {
+      showToast('Payment cancelled.');
+    },
+  }).render('#ts-paypal-buttons');
 }
 
 // Shown once the customer confirms they've actually finished paying on the
