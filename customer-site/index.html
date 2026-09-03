@@ -7,6 +7,12 @@
 <title>Admin — Under Pressure Custom Apparel</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- DEV/SANDBOX ONLY — real PayPal Orders API integration under test on the
+     claude/paypal-real-checkout-dev branch. Talks to the isolated
+     up-store-api-dev Worker with PayPal Sandbox credentials; no real money
+     moves. Swap for the production client-id + up-store-api before this
+     ever reaches main. -->
+<script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD"></script>
 <script>
 // EmailJS — populated once config loads below; guards check the sentinel default.
 let EMAILJS_SERVICE_ID              = 'YOUR_EMAILJS_SERVICE_ID';
@@ -3002,74 +3008,81 @@ function validateCustomer(){
   customerInfo={first:v("c-first"),last:v("c-last"),email:v("c-email"),phone:v("c-phone"),addr:v("c-addr"),city:v("c-city"),state:v("c-state"),zip:v("c-zip"),notes:v("c-notes")};
   return true;
 }
+// DEV/SANDBOX ONLY — isolated Worker + KV, PayPal Sandbox credentials.
+// See worker-paypal-dev.js for the create-order/capture-order endpoints.
+const PAYPAL_DEV_API = 'https://up-store-api-dev.h-m-ward1846.workers.dev';
+
 function renderPayPal(){
-  const t=calcOrderTotals();
-  const amount=t.grand.toFixed(2);
-  document.getElementById("paypal-container").innerHTML=`
-    <button onclick="payWithPayPal(${amount})" style="
-      display:block;width:100%;padding:14px 20px;margin-top:4px;
-      background:#0070ba;color:#fff;border:none;cursor:pointer;
-      font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
-      letter-spacing:2px;text-transform:uppercase;transition:background .2s;">
-      💳 PAY $${amount} WITH PAYPAL
-    </button>
-    <p style="margin-top:8px;font-size:11px;color:var(--up-mist);text-align:center;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">
-      Opens PayPal in a new tab — complete your payment there, then return here.
-    </p>`;
-}
-function payWithPayPal(amount){
-  if(!validateCustomer()) return;
-  // Open PayPal FIRST — must be the first executable line in this gesture handler
-  // or the browser's popup blocker will block it (async calls below would delay it).
-  window.open(`https://www.paypal.com/paypalme/theonlymrscarver/${amount}`,'_blank','noopener,noreferrer');
-  const orderItems=cart.map(i=>({name:i.name,playerName:i.playerName||'',playerNumber:i.playerNumber||'',size:i.size||'',color:i.color||'',qty:i.qty,salePrice:i.price||0}));
-  logProductionOrder({
-    store:'UP Sportswear',
-    customer:`${customerInfo.first} ${customerInfo.last}`,
-    phone:customerInfo.phone||'',
-    email:customerInfo.email||'',
-    items:orderItems
-  });
-  // Save cart to KV so the PayPal IPN handler — which fires once payment is
-  // actually confirmed, unlike this optimistic client-side email — can send
-  // Erin a "New Order Made" email with real order/customer details instead
-  // of falling back to PayPal's bare item_name field.
-  try {
-    const t = calcOrderTotals();
-    fetch(`${KV_API}/api/save-cart`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: customerInfo.email || '',
-        customer_name: `${customerInfo.first} ${customerInfo.last}`,
-        phone: customerInfo.phone || '',
-        address: `${customerInfo.addr}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip}`,
-        notes: customerInfo.notes || '',
-        order_items: orderItems.map(i=>`${i.name}${i.size?' (Size: '+i.size+')':''}${i.color?', '+i.color:''} x ${i.qty} = $${(i.salePrice*i.qty).toFixed(2)}`).join('\n'),
-        items: orderItems.map(i=>({name:i.name,units:i.qty,price:(i.salePrice||0).toFixed(2),color:i.color||'',size:i.size||''})),
-        shipping_cost: t.ship.toFixed(2),
-        total: `$${t.grand.toFixed(2)}`,
-        store_name: 'UP Sportswear',
-      })
-    }).catch(e => console.warn('Cart save failed:', e));
-  } catch(e) {}
-  sendOrderEmails({id:'PAYPAL-DIRECT'}, orderItems);
-  cart=[];updateCartUI();
-  document.getElementById("checkoutContent").innerHTML=`
-    <div class="success-screen">
-      <div class="suc-icon">💳</div>
-      <div class="suc-title">ALMOST DONE!</div>
-      <div class="suc-text">
-        A PayPal tab just opened — complete your $${amount} payment there.<br><br>
-        Your order has been logged. If the tab didn't open,
-        <a href="https://www.paypal.com/paypalme/theonlymrscarver/${amount}"
-           target="_blank" rel="noopener noreferrer"
-           style="color:var(--up-sky);">click here to pay</a>.<br><br>
-        Questions? Call <strong>(304) 633-6401</strong>
-      </div>
-      <button class="btn-suc" onclick="showOrderComplete()">✅ I've Completed My Payment</button>
-      <button class="btn-suc btn-suc-secondary" onclick="closeCheckout()">Done</button>
-    </div>`;
+  document.getElementById("paypal-container").innerHTML = `<div id="paypal-buttons-real"></div>`;
+  if (typeof paypal === 'undefined') {
+    document.getElementById("paypal-container").innerHTML =
+      '<p style="color:#c8102e;font-size:12px;">PayPal failed to load — please refresh and try again.</p>';
+    return;
+  }
+
+  paypal.Buttons({
+    // Runs when the customer clicks the PayPal button. The order is created
+    // server-side (with the exact cart total) BEFORE PayPal ever shows the
+    // customer anything — there is no public link to jump straight to, so
+    // unlike the old paypal.me flow, bypass is structurally impossible.
+    createOrder: async () => {
+      if (!validateCustomer()) throw new Error('Please fill in the required fields above.');
+      const t = calcOrderTotals();
+      const orderItems = cart.map(i => ({ name: i.name, playerName: i.playerName || '', playerNumber: i.playerNumber || '', size: i.size || '', color: i.color || '', qty: i.qty, salePrice: i.price || 0 }));
+      const res = await fetch(`${PAYPAL_DEV_API}/api/paypal/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: t.grand.toFixed(2),
+          currency: 'USD',
+          store_name: 'UP Sportswear',
+          customer_name: `${customerInfo.first} ${customerInfo.last}`,
+          email: customerInfo.email || '',
+          phone: customerInfo.phone || '',
+          address: `${customerInfo.addr}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip}`,
+          notes: customerInfo.notes || '',
+          order_items: orderItems.map(i => `${i.name}${i.size ? ' (Size: ' + i.size + ')' : ''}${i.color ? ', ' + i.color : ''} x ${i.qty} = $${(i.salePrice * i.qty).toFixed(2)}`).join('\n'),
+          items: orderItems.map(i => ({ name: i.name, units: i.qty, price: (i.salePrice || 0).toFixed(2), color: i.color || '', size: i.size || '' })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not start checkout — please try again.');
+      return data.id;
+    },
+    // Runs once the customer approves the payment inside PayPal's popup.
+    // Only NOW does the order actually get captured/confirmed — everything
+    // below only happens for a real, verified payment.
+    onApprove: async (data) => {
+      showProcessingOverlay('Confirming your payment…');
+      try {
+        const res = await fetch(`${PAYPAL_DEV_API}/api/paypal/capture-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderID: data.orderID }),
+        });
+        const result = await res.json();
+        hideProcessingOverlay();
+        if (!res.ok) {
+          showToast('Payment could not be confirmed: ' + (result.error || 'unknown error'));
+          return;
+        }
+        const orderItems = cart.map(i => ({ name: i.name, playerName: i.playerName || '', playerNumber: i.playerNumber || '', size: i.size || '', color: i.color || '', qty: i.qty, salePrice: i.price || 0 }));
+        sendOrderEmails({ id: result.order?.txnId || data.orderID }, orderItems);
+        cart = []; updateCartUI();
+        showOrderComplete();
+      } catch (e) {
+        hideProcessingOverlay();
+        showToast('Payment could not be confirmed — please try again or contact us.');
+      }
+    },
+    onError: (err) => {
+      console.error('PayPal Buttons error:', err);
+      showToast('PayPal error — please try again.');
+    },
+    onCancel: () => {
+      showToast('Payment cancelled.');
+    },
+  }).render('#paypal-buttons-real');
 }
 
 // Shown once the customer confirms they've actually finished paying on the
