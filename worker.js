@@ -159,6 +159,85 @@ async function appendToOrdersList(env, enrichedOrder) {
   }
 }
 
+// Every checkout is logged here permanently the instant the storefront
+// saves a cart (i.e. the moment the customer clicks "Pay with PayPal") —
+// independent of PayPal ever confirming the payment. This is what makes
+// the admin "Order Archive" panel work even when the IPN webhook never
+// fires or its payer_email doesn't match what the customer typed at
+// checkout: the cart details are already durably recorded here, not just
+// sitting in the 24h pending-cart-{email} key used for IPN matching.
+// Capped at 1000 entries, no expiry.
+async function appendToCheckoutLog(env, cart, paypalOrderId = null) {
+  try {
+    const raw = await env.UP_DATA.get('checkout-log');
+    const list = raw ? JSON.parse(raw) : [];
+    list.unshift({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      receivedAt: new Date().toISOString(),
+      email: cart.email || '',
+      customerName: cart.customer_name || '',
+      phone: cart.phone || '',
+      address: cart.address || '',
+      notes: cart.notes || '',
+      orderItems: cart.order_items || '',
+      items: Array.isArray(cart.items) ? cart.items : [],
+      shippingMethod: cart.shipping_method || '',
+      shippingCost: cart.shipping_cost || '',
+      total: cart.total || '',
+      storeName: cart.store_name || '',
+      status: 'awaiting_payment',
+      // Set when this entry came from the real PayPal Orders API flow
+      // (create-order) rather than the legacy paypal.me + IPN flow — lets
+      // capture-order find and update this exact entry precisely, instead
+      // of the fuzzy email/amount matching reconcileCheckoutLog needs for
+      // the legacy flow below.
+      paypalOrderId,
+      matchedTxnId: null,
+      matchedAt: null,
+      matchedVia: null,
+    });
+    await env.UP_DATA.put('checkout-log', JSON.stringify(list.slice(0, 1000)));
+  } catch (e) {
+    console.error('checkout-log append failed:', e && e.message ? e.message : e);
+  }
+}
+
+// Link a confirmed PayPal payment back to the checkout-log entry it came
+// from, so the archive shows "paid" instead of leaving it stuck at
+// "awaiting payment" forever. Matches by email first; falls back to the
+// most recent unmatched entry with the same dollar total, since the email
+// a customer types at checkout often differs from their PayPal account's
+// email (the same mismatch that can make IPN's pending-cart lookup miss),
+// while the amount charged rarely does.
+async function reconcileCheckoutLog(env, payerEmail, amount, txnId) {
+  try {
+    const raw = await env.UP_DATA.get('checkout-log');
+    if (!raw) return;
+    const list = JSON.parse(raw);
+    const normalizedEmail = (payerEmail || '').toLowerCase().trim();
+    const amountNum = parseFloat(amount) || 0;
+
+    let match = normalizedEmail
+      ? list.find(e => e.status === 'awaiting_payment' && (e.email || '').toLowerCase().trim() === normalizedEmail)
+      : null;
+    let matchedVia = 'email';
+    if (!match && amountNum) {
+      match = list.find(e => e.status === 'awaiting_payment' &&
+        Math.abs((parseFloat(String(e.total || '').replace(/[^0-9.]/g, '')) || 0) - amountNum) < 0.01);
+      matchedVia = 'amount';
+    }
+    if (match) {
+      match.status = 'paid';
+      match.matchedTxnId = txnId;
+      match.matchedAt = new Date().toISOString();
+      match.matchedVia = matchedVia;
+      await env.UP_DATA.put('checkout-log', JSON.stringify(list));
+    }
+  } catch (e) {
+    console.error('checkout-log reconcile failed:', e && e.message ? e.message : e);
+  }
+}
+
 async function handleIPN(request, env, ctx) {
   const rawBody = await request.text();
 
@@ -294,6 +373,7 @@ async function handleIPN(request, env, ctx) {
         confirmationSentAt: null,
       };
       await appendToOrdersList(env, enrichedOrder);
+      await reconcileCheckoutLog(env, payerEmail, order.amount, txnId);
 
       await sendErinNewOrderEmail(env, {
         to_email: ERIN_EMAIL,
@@ -340,10 +420,190 @@ async function handleSaveCart(request, env) {
     const key = 'pending-cart-' + email;
     // TTL of 24 hours — if payment doesn't come through, it auto-cleans
     await env.UP_DATA.put(key, JSON.stringify(cart), { expirationTtl: 60 * 60 * 24 });
+    // Also record it permanently in the checkout-log archive, independent
+    // of whether PayPal ever confirms this payment — see appendToCheckoutLog.
+    await appendToCheckoutLog(env, cart);
     return json({ success: true });
   } catch (e) {
     console.error('Save cart error:', e);
     return error('Failed to save cart', 500);
+  }
+}
+
+// =======================================================
+//  PAYPAL ORDERS API — real, non-bypassable checkout
+// =======================================================
+// Replaces the paypal.me + IPN flow above for storefront checkout. A
+// paypal.me link is public and permanent — anyone can pay it directly,
+// completely outside the site, with no cart attached. This flow makes
+// that structurally impossible: the server creates a unique, single-use
+// PayPal Order tied to the exact cart total BEFORE the customer ever
+// sees PayPal, and only that exact order can be captured. If capture
+// succeeds, the payment is real and confirmed — there's no "optimistic"
+// or "unconfirmed" state to reason about, unlike the old flow.
+//
+// The legacy /ipn and /api/save-cart handlers above are left in place
+// during the transition (harmless if nothing calls them once the
+// storefront pages stop using paypal.me links) rather than removed.
+
+const PAYPAL_API_BASE = 'https://api-m.paypal.com';
+
+async function getPayPalAccessToken(env) {
+  const clientId = env.PAYPAL_LIVE_CLIENT_ID;
+  const secret = env.PAYPAL_LIVE_SECRET;
+  if (!clientId || !secret) {
+    throw new Error('PAYPAL_LIVE_CLIENT_ID / PAYPAL_LIVE_SECRET not configured on this Worker');
+  }
+  const res = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Basic ' + btoa(`${clientId}:${secret}`),
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error('PayPal auth failed: ' + JSON.stringify(data));
+  return data.access_token;
+}
+
+// Body: { amount, currency, store_name, customer_name, email, phone,
+//         address, shipping_method, notes, order_items, items: [...] }
+async function handlePayPalCreateOrder(request, env) {
+  try {
+    const cart = await request.json();
+    const amount = parseFloat(cart.amount);
+    if (!amount || amount <= 0) return error('Invalid amount', 400);
+    if (!cart.email) return error('email is required', 400);
+
+    const accessToken = await getPayPalAccessToken(env);
+
+    const ppRes = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [{
+          amount: { currency_code: cart.currency || 'USD', value: amount.toFixed(2) },
+          description: (cart.store_name || 'Under Pressure Custom Apparel') + ' order',
+        }],
+      }),
+    });
+    const ppData = await ppRes.json();
+    if (!ppRes.ok) {
+      console.error('PayPal create order failed', ppData);
+      return error('PayPal order creation failed: ' + (ppData.message || JSON.stringify(ppData)), 500);
+    }
+
+    const orderId = ppData.id;
+    // Save the cart under the PayPal order ID — the atomic link between
+    // "what the customer put in their cart" and "what PayPal actually
+    // captures". 24h TTL in case they never complete.
+    await env.UP_DATA.put('pending-order-' + orderId, JSON.stringify(cart), {
+      expirationTtl: 60 * 60 * 24,
+    });
+    // Also log it to the Order Archive immediately, tagged with this
+    // order's guaranteed-unique PayPal Order ID for precise reconciliation.
+    await appendToCheckoutLog(env, cart, orderId);
+
+    return json({ id: orderId });
+  } catch (e) {
+    console.error('paypal create-order error:', e);
+    return error('Failed to create order: ' + e.message, 500);
+  }
+}
+
+// Body: { orderID }
+async function handlePayPalCaptureOrder(request, env) {
+  try {
+    const { orderID } = await request.json();
+    if (!orderID) return error('orderID is required', 400);
+
+    const pendingRaw = await env.UP_DATA.get('pending-order-' + orderID);
+    if (!pendingRaw) {
+      return error('No matching cart found for this order — it may have expired or never been created through this endpoint.', 404);
+    }
+    const cart = JSON.parse(pendingRaw);
+
+    const accessToken = await getPayPalAccessToken(env);
+    const ppRes = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders/${orderID}/capture`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const ppData = await ppRes.json();
+    if (!ppRes.ok) {
+      console.error('PayPal capture failed', ppData);
+      return error('PayPal capture failed: ' + (ppData.message || JSON.stringify(ppData)), 500);
+    }
+
+    const capture = ppData.purchase_units?.[0]?.payments?.captures?.[0];
+    const capturedAmount = capture?.amount?.value;
+    const payer = ppData.payer || {};
+
+    // Sanity-check the captured amount matches what the cart expected —
+    // catches any drift between what was quoted and what PayPal actually
+    // took, rather than silently trusting the client.
+    const expectedAmount = parseFloat(cart.amount).toFixed(2);
+    if (capturedAmount !== expectedAmount) {
+      console.warn(`Captured amount ${capturedAmount} does not match expected ${expectedAmount} for order ${orderID}`);
+    }
+
+    const txnId = capture?.id || orderID;
+    const enrichedOrder = {
+      txnId,
+      paypalOrderId: orderID,
+      payerEmail: payer.email_address || cart.email,
+      payerName: [payer.name?.given_name, payer.name?.surname].filter(Boolean).join(' '),
+      amount: capturedAmount || cart.amount,
+      currency: capture?.amount?.currency_code || cart.currency || 'USD',
+      receivedAt: new Date().toISOString(),
+      status: 'paid',
+      customerName: cart.customer_name || '',
+      email: cart.email,
+      phone: cart.phone || '',
+      address: cart.address || '',
+      shippingMethod: cart.shipping_method || '',
+      notes: cart.notes || '',
+      storeName: cart.store_name || 'Under Pressure Custom Apparel',
+      total: `$${capturedAmount || cart.amount}`,
+      orderItems: cart.order_items || '',
+      confirmationSent: false,
+      confirmationSentAt: null,
+    };
+
+    await appendToOrdersList(env, enrichedOrder);
+    await env.UP_DATA.delete('pending-order-' + orderID);
+
+    // Mark the matching checkout-log entry paid by its exact PayPal Order
+    // ID — reliable, unlike the fuzzy email/amount matching the legacy
+    // IPN-driven reconcileCheckoutLog needs.
+    try {
+      const raw = await env.UP_DATA.get('checkout-log');
+      if (raw) {
+        const list = JSON.parse(raw);
+        const match = list.find(e => e.paypalOrderId === orderID);
+        if (match) {
+          match.status = 'paid';
+          match.matchedTxnId = txnId;
+          match.matchedAt = new Date().toISOString();
+          match.matchedVia = 'paypalOrderId';
+          await env.UP_DATA.put('checkout-log', JSON.stringify(list));
+        }
+      }
+    } catch (e) {
+      console.error('checkout-log update on capture failed:', e && e.message ? e.message : e);
+    }
+
+    return json({ success: true, order: enrichedOrder });
+  } catch (e) {
+    console.error('paypal capture-order error:', e);
+    return error('Failed to capture order: ' + e.message, 500);
   }
 }
 
@@ -362,6 +622,14 @@ export default {
 
     if (request.method === 'GET' && path === '/ipn') {
       return json({ status: 'ipn listener ready', expects: 'POST from PayPal' });
+    }
+
+    if (request.method === 'POST' && path === '/api/paypal/create-order') {
+      return handlePayPalCreateOrder(request, env);
+    }
+
+    if (request.method === 'POST' && path === '/api/paypal/capture-order') {
+      return handlePayPalCaptureOrder(request, env);
     }
 
     // Storefront saves cart here before opening PayPal
