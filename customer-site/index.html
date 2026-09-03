@@ -3135,7 +3135,20 @@ function sendOrderEmails(details, orderItems) {
       .catch(err => console.error('Order confirmation email failed:', err));
   }
   if (EMAILJS_NEW_ORDER_TEMPLATE_ID) {
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_TEMPLATE_ID, { ...sharedParams, to_email: 'erin@underpressurecustomapparel.com', reply_to: customerInfo.email })
+    // This fires the instant the customer clicks "Pay with PayPal", not once
+    // payment is actually confirmed (that only happens server-side via IPN
+    // once PayPal verifies it, hours or days later). Mark it unmistakably as
+    // unconfirmed so it can't be mistaken for a real, paid order and sent to
+    // production before the money has actually arrived.
+    const unconfirmedNote = '⚠️ PAYMENT NOT YET CONFIRMED — customer clicked Pay with PayPal but has not completed payment. Do not start production until this order shows as Paid in Store Orders.';
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_TEMPLATE_ID, {
+      ...sharedParams,
+      to_email: 'erin@underpressurecustomapparel.com',
+      reply_to: customerInfo.email,
+      order_id: 'UNCONFIRMED — ' + (sharedParams.order_id || 'N/A'),
+      notes: unconfirmedNote,
+      order_items: unconfirmedNote + '\n\n' + sharedParams.order_items,
+    })
       .catch(err => console.error('New order notification email failed:', err));
   }
 }
