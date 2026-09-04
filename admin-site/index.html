@@ -6081,6 +6081,7 @@ function renderProductionAdmin() {
               <td class="prod-td" rowspan="${o.items.length}" style="vertical-align:middle;text-align:center;min-width:120px;">
                 <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
                   <button class="btn-reorder" onclick="reorderOrder(${o.id})" title="Duplicate as new order">↺ Reorder</button>
+                  <button class="btn-add-note" onclick="generateInvoice(${o.id})" title="Open a printable invoice for this order">🧾 Invoice</button>
                   ${o.email ? `<button class="btn-add-note" onclick="markOrderReady(${o.id})" title="${o.readyNotified?'Already notified — click to resend':'Email the customer that their order is ready'}">${o.readyNotified?'✓ Ready (Sent)':'📦 Mark Ready'}</button>` : ''}
                   <button class="btn-add-note" onclick="showNoteInput(${o.id})">${orderNotes[o.id]?'✏ Edit Note':'+ Note'}</button>
                   <button class="cm-btn-del" onclick="deleteProductionOrder(${o.id})" title="Remove" aria-label="Remove order from production board" style="padding:3px 8px;">✕</button>
