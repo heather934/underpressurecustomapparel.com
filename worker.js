@@ -238,6 +238,21 @@ async function reconcileCheckoutLog(env, payerEmail, amount, txnId) {
   }
 }
 
+// True if this txnId was already captured through the newer Orders API flow
+// (handlePayPalCaptureOrder tags the checkout-log entry it updates with
+// matchedVia: 'paypalOrderId') — lets the IPN handler recognize and skip
+// transactions it doesn't need to process a second time.
+async function wasHandledByOrdersApiFlow(env, txnId) {
+  try {
+    const raw = await env.UP_DATA.get('checkout-log');
+    if (!raw) return false;
+    const list = JSON.parse(raw);
+    return list.some(e => e.matchedVia === 'paypalOrderId' && e.matchedTxnId === txnId);
+  } catch (e) {
+    return false;
+  }
+}
+
 async function handleIPN(request, env, ctx) {
   const rawBody = await request.text();
 
@@ -270,6 +285,20 @@ async function handleIPN(request, env, ctx) {
       const seenKey = 'ipn-seen-' + txnId;
       if (txnId && (await env.UP_DATA.get(seenKey))) {
         console.log('IPN duplicate ignored for txn', txnId);
+        return;
+      }
+
+      // PayPal sends IPN for every completed payment on the account,
+      // including ones already captured through the newer Orders API flow
+      // (handlePayPalCaptureOrder) — not just the legacy paypal.me path this
+      // handler was built for. If capture-order already recorded this exact
+      // transaction, let its richer, structured order stand: falling through
+      // would overwrite it in orders-list with this handler's thinner one
+      // (PayPal's bare item_name instead of the real cart) and double-email
+      // Erin (the storefront already emails her client-side on capture).
+      if (txnId && (await wasHandledByOrdersApiFlow(env, txnId))) {
+        console.log('IPN ignored - already handled by PayPal Orders API flow for txn', txnId);
+        await env.UP_DATA.put(seenKey, '1', { expirationTtl: 60 * 60 * 24 * 30 });
         return;
       }
 
