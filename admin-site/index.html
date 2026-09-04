@@ -9346,7 +9346,12 @@ function generateInvoice(orderId) {
     const qty = parseInt(item.qty)||1;
     const unitPrice = parseFloat(item.salePrice)||0;
     const lineTotal = unitPrice * qty;
-    const personalization = [item.playerName, item.playerNumber ? '#'+item.playerNumber : ''].filter(Boolean).join(' ');
+    // "Special instructions" covers both paid personalization add-ons (a
+    // name/number printed on the item) and any free-text notes the customer
+    // left on this specific line — distinct fields, shown together since
+    // they're both things the print shop needs to know were paid for.
+    const nameNumber = [item.playerName, item.playerNumber ? '#'+item.playerNumber : ''].filter(Boolean).join(' ');
+    const specialInstructions = [nameNumber, item.personalization].filter(Boolean).join(' — ');
     const thumbs = [
       item.graphicImg ? {url: item.graphicImg, label: 'Front'} : null,
       item.graphicImgBack ? {url: item.graphicImgBack, label: 'Back'} : null,
@@ -9360,7 +9365,10 @@ function generateInvoice(orderId) {
           ${thumbsHtml}
           <div>
             <strong>${escHtml(item.name)}</strong>
-            <div style="font-size:11px;color:#888;margin-top:2px;">${escHtml([item.color,item.size,personalization].filter(Boolean).join(' · '))}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px;">
+              ${item.size ? `Size: <strong>${escHtml(item.size)}</strong>` : ''}${item.size && item.color ? ' &nbsp;·&nbsp; ' : ''}${item.color ? `Color: <strong>${escHtml(item.color)}</strong>` : ''}
+            </div>
+            ${specialInstructions ? `<div style="font-size:11px;color:#1565ff;font-weight:600;margin-top:2px;">📝 Special Instructions: ${escHtml(specialInstructions)}</div>` : ''}
           </div>
         </div>
       </td>
