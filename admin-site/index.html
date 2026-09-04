@@ -6088,7 +6088,7 @@ function renderProductionAdmin() {
               <td class="prod-td" rowspan="${o.items.length}" style="vertical-align:middle;text-align:center;min-width:120px;">
                 <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
                   <button class="btn-reorder" onclick="reorderOrder(${o.id})" title="Duplicate as new order">↺ Reorder</button>
-                  <button class="btn-add-note" onclick="generateInvoice(${o.id})" title="Open a printable invoice for this order">🧾 Invoice</button>
+                  <button class="btn-add-note" onclick="generateInvoice(${o.id})" title="Opens a printable invoice and prompts to print immediately">🖨 Print Invoice</button>
                   ${o.email ? `<button class="btn-add-note" onclick="markOrderReady(${o.id})" title="${o.readyNotified?'Already notified — click to resend':'Email the customer that their order is ready'}">${o.readyNotified?'✓ Ready (Sent)':'📦 Mark Ready'}</button>` : ''}
                   <button class="btn-add-note" onclick="showNoteInput(${o.id})">${orderNotes[o.id]?'✏ Edit Note':'+ Note'}</button>
                   <button class="cm-btn-del" onclick="deleteProductionOrder(${o.id})" title="Remove" aria-label="Remove order from production board" style="padding:3px 8px;">✕</button>
@@ -9232,7 +9232,7 @@ function renderInvoiceAdmin() {
         </div>
       </div>
       ${total > 0 ? `<div class="invoice-amount">$${total.toFixed(2)}</div>` : '<div class="invoice-amount" style="color:var(--up-mist);">—</div>'}
-      <button class="btn-view-invoice" onclick="generateInvoice(${o.id})">🧾 Generate</button>
+      <button class="btn-view-invoice" onclick="generateInvoice(${o.id})">🖨 Print</button>
     </div>`;
   }).join('') : `<div class="dash-empty">No orders yet — invoices will appear here automatically as orders come in.</div>`;
 
@@ -9415,6 +9415,12 @@ function generateInvoice(orderId) {
     </table>
     ${hasRevenue ? `<div class="inv-total-row"><div class="inv-total-box"><div class="inv-total-label">Total Due</div><div class="inv-total-value">$${subtotal.toFixed(2)}</div></div></div>` : ''}
     <div class="inv-footer">Under Pressure Custom Apparel · Thank you for your order!<br><button onclick="window.print()" style="margin-top:16px;padding:10px 28px;background:#1565ff;color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;">🖨 Print Invoice</button></div>
+    <script>
+      // Opens straight into the print dialog so "Print Invoice" is a single
+      // click from the Production Board — the button above stays as a
+      // fallback for re-printing without closing and regenerating.
+      window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 300); });
+    <\/script>
   </body></html>`;
 
   const win = window.open('', '_blank');
