@@ -5715,6 +5715,13 @@ var productionOrders = [];
 var kvOrdersList = [];
 var kvOrdersLoaded = false;
 
+// KV-backed checkout archive (loaded from /data/checkout-log on demand) —
+// every cart the storefront saves before opening PayPal, kept permanently
+// regardless of whether PayPal ever confirms/matches the payment. See
+// "Order Archive" panel below.
+var checkoutLogList = [];
+var checkoutLogLoaded = false;
+
 function loadProductionOrders() {
   try { productionOrders = JSON.parse(localStorage.getItem("productionOrders") || "[]"); }
   catch(e) { productionOrders = []; }
@@ -9284,6 +9291,7 @@ function renderInvoiceAdmin() {
         <div class="admin-nav-item" id="anav-dashboard" onclick="renderAdminPanel('dashboard')">📊 <span class="admin-nav-item-label">Dashboard</span></div>
         <div class="admin-nav-item" id="anav-production" onclick="renderAdminPanel('production')">📦 <span class="admin-nav-item-label">Orders</span></div>
         <div class="admin-nav-item" id="anav-storeorders" onclick="renderAdminPanel('storeorders')">📬 <span class="admin-nav-item-label">Store Orders</span></div>
+        <div class="admin-nav-item" id="anav-checkoutlog" onclick="renderAdminPanel('checkoutlog')">🗂 <span class="admin-nav-item-label">Order Archive</span></div>
         <div class="admin-nav-item" id="anav-purchaselist" onclick="renderAdminPanel('purchaselist')">🛒 <span class="admin-nav-item-label">Purchase List</span></div>
         <div class="admin-nav-item" id="anav-teams" onclick="renderAdminPanel('teams')">🏆 <span class="admin-nav-item-label">Team Stores</span></div>
         <div class="admin-nav-item" id="anav-brand" onclick="renderAdminPanel('brand')">🛍 <span class="admin-nav-item-label">Brand Items</span></div>
@@ -9684,6 +9692,118 @@ function renderStoreOrders() {
   return header + cardsHTML;
 }
 
+// ══════════════════════════════════════════════════════════════════════
+//  ORDER ARCHIVE — reads from KV checkout-log, populated the instant a
+//  customer clicks "Pay with PayPal" (see /api/save-cart in worker.js).
+//  Unlike Store Orders (which only shows an order once PayPal's IPN fires
+//  AND its payer email happens to match what the customer typed at
+//  checkout), this list is independent of PayPal ever confirming anything
+//  — so an order still shows up here with full item/customer details even
+//  if the IPN never arrives or the emails don't match. Once IPN does fire
+//  and finds a match (by email, or by exact dollar total as a fallback),
+//  the entry is stamped "Paid" with the matching PayPal transaction ID.
+// ══════════════════════════════════════════════════════════════════════
+
+async function loadCheckoutLog() {
+  const data = await kvGet('checkout-log');
+  checkoutLogList = Array.isArray(data) ? data : [];
+  checkoutLogLoaded = true;
+}
+
+async function renderCheckoutLogAsync(container) {
+  if (!checkoutLogLoaded) {
+    container.innerHTML = `
+      <div class="cm-section-head">
+        <div class="cm-section-title" style="color:#4d9fff;">Order <span style="color:#4ade80;">Archive</span></div>
+      </div>
+      <div style="text-align:center;padding:60px 24px;font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--up-mist);letter-spacing:2px;text-transform:uppercase;">
+        ⏳ Loading archive…
+      </div>`;
+    await loadCheckoutLog();
+  }
+  const navEl = document.getElementById('anav-checkoutlog');
+  if (navEl && !navEl.classList.contains('active')) return;
+  container.innerHTML = renderCheckoutLog();
+}
+
+function renderCheckoutLog() {
+  const entries = checkoutLogList;
+  const paidCount = entries.filter(e => e.status === 'paid').length;
+  const awaitingCount = entries.length - paidCount;
+
+  const header = `
+    <div class="cm-section-head">
+      <div class="cm-section-title" style="color:#4d9fff;">Order <span style="color:#4ade80;">Archive</span></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--up-mist);letter-spacing:1px;">
+          ${entries.length} checkout${entries.length !== 1 ? 's' : ''} · ${paidCount} matched to a payment · ${awaitingCount} awaiting
+        </span>
+        <button class="btn-prod-export" onclick="checkoutLogLoaded=false;renderAdminPanel('checkoutlog')">🔄 Refresh</button>
+      </div>
+    </div>
+    <p style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--up-mist);letter-spacing:1px;margin-bottom:20px;">
+      Every checkout is logged here the moment a customer clicks "Pay with PayPal" — before payment is ever confirmed.
+      Use this to look up what someone ordered even if it's missing from <strong>Store Orders</strong> (e.g. they paid
+      from a different email than they typed here, or PayPal's confirmation never arrived).
+    </p>`;
+
+  if (!entries.length) {
+    return header + `
+      <div style="text-align:center;padding:60px 24px;font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--up-mist);letter-spacing:2px;text-transform:uppercase;">
+        No checkouts logged yet.
+      </div>`;
+  }
+
+  const cardsHTML = entries.map(e => {
+    const date = e.receivedAt
+      ? new Date(e.receivedAt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' })
+      : '—';
+    const paid = e.status === 'paid';
+    const accentColor = paid ? '#4ade80' : 'var(--accent)';
+
+    const itemLines = (e.orderItems || '').split('\n').filter(Boolean);
+    const itemsHTML = itemLines.length
+      ? itemLines.map(line => `<div style="font-size:12px;color:var(--up-silver);padding:3px 0;border-bottom:1px solid var(--up-border);">${escHtml(line)}</div>`).join('')
+      : `<div style="font-size:12px;color:var(--up-mist);font-style:italic;">No itemized cart data on this entry</div>`;
+
+    const statusBadge = paid
+      ? `<span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:#4ade80;">✓ Paid — matched by ${escHtml(e.matchedVia) || 'PayPal'}${e.matchedAt ? ' on ' + new Date(e.matchedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}</span>`
+      : `<span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:var(--accent);">⏳ Awaiting payment confirmation</span>`;
+
+    return `
+      <div style="background:var(--up-card);border:1px solid var(--up-border);border-top:3px solid ${accentColor};padding:20px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--up-white);">
+              ${escHtml(e.customerName) || '(name unknown)'}
+            </div>
+            <div style="font-size:11px;color:var(--up-mist);letter-spacing:1px;margin-top:2px;">
+              ${escHtml(e.email) || '—'}${e.phone ? ' · ' + escHtml(e.phone) : ''}
+            </div>
+            ${e.address ? `<div style="font-size:11px;color:var(--up-mist);margin-top:2px;">📍 ${escHtml(e.address)}</div>` : ''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#4ade80;">${escHtml(e.total) || '—'}</div>
+            <div style="font-size:10px;color:var(--up-mist);letter-spacing:1.5px;text-transform:uppercase;">${escHtml(e.storeName) || 'Store'}</div>
+            <div style="font-size:10px;color:var(--up-mist);margin-top:2px;">${date}</div>
+          </div>
+        </div>
+
+        ${e.shippingMethod ? `<div style="font-size:11px;color:var(--up-sky);margin-bottom:8px;letter-spacing:1px;">🚚 ${escHtml(e.shippingMethod)}</div>` : ''}
+        ${e.notes ? `<div style="font-size:11px;color:var(--up-silver);margin-bottom:8px;">📝 ${escHtml(e.notes)}</div>` : ''}
+
+        <div style="margin-bottom:14px;">${itemsHTML}</div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          ${statusBadge}
+          <span style="margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--up-border);letter-spacing:1px;" title="PayPal Transaction ID">${e.matchedTxnId ? 'TXN ' + escHtml(e.matchedTxnId) : ''}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  return header + cardsHTML;
+}
+
 // Manually (re)send the "New Order Made" notification to Erin — the same
 // EmailJS template the PayPal IPN worker tries to fire automatically.
 // This exists because that server-side send is a fire-and-forget best-effort
@@ -10026,6 +10146,7 @@ function renderAdminPanel(tab) {
       case 'discounts':    content.innerHTML = renderDiscountAdmin();   break;
 
       case 'storeorders':   content.innerHTML = ''; renderStoreOrdersAsync(content); break;
+      case 'checkoutlog':   content.innerHTML = ''; renderCheckoutLogAsync(content); break;
       case 'integrations': content.innerHTML = renderIntegrations();   break;
       default:             content.innerHTML = renderDashboard();       break;
     }

@@ -2164,6 +2164,10 @@ async function sendOrderEmail(details) {
     }).catch(e => console.warn('Customer confirmation email failed:', e));
   }
   if (EMAILJS_NEW_ORDER_ID) {
+    // Unlike the old paypal.me flow, sendOrderEmail() is only called from
+    // onApprove() after PayPal's capture-order has actually succeeded — so
+    // by the time this fires, payment is already confirmed. No "unconfirmed"
+    // warning needed here.
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_ID, {
       ...sharedParams,
       to_email: 'erin@underpressurecustomapparel.com',

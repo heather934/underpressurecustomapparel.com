@@ -3150,6 +3150,11 @@ function sendOrderEmails(details, orderItems) {
       .catch(err => console.error('Order confirmation email failed:', err));
   }
   if (EMAILJS_NEW_ORDER_TEMPLATE_ID) {
+    // Unlike the old paypal.me flow, sendOrderEmails() is only called from
+    // onApprove() after PayPal's capture-order has actually succeeded — so
+    // by the time this fires, payment is already confirmed. No "unconfirmed"
+    // warning needed here (contrast with team-store.html/rome-coc, which
+    // still use the legacy optimistic-email flow pending their own cutover).
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_TEMPLATE_ID, { ...sharedParams, to_email: 'erin@underpressurecustomapparel.com', reply_to: customerInfo.email })
       .catch(err => console.error('New order notification email failed:', err));
   }
