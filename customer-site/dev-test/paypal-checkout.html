@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PayPal Checkout — Dev/Sandbox Test</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 480px; margin: 60px auto; padding: 0 20px; color: #111; }
+  h1 { font-size: 20px; }
+  .banner { background: #fff3cd; border: 1px solid #ffe69c; padding: 10px 14px; font-size: 13px; margin-bottom: 24px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  input, textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+  #paypal-button-container { margin-top: 24px; max-width: 300px; }
+  #result { margin-top: 20px; padding: 14px; border-radius: 6px; font-size: 13px; white-space: pre-wrap; display: none; }
+  #result.ok { background: #d4edda; border: 1px solid #c3e6cb; display: block; }
+  #result.err { background: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+</style>
+</head>
+<body>
+  <div class="banner">⚠️ Dev/sandbox only — this page is not linked from the real site and doesn't take real payments. It talks to the isolated <code>up-store-api-dev</code> Worker.</div>
+  <h1>Test Checkout — Real PayPal Orders API</h1>
+
+  <label for="amount">Amount (USD)</label>
+  <input id="amount" value="12.34">
+
+  <label for="storeName">Store Name</label>
+  <input id="storeName" value="Under Pressure Custom Apparel">
+
+  <label for="customerName">Customer Name</label>
+  <input id="customerName" value="Test Customer">
+
+  <label for="email">Email</label>
+  <input id="email" value="buyer@example.com">
+
+  <label for="orderItems">Order Items (one per line)</label>
+  <textarea id="orderItems" rows="3">Test Tee — Black, M x 1 = $12.34</textarea>
+
+  <div id="paypal-button-container"></div>
+  <div id="result"></div>
+
+  <script src="https://www.paypal.com/sdk/js?client-id=ASgiAwmTkwL3YAQbONRnTFZTdtMecxS1NwAyy-_9i7zW2QY5gs1BAQ3areQ-qQ764L90g_rJUJpYJZzV&currency=USD"></script>
+  <script>
+    const API = 'https://up-store-api-dev.h-m-ward1846.workers.dev';
+    const resultEl = document.getElementById('result');
+
+    function showResult(ok, text) {
+      resultEl.className = ok ? 'ok' : 'err';
+      resultEl.textContent = text;
+    }
+
+    paypal.Buttons({
+      createOrder: async () => {
+        const cart = {
+          amount: document.getElementById('amount').value,
+          currency: 'USD',
+          store_name: document.getElementById('storeName').value,
+          customer_name: document.getElementById('customerName').value,
+          email: document.getElementById('email').value,
+          order_items: document.getElementById('orderItems').value,
+        };
+        const res = await fetch(`${API}/api/paypal/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cart),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showResult(false, 'create-order failed: ' + (data.error || JSON.stringify(data)));
+          throw new Error(data.error || 'create-order failed');
+        }
+        return data.id;
+      },
+      onApprove: async (data) => {
+        const res = await fetch(`${API}/api/paypal/capture-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderID: data.orderID }),
+        });
+        const result = await res.json();
+        if (!res.ok) {
+          showResult(false, 'capture-order failed: ' + (result.error || JSON.stringify(result)));
+          return;
+        }
+        showResult(true, '✅ Captured!\n\n' + JSON.stringify(result.order, null, 2));
+      },
+      onError: (err) => {
+        showResult(false, 'PayPal Buttons error: ' + err);
+      },
+      onCancel: () => {
+        showResult(false, 'Payment cancelled.');
+      },
+    }).render('#paypal-button-container');
+  </script>
+</body>
+</html>
