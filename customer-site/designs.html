@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Designs — Under Pressure Custom Apparel</title>
+<meta name="description" content="Download Erin's original PNG designs — instant digital delivery.">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AYJIp9dGfV7S6-XHEkihax6fIhB_60UOPZeOaV0iPd9GT1F10ilchavgai5kOvkEZenkerZYO4fb6tXr&currency=USD"></script>
+<style>
+:root {
+  --up-black:  #060810;
+  --up-navy:   #0d1220;
+  --up-card:   #111827;
+  --up-border: #1e2d4a;
+  --up-blue:   #1565ff;
+  --up-blue2:  #0a4fd6;
+  --up-sky:    #4d9fff;
+  --up-mist:   #5a7296;
+  --up-white:  #eef2fb;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--up-black);color:var(--up-white);font-family:'Barlow',sans-serif;min-height:100vh;}
+a{color:inherit;}
+header{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.97);backdrop-filter:blur(18px);border-bottom:2px solid var(--up-blue);}
+.header-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;text-decoration:none;color:var(--up-white);}
+.brand span{color:var(--up-sky);}
+.back-link{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--up-mist);text-decoration:none;}
+.back-link:hover{color:var(--up-sky);}
+
+.hero{max-width:1200px;margin:0 auto;padding:56px 24px 32px;text-align:center;}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,6vw,56px);line-height:1;letter-spacing:2px;margin-bottom:12px;}
+.hero h1 span{color:var(--up-sky);}
+.hero p{color:var(--up-mist);font-size:15px;font-weight:300;max-width:520px;margin:0 auto;}
+
+.grid-wrap{max-width:1200px;margin:0 auto;padding:0 24px 80px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;}
+.card{background:var(--up-card);border:1px solid var(--up-border);display:flex;flex-direction:column;overflow:hidden;transition:border-color .2s;}
+.card:hover{border-color:var(--up-blue);}
+.card-thumb-wrap{aspect-ratio:1;background:#0a0e18;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.card-thumb-wrap img{width:100%;height:100%;object-fit:contain;}
+.card-body{padding:16px;display:flex;flex-direction:column;gap:8px;flex:1;}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--up-white);}
+.card-desc{font-size:13px;color:var(--up-mist);font-weight:300;line-height:1.4;flex:1;}
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+.card-price{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#4ade80;}
+.btn-buy{background:var(--up-blue);color:#fff;border:none;padding:9px 18px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;transition:background .2s;}
+.btn-buy:hover{background:var(--up-blue2);}
+
+.empty-state{text-align:center;padding:80px 24px;color:var(--up-mist);font-size:14px;font-weight:300;}
+
+/* ── Checkout modal ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-backdrop.show{display:flex;}
+.modal-box{background:var(--up-navy);border:1px solid var(--up-border);max-width:440px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;position:relative;}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--up-mist);font-size:20px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--up-white);}
+.modal-thumb{width:100%;aspect-ratio:1;object-fit:contain;background:#0a0e18;margin-bottom:16px;}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;margin-bottom:4px;}
+.modal-price{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#4ade80;margin-bottom:16px;}
+.f-label{display:block;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--up-mist);margin-bottom:5px;margin-top:14px;}
+.f-input{width:100%;background:var(--up-card);border:1px solid var(--up-border);color:var(--up-white);padding:11px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;transition:border-color .15s;}
+.f-input:focus{border-color:var(--up-sky);}
+.f-error{color:#ff6b6b;font-size:11px;margin-top:4px;display:none;}
+#dsPaypalContainer{margin-top:18px;min-height:45px;}
+.processing-overlay{position:absolute;inset:0;background:rgba(6,8,16,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;text-align:center;padding:20px;}
+.processing-overlay.show{display:flex;}
+.success-screen{text-align:center;padding:8px 0;}
+.suc-icon{font-size:44px;margin-bottom:10px;}
+.suc-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:8px;}
+.suc-text{color:var(--up-mist);font-size:13px;font-weight:300;line-height:1.6;margin-bottom:18px;}
+.btn-download{display:inline-block;background:#4ade80;color:#04250f;border:none;padding:13px 28px;cursor:pointer;text-decoration:none;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;transition:filter .2s;}
+.btn-download:hover{filter:brightness(1.1);}
+.btn-done{display:block;width:100%;margin-top:12px;background:transparent;border:1px solid var(--up-border);color:var(--up-mist);padding:11px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="brand" href="/">UNDER <span>PRESSURE</span></a>
+    <a class="back-link" href="/">← Back to Store</a>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Digital <span>Designs</span></h1>
+  <p>Original PNG artwork, ready to download the moment you check out — no shipping, no waiting.</p>
+</div>
+
+<div class="grid-wrap">
+  <div class="grid" id="designGrid"></div>
+  <div class="empty-state" id="designEmpty" style="display:none;">No designs available right now — check back soon.</div>
+</div>
+
+<!-- Checkout modal -->
+<div class="modal-backdrop" id="dsModal">
+  <div class="modal-box" id="dsModalBox">
+    <button class="modal-close" onclick="closeCheckout()" aria-label="Close">✕</button>
+    <div id="dsModalContent"></div>
+    <div class="processing-overlay" id="dsProcessing">
+      <div style="font-size:28px;">⏳</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px;color:var(--up-mist);">Confirming your payment…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════
+const API = 'https://up-store-api.h-m-ward1846.workers.dev';
+let EMAILJS_SERVICE_ID = '';
+let EMAILJS_ORDER_CONFIRM_TEMPLATE_ID = '';
+let EMAILJS_NEW_ORDER_TEMPLATE_ID = '';
+
+(async function loadConfig(){
+  try {
+    const res = await fetch(`${API}/api/config`);
+    const { config } = await res.json();
+    if (!config) return;
+    EMAILJS_SERVICE_ID = config.emailjsServiceId || '';
+    EMAILJS_ORDER_CONFIRM_TEMPLATE_ID = config.emailjsOrderConfirmTemplateId || '';
+    EMAILJS_NEW_ORDER_TEMPLATE_ID = config.emailjsNewOrderTemplateId || '';
+    if (config.emailjsPublicKey && typeof emailjs !== 'undefined') emailjs.init(config.emailjsPublicKey);
+  } catch(e) { /* silent */ }
+})();
+
+function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ═══════════════════════════════════════════════════
+//  CATALOG
+// ═══════════════════════════════════════════════════
+let designs = [];
+let currentDesign = null;
+
+async function loadDesigns(){
+  try {
+    const res = await fetch(`${API}/data/digital-products`);
+    const data = await res.json();
+    designs = (Array.isArray(data) ? data : []).filter(d => d.active !== false);
+  } catch(e) { designs = []; }
+  renderGrid();
+}
+
+function renderGrid(){
+  const grid = document.getElementById('designGrid');
+  const empty = document.getElementById('designEmpty');
+  if (!designs.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = designs.map(d => `
+    <div class="card">
+      <div class="card-thumb-wrap">
+        <img src="${escHtml(d.previewUrl || d.fileUrl)}" alt="${escHtml(d.title)}" loading="lazy">
+      </div>
+      <div class="card-body">
+        <div class="card-title">${escHtml(d.title)}</div>
+        <div class="card-desc">${escHtml(d.description || '')}</div>
+        <div class="card-footer">
+          <div class="card-price">$${parseFloat(d.price||0).toFixed(2)}</div>
+          <button class="btn-buy" onclick="openCheckout('${escHtml(d.id)}')">Buy Now</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  CHECKOUT
+// ═══════════════════════════════════════════════════
+function openCheckout(id){
+  currentDesign = designs.find(d => d.id === id);
+  if (!currentDesign) return;
+  renderCheckoutForm();
+  document.getElementById('dsModal').classList.add('show');
+}
+
+function closeCheckout(){
+  document.getElementById('dsModal').classList.remove('show');
+  document.getElementById('dsProcessing').classList.remove('show');
+  currentDesign = null;
+}
+
+function renderCheckoutForm(){
+  const d = currentDesign;
+  document.getElementById('dsModalContent').innerHTML = `
+    <img class="modal-thumb" src="${escHtml(d.previewUrl || d.fileUrl)}" alt="${escHtml(d.title)}">
+    <div class="modal-title">${escHtml(d.title)}</div>
+    <div class="modal-price">$${parseFloat(d.price||0).toFixed(2)}</div>
+    <label class="f-label" for="ds-email">Email (for your download link) *</label>
+    <input class="f-input" id="ds-email" type="email" placeholder="you@example.com">
+    <div class="f-error" id="ds-email-error">Enter a valid email address</div>
+    <div id="dsPaypalContainer"></div>
+  `;
+  renderPayPalButtons();
+}
+
+function validateEmail(){
+  const val = document.getElementById('ds-email').value.trim();
+  const ok = /\S+@\S+\.\S+/.test(val);
+  document.getElementById('ds-email-error').style.display = ok ? 'none' : 'block';
+  return ok;
+}
+
+function renderPayPalButtons(){
+  const container = document.getElementById('dsPaypalContainer');
+  if (typeof paypal === 'undefined') {
+    container.innerHTML = '<p style="color:#ff6b6b;font-size:12px;">PayPal failed to load — please refresh and try again.</p>';
+    return;
+  }
+  paypal.Buttons({
+    // Server looks the price up by productId — this request can't be
+    // tampered with to pay less than the listed price.
+    createOrder: async () => {
+      if (!validateEmail()) throw new Error('Enter a valid email address.');
+      const email = document.getElementById('ds-email').value.trim();
+      const res = await fetch(`${API}/api/paypal/digital/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: currentDesign.id, email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not start checkout — please try again.');
+      return data.id;
+    },
+    onApprove: async (data) => {
+      document.getElementById('dsProcessing').classList.add('show');
+      try {
+        const email = document.getElementById('ds-email').value.trim();
+        const res = await fetch(`${API}/api/paypal/digital/capture-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderID: data.orderID }),
+        });
+        const result = await res.json();
+        document.getElementById('dsProcessing').classList.remove('show');
+        if (!res.ok) {
+          alert('Payment could not be confirmed: ' + (result.error || 'unknown error'));
+          return;
+        }
+        const downloadUrl = API + result.downloadUrl;
+        sendDigitalOrderEmails(email, result.title, downloadUrl, data.orderID);
+        showSuccess(result.title, downloadUrl);
+      } catch (e) {
+        document.getElementById('dsProcessing').classList.remove('show');
+        alert('Payment could not be confirmed — please try again or contact us.');
+      }
+    },
+    onError: (err) => {
+      console.error('PayPal Buttons error:', err);
+      alert('PayPal error — please try again.');
+    },
+  }).render('#dsPaypalContainer');
+}
+
+function showSuccess(title, downloadUrl){
+  document.getElementById('dsModalContent').innerHTML = `
+    <div class="success-screen">
+      <div class="suc-icon">🎉</div>
+      <div class="suc-title">IT'S YOURS!</div>
+      <div class="suc-text">
+        Thanks for your purchase of <strong>${escHtml(title)}</strong>.<br>
+        We also emailed you this download link in case you need it later.
+      </div>
+      <a class="btn-download" href="${downloadUrl}" target="_blank" rel="noopener noreferrer" download>⬇ Download PNG</a>
+      <button class="btn-done" onclick="closeCheckout();loadDesigns();">Done</button>
+    </div>
+  `;
+}
+
+// Reuses the same EmailJS templates the main storefront's order-confirmation
+// and Erin-notification emails use, so no new EmailJS template setup is
+// needed — the download link just rides along in the order_items field.
+function sendDigitalOrderEmails(email, title, downloadUrl, orderId){
+  if (typeof emailjs === 'undefined' || !EMAILJS_SERVICE_ID) return;
+  const itemLine = `${title} (digital download)\nDownload link: ${downloadUrl}`;
+  const orders = [{
+    image_url: '', name: title, units: 1, price: '',
+    customer_email: email, customer_phone: '', shipping_address: 'Digital Download — no shipping',
+    shipping_method: 'Digital Download', color: '', design_name: '', size: '',
+  }];
+  const sharedParams = {
+    name: email,
+    orders,
+    cost: { shipping: '0.00', tax: '0.00', total: '' },
+    order_id: orderId,
+    customer_name: email,
+    customer_email: email,
+    customer_phone: '',
+    shipping_address: 'Digital Download — no shipping',
+    order_items: itemLine,
+    order_total: '',
+    submitted_at: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+  };
+  if (EMAILJS_ORDER_CONFIRM_TEMPLATE_ID) {
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_CONFIRM_TEMPLATE_ID, { ...sharedParams, to_email: email, reply_to: 'erin@underpressurecustomapparel.com' })
+      .catch(err => console.error('Download confirmation email failed:', err));
+  }
+  if (EMAILJS_NEW_ORDER_TEMPLATE_ID) {
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_ORDER_TEMPLATE_ID, { ...sharedParams, to_email: 'erin@underpressurecustomapparel.com', reply_to: email })
+      .catch(err => console.error('New order notification email failed:', err));
+  }
+}
+
+loadDesigns();
+</script>
+</body>
+</html>
