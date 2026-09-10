@@ -2709,6 +2709,18 @@ input.has-error:focus,select.has-error:focus,textarea.has-error:focus{border-col
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="e-displaymode" value="mockup"> Mockup photo</label>
           </div>
         </div>
+        <div class="f full" id="e-digital-wrap" style="display:none;">
+          <label>Full-Resolution File *
+            <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">The real file a customer receives after paying — never shown publicly. The Product Image below is just the public preview.</span>
+          </label>
+          <label class="btn-upload-file" title="Upload from your device">
+            📁 Upload Full-Resolution File
+            <input id="e-digital-file-input" type="file" accept="image/*" onchange="stageDigitalFile('e',this)">
+          </label>
+          <input type="hidden" id="e-digital-file">
+          <div id="e-digital-status" style="font-size:11px;color:var(--up-mist);margin-top:6px;"></div>
+          <div id="e-digital-preview" style="display:none;margin-top:8px;"><img src="" style="max-width:100px;max-height:100px;border:1px solid var(--up-border);"></div>
+        </div>
         <div class="f full" id="e-sizes-outer">
           <label>Sizes &amp; Pricing <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— each size offered gets its own price; leave a box blank to use the catalog default</span></label>
           <div class="tm-sizes-wrap" id="e-sizes"></div>
@@ -3357,6 +3369,18 @@ function renderBrandAdmin() {
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f-displaymode" value="mockup"> Mockup photo</label>
           </div>
         </div>
+        <div class="f full" id="f-digital-wrap" style="display:none;">
+          <label>Full-Resolution File *
+            <span style="font-weight:300;font-size:10px;color:var(--up-mist);margin-left:8px;">The real file a customer receives after paying — never shown publicly. The Product Image below is just the public preview, so use a lower-res or watermarked version there.</span>
+          </label>
+          <label class="btn-upload-file" title="Upload from your device">
+            📁 Upload Full-Resolution File
+            <input id="f-digital-file-input" type="file" accept="image/*" onchange="stageDigitalFile('f',this)">
+          </label>
+          <input type="hidden" id="f-digital-file">
+          <div id="f-digital-status" style="font-size:11px;color:var(--up-mist);margin-top:6px;"></div>
+          <div id="f-digital-preview" style="display:none;margin-top:8px;"><img src="" style="max-width:100px;max-height:100px;border:1px solid var(--up-border);"></div>
+        </div>
         <div class="f full" id="f-sizes-outer">
           <label>Sizes &amp; Pricing <span style="font-weight:300;color:var(--up-mist);font-size:10px;letter-spacing:0;text-transform:none;">— each size offered gets its own price; leave a box blank to use the catalog default</span></label>
           <div class="tm-sizes-wrap" id="f-sizes">
@@ -3433,9 +3457,46 @@ function brandTypeChanged(prefix) {
   const stickerWrap = document.getElementById(`${prefix}-sticker-wrap`);
   const sizesWrap   = document.getElementById(`${prefix}-sizes-outer`);
   const colorsWrap  = document.getElementById(`${prefix}-colors-outer`);
+  const digitalWrap = document.getElementById(`${prefix}-digital-wrap`);
   if (stickerWrap) stickerWrap.style.display = isSimple ? '' : 'none';
   if (sizesWrap)   sizesWrap.style.display   = isSimple ? 'none' : '';
   if (colorsWrap)  colorsWrap.style.display  = isSimple ? 'none' : '';
+  if (digitalWrap) digitalWrap.style.display = (type === 'digital') ? '' : 'none';
+}
+
+// Digital designs need a second, separate file — the real full-resolution
+// deliverable — distinct from the Product Image field, which for a digital
+// item is only ever the public preview shown before purchase. Keeping them
+// as two uploads (rather than reusing one) is what stops a customer from
+// grabbing the paid file straight off the public catalog listing: only the
+// preview URL is ever sent to the browser before checkout (see worker.js's
+// /api/digital-designs, which deliberately omits this field).
+async function stageDigitalFile(prefix, fileInput){
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select an image (PNG) file.');
+    fileInput.value = '';
+    return;
+  }
+  const statusEl = document.getElementById(`${prefix}-digital-status`);
+  if (statusEl) statusEl.textContent = 'Uploading…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('filename', file.name);
+    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
+    const urlInput = document.getElementById(`${prefix}-digital-file`);
+    if (urlInput) urlInput.value = data.url;
+    const preview = document.getElementById(`${prefix}-digital-preview`);
+    if (preview) { preview.style.display = 'block'; preview.querySelector('img').src = data.url; }
+    if (statusEl) statusEl.textContent = `✓ Uploaded: ${file.name}`;
+  } catch (e) {
+    if (statusEl) statusEl.textContent = `⚠ ${e.message}`;
+  }
+  fileInput.value = '';
 }
 
 // Shows/hides that size's price box and clears it when the size is
@@ -3454,7 +3515,11 @@ function brandToggleSizeChip(el) {
 }
 
 function clearForm(){
-  ["f-name","f-img","f-desc","f-sticker-price"].forEach(id=>document.getElementById(id).value="");
+  ["f-name","f-img","f-desc","f-sticker-price","f-digital-file"].forEach(id=>document.getElementById(id).value="");
+  const digitalStatus = document.getElementById('f-digital-status');
+  if (digitalStatus) digitalStatus.textContent = '';
+  const digitalPreview = document.getElementById('f-digital-preview');
+  if (digitalPreview) digitalPreview.style.display = 'none';
   document.querySelectorAll("#f-types .tm-type-chip").forEach(c=>c.classList.remove("selected"));
   document.querySelectorAll("#f-sizes .tm-size-chip").forEach(s=>{
     const size=s.dataset.size, isDefault=TM_DEFAULT_SIZES.includes(size);
@@ -3488,7 +3553,9 @@ function saveProduct(){
     ? { sizes:['OS'], sizePrices:{ OS: document.getElementById("f-sticker-price").value.trim() } }
     : getBrandSizesAndPrices('f');
   const displayMode = document.querySelector('input[name="f-displaymode"]:checked')?.value || 'graphic';
-  const newProduct={name,type,sizes,sizePrices,img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now(),...(isSimple?{displayMode}:{})};
+  const digitalFile = document.getElementById("f-digital-file").value.trim();
+  if (type === 'digital' && !digitalFile) { showToast("Upload the full-resolution file customers will receive"); return; }
+  const newProduct={name,type,sizes,sizePrices,img:document.getElementById("f-img").value.trim(),desc:document.getElementById("f-desc").value.trim(),colors,id:Date.now(),...(isSimple?{displayMode}:{}),...(type==='digital'?{file:digitalFile}:{})};
   upProducts.unshift(newProduct);
   saveUP();renderUP(upFilter);renderAdminPanel('brand');
   showToast(`"${name}" added!`);
@@ -3503,6 +3570,14 @@ function saveProduct(){
 function openEdit(idx){
   editIdx=idx;const p=upProducts[idx];
   ["name","img","desc"].forEach(k=>{const el=document.getElementById("e-"+k);if(el)el.value=p[k]||"";});
+  document.getElementById("e-digital-file").value = p.file || "";
+  const eDigitalStatus = document.getElementById('e-digital-status');
+  if (eDigitalStatus) eDigitalStatus.textContent = p.file ? '✓ Full-resolution file already uploaded' : '';
+  const eDigitalPreview = document.getElementById('e-digital-preview');
+  if (eDigitalPreview) {
+    if (p.file) { eDigitalPreview.style.display = 'block'; eDigitalPreview.querySelector('img').src = p.file; }
+    else eDigitalPreview.style.display = 'none';
+  }
 
   // The edit modal's type/size chips are static empty containers in the DOM
   // (unlike the add form, which renders fresh each time) — build them here.
@@ -3537,8 +3612,11 @@ function saveEdit(){
     ? { sizes:['OS'], sizePrices:{ OS: document.getElementById("e-sticker-price").value.trim() } }
     : getBrandSizesAndPrices('e');
   const displayMode = document.querySelector('input[name="e-displaymode"]:checked')?.value || 'graphic';
+  const digitalFile = document.getElementById("e-digital-file").value.trim();
+  if (type === 'digital' && !digitalFile) { showToast("Upload the full-resolution file customers will receive"); return; }
   const updated={...upProducts[editIdx],name:document.getElementById("e-name").value.trim(),type,sizes,sizePrices,img:document.getElementById("e-img").value.trim(),desc:document.getElementById("e-desc").value.trim(),colors:isSimple?[]:getFormColors()};
   if (isSimple) updated.displayMode = displayMode; else delete updated.displayMode;
+  if (type === 'digital') updated.file = digitalFile; else delete updated.file;
   upProducts[editIdx]=updated;
   saveUP();renderUP(upFilter);renderAdminPanel('brand');closeEditModal();showToast("Product updated!");
   preloadMockups([updated]).then(()=>{
