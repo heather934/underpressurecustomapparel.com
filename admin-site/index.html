@@ -3104,135 +3104,10 @@ async function kvGet(key) {
   }
 }
 
-// ═══════════════════════════════════════════════════
-//  DIGITAL SHOP — pay-and-download PNG designs
-//  Public catalog lives in KV under 'digital-products' (same generic
-//  kvSet/kvGet sync as Brand Items) and is read directly by the public
-//  /designs page. Checkout itself (price lookup, PayPal capture, download
-//  token) is handled server-side in worker.js — this only manages listings.
-// ═══════════════════════════════════════════════════
-var digitalProducts = [];
-
-function loadDigitalProducts(){
-  try { digitalProducts = JSON.parse(localStorage.getItem('digitalProducts') || '[]'); }
-  catch(e) { digitalProducts = []; }
-}
-
-function saveDigitalProducts(){
-  localStorage.setItem('digitalProducts', JSON.stringify(digitalProducts));
-  kvSet('digital-products', digitalProducts);
-}
-
-async function stageDigitalProductFile(fileInput){
-  const file = fileInput.files[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    showToast('Please select an image (PNG) file.');
-    fileInput.value = '';
-    return;
-  }
-  const statusEl = document.getElementById('dp-status');
-  if (statusEl) statusEl.textContent = 'Uploading…';
-  try {
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('filename', file.name);
-    const res = await fetch(`${KV_API}/images/upload`, { method: 'POST', body: fd });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Upload failed');
-    const urlInput = document.getElementById('dp-file-url');
-    if (urlInput) urlInput.value = data.url;
-    const preview = document.getElementById('dp-file-preview');
-    if (preview) { preview.style.display = 'block'; preview.querySelector('img').src = data.url; }
-    if (statusEl) statusEl.textContent = `✓ Uploaded: ${file.name}`;
-  } catch (e) {
-    if (statusEl) statusEl.textContent = `⚠ ${e.message}`;
-  }
-  fileInput.value = '';
-}
-
-function addDigitalProduct(){
-  const title = document.getElementById('dp-title')?.value.trim();
-  const description = document.getElementById('dp-description')?.value.trim();
-  const price = parseFloat(document.getElementById('dp-price')?.value);
-  const fileUrl = document.getElementById('dp-file-url')?.value || '';
-  if (!title) { showToast('Enter a title'); return; }
-  if (isNaN(price) || price <= 0) { showToast('Enter a valid price'); return; }
-  if (!fileUrl) { showToast('Upload the PNG file'); return; }
-  loadDigitalProducts();
-  digitalProducts.unshift({
-    id: 'dp_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    title, description, price, fileUrl, previewUrl: fileUrl, active: true,
-    createdAt: new Date().toISOString(),
-  });
-  saveDigitalProducts();
-  showToast('Design added to the shop!');
-  renderAdminPanel('digitalshop');
-}
-
-function toggleDigitalProductActive(id){
-  loadDigitalProducts();
-  const p = digitalProducts.find(p => p.id === id);
-  if (!p) return;
-  p.active = !p.active;
-  saveDigitalProducts();
-  renderAdminPanel('digitalshop');
-}
-
-function deleteDigitalProduct(id){
-  if (!confirm('Remove this design from the shop?')) return;
-  loadDigitalProducts();
-  digitalProducts = digitalProducts.filter(p => p.id !== id);
-  saveDigitalProducts();
-  showToast('Design removed');
-  renderAdminPanel('digitalshop');
-}
-
-function renderDigitalShopAdmin(){
-  loadDigitalProducts();
-  const rows = digitalProducts.length ? digitalProducts.map(p => `
-    <div class="tm-inst-card">
-      <img class="tm-inst-card-thumb" src="${escHtml(p.previewUrl || p.fileUrl)}" alt="${escHtml(p.title)}" onerror="this.style.display='none'">
-      <div class="tm-inst-card-info">
-        <div class="tm-inst-card-name">${escHtml(p.title)} ${p.active===false ? '<span style="color:var(--up-mist);font-weight:400;">(hidden)</span>' : ''}</div>
-        <div class="tm-inst-card-meta">$${parseFloat(p.price||0).toFixed(2)}${p.description ? ' · ' + escHtml(p.description) : ''}</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="btn-add-note" onclick="toggleDigitalProductActive('${p.id}')">${p.active===false ? '👁 Show' : '🙈 Hide'}</button>
-        <button class="tm-inst-card-del" onclick="deleteDigitalProduct('${p.id}')" aria-label="Remove ${escHtml(p.title)}">✕</button>
-      </div>
-    </div>
-  `).join('') : `<div class="dash-empty">No digital designs yet — add your first PNG below. These appear on the public /designs page.</div>`;
-
-  return `
-    <div class="cm-section-head">
-      <div>
-        <div class="cm-section-title" style="color:#4ade80;">Digital <span style="color:var(--up-sky)">Shop</span></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--up-mist);text-transform:uppercase;margin-top:4px;">
-          ${digitalProducts.length} design${digitalProducts.length!==1?'s':''} · Catalog only for now — the customer-facing page isn't live yet
-        </div>
-      </div>
-    </div>
-
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">${rows}</div>
-
-    <div class="disc-add-form">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:14px;">+ Add Design</div>
-      <div class="admin-grid">
-        <div class="f full"><label>Title *</label><input id="dp-title" type="text" placeholder="e.g. Neon Baseball Sticker"></div>
-        <div class="f full"><label>Description</label><input id="dp-description" type="text" placeholder="Short description shown to customers"></div>
-        <div class="f"><label>Price ($) *</label><input id="dp-price" type="number" step="0.01" min="0" placeholder="4.99"></div>
-        <div class="f full">
-          <label>PNG File *</label>
-          <input type="file" accept="image/*" onchange="stageDigitalProductFile(this)">
-          <input type="hidden" id="dp-file-url">
-          <div id="dp-status" style="font-size:11px;color:var(--up-mist);margin-top:6px;"></div>
-          <div id="dp-file-preview" style="display:none;margin-top:8px;"><img src="" style="max-width:120px;max-height:120px;border:1px solid var(--up-border);"></div>
-        </div>
-        <div class="f full"><button class="btn-save-up" onclick="addDigitalProduct()">+ Add to Shop</button></div>
-      </div>
-    </div>`;
-}
+// Digital designs are just another Brand Item type now (see TM_PRODUCT_CATALOG's
+// 'digital' entry) — the standalone Digital Shop catalog/panel that used to live
+// here was folded into the regular Brand Items add form and the shared
+// 'products' KV store instead of a separate 'digital-products' one.
 
 function saveUP(){localStorage.setItem("upSportswear",JSON.stringify(upProducts));kvSet('products',upProducts);}
 // Per-card UI state (color/view/qty/size), same pattern Team Store cards
@@ -3885,6 +3760,13 @@ const TM_PRODUCT_CATALOG = [
   { type:'misc',        icon:'📦', label:'Miscellaneous Item',    category:'extras',  defaultPrice:'$10–$25', placeholder:true },
   // ── Stickers ──────────────────────────────────────
   { type:'sticker',     icon:'🏷️', label:'Sticker',               category:'stickers', defaultPrice:'$3–$5', simpleDisplay:true },
+  // ── Digital ───────────────────────────────────────
+  // A digital design has no garment to wear it on — it's just the PNG
+  // itself. Reuses the same flat-price "simple display" path stickers use,
+  // and the same image field, except here the uploaded image *is* the
+  // deliverable file a customer downloads after paying (see worker.js's
+  // getDigitalProduct, which reads straight from this products catalog).
+  { type:'digital',     icon:'🎨', label:'Digital Design (PNG Download)', category:'digital', defaultPrice:'$3–$10', simpleDisplay:true },
 ];
 
 const TM_SIZE_LIST = ['YXS','YS','YM','YL','YXL','XS','S','M','L','XL','2XL','3XL','4XL'];
@@ -9431,7 +9313,6 @@ function renderInvoiceAdmin() {
         <div class="admin-nav-item" id="anav-deadlines" onclick="renderAdminPanel('deadlines')">📅 <span class="admin-nav-item-label">Deadlines</span></div>
         <div class="admin-nav-item" id="anav-invoices" onclick="renderAdminPanel('invoices')">🧾 <span class="admin-nav-item-label">Invoices</span></div>
         <div class="admin-nav-item" id="anav-discounts" onclick="renderAdminPanel('discounts')">🏷 <span class="admin-nav-item-label">Discounts</span></div>
-        <div class="admin-nav-item" id="anav-digitalshop" onclick="renderAdminPanel('digitalshop')">🎨 <span class="admin-nav-item-label">Digital Shop</span></div>
 
         <div class="admin-nav-item" id="anav-integrations" onclick="renderAdminPanel('integrations')">🔌 <span class="admin-nav-item-label">Integrations</span></div>
         <div class="admin-nav-no-results" id="adminNavNoResults" style="display:none;">No matching sections</div>
@@ -10289,7 +10170,6 @@ function renderAdminPanel(tab) {
       case 'deadlines':    content.innerHTML = renderDeadlines();       break;
       case 'invoices':     content.innerHTML = renderInvoiceAdmin();    break;
       case 'discounts':    content.innerHTML = renderDiscountAdmin();   break;
-      case 'digitalshop':  content.innerHTML = renderDigitalShopAdmin(); break;
 
       case 'storeorders':   content.innerHTML = ''; renderStoreOrdersAsync(content); break;
       case 'checkoutlog':   content.innerHTML = ''; renderCheckoutLogAsync(content); break;

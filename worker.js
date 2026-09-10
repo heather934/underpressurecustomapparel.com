@@ -640,15 +640,28 @@ async function handlePayPalCaptureOrder(request, env) {
 //  DIGITAL DOWNLOADS — pay-and-download PNG designs
 // =======================================================
 // Same non-bypassable pattern as the physical Orders API flow above: the
-// price is always looked up server-side from the digital-products catalog
-// by ID, never trusted from the client, so a manipulated request can't buy
-// a design for less than its listed price.
+// price is always looked up server-side from the product catalog by ID,
+// never trusted from the client, so a manipulated request can't buy a
+// design for less than its listed price.
+//
+// Digital designs are just Brand Items with type 'digital' (see the admin
+// panel's TM_PRODUCT_CATALOG) — there's no separate catalog. A "simple
+// display" item like this stores its flat price at sizePrices.OS (the same
+// shape stickers/hats already use) and its uploaded image doubles as the
+// deliverable file, so no extra fields were needed on the product itself.
 
 async function getDigitalProduct(env, productId) {
   try {
-    const raw = await env.UP_DATA.get('digital-products');
+    const raw = await env.UP_DATA.get('products');
     const list = raw ? JSON.parse(raw) : [];
-    return list.find(p => p.id === productId && p.active !== false) || null;
+    // Loose equality: the id is a numeric Date.now() value in the catalog,
+    // but may arrive from the client as a string once round-tripped through
+    // JSON/URL params.
+    const p = list.find(p => p.type === 'digital' && p.id == productId);
+    if (!p) return null;
+    const price = parseFloat(String(p.sizePrices && p.sizePrices.OS || '').replace(/[^0-9.]/g, ''));
+    if (!price || price <= 0 || !p.img) return null;
+    return { id: p.id, title: p.name, price, fileUrl: p.img };
   } catch (e) {
     return null;
   }
