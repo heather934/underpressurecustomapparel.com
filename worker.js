@@ -636,6 +636,157 @@ async function handlePayPalCaptureOrder(request, env) {
   }
 }
 
+// =======================================================
+//  DIGITAL DOWNLOADS — pay-and-download PNG designs
+// =======================================================
+// Same non-bypassable pattern as the physical Orders API flow above: the
+// price is always looked up server-side from the digital-products catalog
+// by ID, never trusted from the client, so a manipulated request can't buy
+// a design for less than its listed price.
+
+async function getDigitalProduct(env, productId) {
+  try {
+    const raw = await env.UP_DATA.get('digital-products');
+    const list = raw ? JSON.parse(raw) : [];
+    return list.find(p => p.id === productId && p.active !== false) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Body: { productId, email }
+async function handleDigitalCreateOrder(request, env) {
+  try {
+    const { productId, email } = await request.json();
+    if (!productId) return error('productId is required', 400);
+    if (!email) return error('email is required', 400);
+
+    const product = await getDigitalProduct(env, productId);
+    if (!product) return error('That design is no longer available.', 404);
+
+    const accessToken = await getPayPalAccessToken(env);
+    const ppRes = await fetch(PAYPAL_API_BASE + '/v2/checkout/orders', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [{
+          amount: { currency_code: 'USD', value: parseFloat(product.price).toFixed(2) },
+          description: product.title + ' (digital download)',
+        }],
+      }),
+    });
+    const ppData = await ppRes.json();
+    if (!ppRes.ok) {
+      console.error('PayPal digital create order failed', ppData);
+      return error('PayPal order creation failed: ' + (ppData.message || JSON.stringify(ppData)), 500);
+    }
+
+    const orderId = ppData.id;
+    await env.UP_DATA.put('pending-digital-order-' + orderId, JSON.stringify({ productId, email }), {
+      expirationTtl: 60 * 60 * 24,
+    });
+
+    return json({ id: orderId });
+  } catch (e) {
+    console.error('digital create-order error:', e);
+    return error('Failed to create order: ' + e.message, 500);
+  }
+}
+
+// Body: { orderID }
+async function handleDigitalCaptureOrder(request, env) {
+  try {
+    const { orderID } = await request.json();
+    if (!orderID) return error('orderID is required', 400);
+
+    const pendingRaw = await env.UP_DATA.get('pending-digital-order-' + orderID);
+    if (!pendingRaw) {
+      return error('No matching order found — it may have expired or never been created through this endpoint.', 404);
+    }
+    const { productId, email } = JSON.parse(pendingRaw);
+
+    const product = await getDigitalProduct(env, productId);
+    if (!product) return error('That design is no longer available.', 404);
+
+    const accessToken = await getPayPalAccessToken(env);
+    const ppRes = await fetch(PAYPAL_API_BASE + '/v2/checkout/orders/' + orderID + '/capture', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+    const ppData = await ppRes.json();
+    if (!ppRes.ok) {
+      console.error('PayPal digital capture failed', ppData);
+      return error('PayPal capture failed: ' + (ppData.message || JSON.stringify(ppData)), 500);
+    }
+
+    const capture = ppData.purchase_units?.[0]?.payments?.captures?.[0];
+    const capturedAmount = capture?.amount?.value || product.price;
+    const payer = ppData.payer || {};
+    const txnId = capture?.id || orderID;
+
+    // The token gates the download *step*, not permanent secrecy of the
+    // underlying file URL — the same tradeoff every product photo already
+    // used sitewide has, since all of it sits on the same public Cloudflare
+    // Images CDN. 7-day, unlimited-use window so a customer who loses the
+    // email or closes the tab isn't locked out.
+    const token = crypto.randomUUID();
+    await env.UP_DATA.put('digital-download-' + token, JSON.stringify({
+      productId,
+      fileUrl: product.fileUrl,
+      title: product.title,
+    }), { expirationTtl: 60 * 60 * 24 * 7 });
+
+    await env.UP_DATA.delete('pending-digital-order-' + orderID);
+
+    const downloadUrl = '/api/digital-download/' + token;
+
+    // Log it alongside physical orders so it shows up in Store Orders.
+    await appendToOrdersList(env, {
+      txnId,
+      paypalOrderId: orderID,
+      payerEmail: payer.email_address || email,
+      payerName: [payer.name?.given_name, payer.name?.surname].filter(Boolean).join(' '),
+      amount: capturedAmount,
+      currency: capture?.amount?.currency_code || 'USD',
+      receivedAt: new Date().toISOString(),
+      status: 'paid',
+      customerName: '',
+      email,
+      phone: '',
+      address: '',
+      shippingMethod: 'Digital Download',
+      notes: '',
+      storeName: 'UP Digital Designs',
+      total: '$' + capturedAmount,
+      orderItems: product.title + ' (digital download)',
+      confirmationSent: false,
+      confirmationSentAt: null,
+    });
+
+    return json({ success: true, downloadUrl, title: product.title });
+  } catch (e) {
+    console.error('digital capture-order error:', e);
+    return error('Failed to capture order: ' + e.message, 500);
+  }
+}
+
+async function handleDigitalDownload(path, env) {
+  const token = path.replace('/api/digital-download/', '');
+  if (!token) return error('Not found', 404);
+  const raw = await env.UP_DATA.get('digital-download-' + token);
+  if (!raw) return error('This download link has expired or is invalid. Contact us if you need it resent.', 404);
+  const { fileUrl } = JSON.parse(raw);
+  if (!fileUrl) return error('Not found', 404);
+  return Response.redirect(fileUrl, 302);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -659,6 +810,18 @@ export default {
 
     if (request.method === 'POST' && path === '/api/paypal/capture-order') {
       return handlePayPalCaptureOrder(request, env);
+    }
+
+    if (request.method === 'POST' && path === '/api/paypal/digital/create-order') {
+      return handleDigitalCreateOrder(request, env);
+    }
+
+    if (request.method === 'POST' && path === '/api/paypal/digital/capture-order') {
+      return handleDigitalCaptureOrder(request, env);
+    }
+
+    if (request.method === 'GET' && path.startsWith('/api/digital-download/')) {
+      return handleDigitalDownload(path, env);
     }
 
     // Storefront saves cart here before opening PayPal
