@@ -644,11 +644,20 @@ async function handlePayPalCaptureOrder(request, env) {
 // never trusted from the client, so a manipulated request can't buy a
 // design for less than its listed price.
 //
-// Digital designs are just Brand Items with type 'digital' (see the admin
+// Digital designs are Brand Items with type 'digital' (see the admin
 // panel's TM_PRODUCT_CATALOG) — there's no separate catalog. A "simple
 // display" item like this stores its flat price at sizePrices.OS (the same
-// shape stickers/hats already use) and its uploaded image doubles as the
-// deliverable file, so no extra fields were needed on the product itself.
+// shape stickers/hats already use).
+//
+// Deliberately TWO image fields, not one: `img` is the public preview
+// shown on the /designs catalog page, and `file` is the real
+// full-resolution deliverable. Never expose `file` through any public
+// listing endpoint (like GET /data/products, which returns the whole raw
+// catalog) — that would let anyone grab every paid design straight from
+// the network tab without ever paying. `file` may only ever reach a
+// customer's browser via a download token minted after a real, confirmed
+// PayPal capture (see handleDigitalCaptureOrder / handleDigitalDownload
+// below) — see getPublicDigitalDesigns for the sanitized public listing.
 
 async function getDigitalProduct(env, productId) {
   try {
@@ -660,10 +669,30 @@ async function getDigitalProduct(env, productId) {
     const p = list.find(p => p.type === 'digital' && p.id == productId);
     if (!p) return null;
     const price = parseFloat(String(p.sizePrices && p.sizePrices.OS || '').replace(/[^0-9.]/g, ''));
-    if (!price || price <= 0 || !p.img) return null;
-    return { id: p.id, title: p.name, price, fileUrl: p.img };
+    if (!price || price <= 0 || !p.file) return null;
+    return { id: p.id, title: p.name, price, fileUrl: p.file };
   } catch (e) {
     return null;
+  }
+}
+
+// Public, sanitized digital-design listing for the /designs catalog page —
+// deliberately omits `file` (the paid deliverable). Only ever returns what's
+// safe for anyone to see before paying: id, title, description, price, and
+// the public preview image.
+async function getPublicDigitalDesigns(env) {
+  try {
+    const raw = await env.UP_DATA.get('products');
+    const list = raw ? JSON.parse(raw) : [];
+    return list
+      .filter(p => p.type === 'digital' && p.img && p.file)
+      .map(p => {
+        const price = parseFloat(String(p.sizePrices && p.sizePrices.OS || '').replace(/[^0-9.]/g, ''));
+        return { id: p.id, title: p.name, description: p.desc || '', price, previewUrl: p.img };
+      })
+      .filter(d => d.price > 0);
+  } catch (e) {
+    return [];
   }
 }
 
@@ -835,6 +864,10 @@ export default {
 
     if (request.method === 'GET' && path.startsWith('/api/digital-download/')) {
       return handleDigitalDownload(path, env);
+    }
+
+    if (request.method === 'GET' && path === '/api/digital-designs') {
+      return json(await getPublicDigitalDesigns(env));
     }
 
     // Storefront saves cart here before opening PayPal

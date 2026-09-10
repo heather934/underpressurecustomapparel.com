@@ -133,31 +133,21 @@ function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':
 // ═══════════════════════════════════════════════════
 //  CATALOG
 // ═══════════════════════════════════════════════════
-// Digital designs are Brand Items with type 'digital' (see admin-site's
-// TM_PRODUCT_CATALOG) — same 'products' KV catalog as every other brand
-// item, not a separate one. A "simple display" item like this stores its
-// flat price at sizePrices.OS (the same shape stickers/hats use), and its
-// uploaded image *is* the deliverable file. This mirrors worker.js's
-// getDigitalProduct exactly, but the server always re-derives the price at
-// checkout time — what's computed here is for display only.
+// Uses worker.js's dedicated /api/digital-designs endpoint, NOT the generic
+// /data/products one — that generic endpoint returns the full, unfiltered
+// catalog including every digital design's real deliverable file URL, which
+// would let anyone grab a paid design straight from the network tab without
+// buying it. /api/digital-designs deliberately only ever returns the public
+// preview image; the real file is never sent to the browser until after a
+// confirmed PayPal capture (see handleDigitalCaptureOrder in worker.js).
 let designs = [];
 let currentDesign = null;
 
 async function loadDesigns(){
   try {
-    const res = await fetch(`${API}/data/products`);
+    const res = await fetch(`${API}/api/digital-designs`);
     const data = await res.json();
-    const all = Array.isArray(data) ? data : [];
-    designs = all
-      .filter(p => p.type === 'digital' && p.img)
-      .map(p => ({
-        id: p.id,
-        title: p.name,
-        description: p.desc || '',
-        price: parseFloat(String((p.sizePrices && p.sizePrices.OS) || '').replace(/[^0-9.]/g, '')) || 0,
-        fileUrl: p.img,
-      }))
-      .filter(d => d.price > 0);
+    designs = Array.isArray(data) ? data : [];
   } catch(e) { designs = []; }
   renderGrid();
 }
@@ -174,7 +164,7 @@ function renderGrid(){
   grid.innerHTML = designs.map(d => `
     <div class="card">
       <div class="card-thumb-wrap">
-        <img src="${escHtml(d.fileUrl)}" alt="${escHtml(d.title)}" loading="lazy">
+        <img src="${escHtml(d.previewUrl)}" alt="${escHtml(d.title)}" loading="lazy">
       </div>
       <div class="card-body">
         <div class="card-title">${escHtml(d.title)}</div>
@@ -207,7 +197,7 @@ function closeCheckout(){
 function renderCheckoutForm(){
   const d = currentDesign;
   document.getElementById('dsModalContent').innerHTML = `
-    <img class="modal-thumb" src="${escHtml(d.fileUrl)}" alt="${escHtml(d.title)}">
+    <img class="modal-thumb" src="${escHtml(d.previewUrl)}" alt="${escHtml(d.title)}">
     <div class="modal-title">${escHtml(d.title)}</div>
     <div class="modal-price">$${d.price.toFixed(2)}</div>
     <label class="f-label" for="ds-email">Email (for your download link) *</label>
