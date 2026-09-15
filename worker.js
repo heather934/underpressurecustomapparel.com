@@ -208,11 +208,12 @@ async function appendToCheckoutLog(env, cart, paypalOrderId = null) {
 // most recent unmatched entry with the same dollar total, since the email
 // a customer types at checkout often differs from their PayPal account's
 // email (the same mismatch that can make IPN's pending-cart lookup miss),
-// while the amount charged rarely does.
+// while the amount charged rarely does. Returns whether a match was found,
+// so callers can tell when no checkout-log entry exists at all yet.
 async function reconcileCheckoutLog(env, payerEmail, amount, txnId) {
   try {
     const raw = await env.UP_DATA.get('checkout-log');
-    if (!raw) return;
+    if (!raw) return false;
     const list = JSON.parse(raw);
     const normalizedEmail = (payerEmail || '').toLowerCase().trim();
     const amountNum = parseFloat(amount) || 0;
@@ -232,9 +233,48 @@ async function reconcileCheckoutLog(env, payerEmail, amount, txnId) {
       match.matchedAt = new Date().toISOString();
       match.matchedVia = matchedVia;
       await env.UP_DATA.put('checkout-log', JSON.stringify(list));
+      return true;
     }
+    return false;
   } catch (e) {
     console.error('checkout-log reconcile failed:', e && e.message ? e.message : e);
+    return false;
+  }
+}
+
+// Append a checkout-log entry that's already paid — used when a completed
+// payment never went through the normal awaiting-payment cart flow above
+// (a bare paypal.me payment with no cart ever submitted, or a digital
+// design purchase, which has no pre-payment cart step at all) — so the
+// Order Archive still ends up with a record of every completed order,
+// not just the ones that happened to go through the cart-first checkout.
+async function appendPaidCheckoutLogEntry(env, fields, txnId, matchedVia, paypalOrderId = null) {
+  try {
+    const raw = await env.UP_DATA.get('checkout-log');
+    const list = raw ? JSON.parse(raw) : [];
+    list.unshift({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      receivedAt: new Date().toISOString(),
+      email: fields.email || '',
+      customerName: fields.customerName || '',
+      phone: fields.phone || '',
+      address: fields.address || '',
+      notes: fields.notes || '',
+      orderItems: fields.orderItems || '',
+      items: Array.isArray(fields.items) ? fields.items : [],
+      shippingMethod: fields.shippingMethod || '',
+      shippingCost: fields.shippingCost || '',
+      total: fields.total || '',
+      storeName: fields.storeName || '',
+      status: 'paid',
+      paypalOrderId,
+      matchedTxnId: txnId,
+      matchedAt: new Date().toISOString(),
+      matchedVia,
+    });
+    await env.UP_DATA.put('checkout-log', JSON.stringify(list.slice(0, 1000)));
+  } catch (e) {
+    console.error('checkout-log direct-paid append failed:', e && e.message ? e.message : e);
   }
 }
 
@@ -402,7 +442,24 @@ async function handleIPN(request, env, ctx) {
         confirmationSentAt: null,
       };
       await appendToOrdersList(env, enrichedOrder);
-      await reconcileCheckoutLog(env, payerEmail, order.amount, txnId);
+      const reconciled = await reconcileCheckoutLog(env, payerEmail, order.amount, txnId);
+      if (!reconciled) {
+        // No awaiting-payment checkout-log entry existed to match — this
+        // was a bare paypal.me payment with no cart ever submitted through
+        // the site. Log it directly so it still shows up in the Archive.
+        await appendPaidCheckoutLogEntry(env, {
+          email: customerEmail,
+          customerName,
+          phone: customerPhone,
+          address: customerAddress,
+          notes: customerNotes,
+          orderItems: orderItemsStr,
+          items: cartItems,
+          shippingMethod,
+          total: totalStr,
+          storeName,
+        }, txnId, 'ipn-direct');
+      }
 
       await sendErinNewOrderEmail(env, {
         to_email: ERIN_EMAIL,
@@ -782,6 +839,18 @@ async function handleDigitalCaptureOrder(request, env) {
       confirmationSent: false,
       confirmationSentAt: null,
     });
+
+    // Digital checkout has no pre-payment cart step, so there's no
+    // awaiting-payment checkout-log entry to reconcile against — log it
+    // directly so digital purchases show up in the Order Archive too.
+    await appendPaidCheckoutLogEntry(env, {
+      email,
+      customerName: [payer.name?.given_name, payer.name?.surname].filter(Boolean).join(' '),
+      shippingMethod: 'Digital Download',
+      total: '$' + capturedAmount,
+      storeName: 'UP Digital Designs',
+      orderItems: product.title + ' (digital download)',
+    }, txnId, 'digital-capture', orderID);
 
     return json({ success: true, downloadUrl, title: product.title });
   } catch (e) {
