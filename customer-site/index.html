@@ -2907,16 +2907,16 @@ document.getElementById("checkoutModal").addEventListener("click",function(e){if
 
 // ══ SINGLE SOURCE OF TRUTH FOR ORDER PRICING ══
 // Prices come only from admin-entered product data; tax rate is admin-set
-// (localStorage 'upTaxRate', percent) with a 7% default (WV 6% + Huntington 1% municipal).
+// (localStorage 'upOhioTaxRate', percent) with a 7.25% default (OH 5.75% + Lawrence County 1.5%).
 function getTaxRate() {
-  const v = parseFloat(localStorage.getItem('upTaxRate'));
-  return isNaN(v) || v < 0 ? 7.0 : v;
+  const v = parseFloat(localStorage.getItem('upOhioTaxRate'));
+  return isNaN(v) || v < 0 ? 7.25 : v;
 }
 function calcOrderTotals() {
   const sub  = cartTotal();
   const disc = Math.min(sub, (typeof getDiscountAmount === 'function' && typeof appliedDiscount !== 'undefined' && appliedDiscount) ? getDiscountAmount(sub) : 0);
   const ship = getUPShipping();
-  // WV taxes delivery charges as part of the sale, so shipping is in the taxable base
+  // Ohio taxes delivery charges as part of the sale, so shipping is in the taxable base
   const tax  = Math.round((Math.max(0, sub - disc) + ship) * getTaxRate()) / 100;
   const grand = Math.round((Math.max(0, sub - disc) + ship + tax) * 100) / 100;
   return { sub, disc, ship, tax, grand };
@@ -2955,7 +2955,7 @@ function renderCheckoutForm(){
           <span class="os-item-price" id="checkoutShipping">$${t.ship.toFixed(2)}</span>
         </div>
         <div class="os-row">
-          <span class="os-item-name">WV Sales Tax (${getTaxRate()}%)</span>
+          <span class="os-item-name">OH Sales Tax (${getTaxRate()}%)</span>
           <span class="os-item-price" id="checkoutTax">$${t.tax.toFixed(2)}</span>
         </div>
         <div class="os-row total"><span>Total</span><span id="checkoutGrandTotal">$${t.grand.toFixed(2)}</span></div>
