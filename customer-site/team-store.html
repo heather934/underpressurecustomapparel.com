@@ -1107,10 +1107,10 @@ const SHIPPING_METHODS = [
   { id: 'usps',      label: 'USPS Shipping',                        price: null }, // calculated below
 ];
 // USPS Priority Mail estimates from ZIP 45669 (1-7 lbs)
-const USPS_RATES = { 1:9.35, 2:9.35, 3:12.50, 4:12.50, 5:16.75, 6:16.75, 7:16.75 };
+const USPS_RATES = { 1:13.35, 2:13.35, 3:16.50, 4:16.50, 5:20.75, 6:20.75, 7:20.75 };
 function getUspsRate(qty) {
   const lbs = Math.min(Math.max(Math.ceil(qty * 0.75), 1), 7);
-  return USPS_RATES[lbs] || 16.75;
+  return USPS_RATES[lbs] || 20.75;
 }
 function getShipping(qty) {
   if (!qty) return 0;
