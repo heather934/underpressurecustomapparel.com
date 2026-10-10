@@ -2875,31 +2875,17 @@ function closeCheckout(){document.getElementById("checkoutModal").classList.remo
 document.getElementById("checkoutModal").addEventListener("click",function(e){if(e.target===this)closeCheckout();});
 
 // ══ SINGLE SOURCE OF TRUTH FOR ORDER PRICING ══
-// Prices come only from admin-entered product data. Tax depends on where the
-// order ships: Ohio addresses pay Ohio sales tax (localStorage 'upOhioTaxRate',
-// percent) with a 7.25% default (OH 5.75% + Lawrence County 1.5%); everything
-// else pays WV tax (localStorage 'upTaxRate', percent) with a 7% default
-// (WV 6% + Huntington 1% municipal).
-function isOhioOrder() {
-  const st = (document.getElementById('c-state')?.value || '').trim().toUpperCase();
-  if (st === 'OH' || st === 'OHIO') return true;
-  // State is optional but ZIP is required — Ohio ZIPs are 430xx–459xx
-  const zip3 = parseInt((document.getElementById('c-zip')?.value || '').trim().slice(0, 3), 10);
-  return zip3 >= 430 && zip3 <= 459;
-}
+// Prices come only from admin-entered product data; tax rate is admin-set
+// (localStorage 'upOhioTaxRate', percent) with a 7.25% default (OH 5.75% + Lawrence County 1.5%).
 function getTaxRate() {
-  const ohio = isOhioOrder();
-  const v = parseFloat(localStorage.getItem(ohio ? 'upOhioTaxRate' : 'upTaxRate'));
-  return isNaN(v) || v < 0 ? (ohio ? 7.25 : 7.0) : v;
-}
-function getTaxLabel() {
-  return `${isOhioOrder() ? 'OH' : 'WV'} Sales Tax (${getTaxRate()}%)`;
+  const v = parseFloat(localStorage.getItem('upOhioTaxRate'));
+  return isNaN(v) || v < 0 ? 7.25 : v;
 }
 function calcOrderTotals() {
   const sub  = cartTotal();
   const disc = Math.min(sub, (typeof getDiscountAmount === 'function' && typeof appliedDiscount !== 'undefined' && appliedDiscount) ? getDiscountAmount(sub) : 0);
   const ship = getUPShipping();
-  // WV and OH both tax delivery charges as part of the sale, so shipping is in the taxable base
+  // Ohio taxes delivery charges as part of the sale, so shipping is in the taxable base
   const tax  = Math.round((Math.max(0, sub - disc) + ship) * getTaxRate()) / 100;
   const grand = Math.round((Math.max(0, sub - disc) + ship + tax) * 100) / 100;
   return { sub, disc, ship, tax, grand };
@@ -2919,8 +2905,8 @@ function renderCheckoutForm(){
         <div class="form-f full"><label>Phone</label><input id="c-phone" type="tel" placeholder="(304) 555-0100" pattern="[\d\s()+.-]{7,}"><div class="field-error" id="c-phone-error"></div></div>
         <div class="form-f full"><label>Shipping Address *</label><input id="c-addr" type="text" placeholder="123 Main St" required><div class="field-error" id="c-addr-error"></div></div>
         <div class="form-f"><label>City *</label><input id="c-city" type="text" placeholder="Huntington" required><div class="field-error" id="c-city-error"></div></div>
-        <div class="form-f"><label>State</label><input id="c-state" type="text" placeholder="WV" oninput="recalcCheckoutTotal()"></div>
-        <div class="form-f"><label>ZIP *</label><input id="c-zip" type="text" placeholder="25701" required pattern="\d{5}(-\d{4})?" oninput="recalcCheckoutTotal()"><div class="field-error" id="c-zip-error"></div></div>
+        <div class="form-f"><label>State</label><input id="c-state" type="text" placeholder="WV"></div>
+        <div class="form-f"><label>ZIP *</label><input id="c-zip" type="text" placeholder="25701" required pattern="\d{5}(-\d{4})?"><div class="field-error" id="c-zip-error"></div></div>
         <div class="form-f full"><label>Order Notes (sizes, colors, etc.)</label><input id="c-notes" type="text" placeholder="e.g. Size L in black, XL in white"></div>
       </div>
       <div class="modal-sec-title">Order Summary</div>
@@ -2938,7 +2924,7 @@ function renderCheckoutForm(){
           <span class="os-item-price" id="checkoutShipping">$${t.ship.toFixed(2)}</span>
         </div>
         <div class="os-row">
-          <span class="os-item-name" id="checkoutTaxLabel">${getTaxLabel()}</span>
+          <span class="os-item-name">OH Sales Tax (${getTaxRate()}%)</span>
           <span class="os-item-price" id="checkoutTax">$${t.tax.toFixed(2)}</span>
         </div>
         <div class="os-row total"><span>Total</span><span id="checkoutGrandTotal">$${t.grand.toFixed(2)}</span></div>
@@ -8537,7 +8523,6 @@ function recalcCheckoutTotal() {
   const discWrap = document.getElementById('checkoutDiscountRowWrap');
   if (discWrap) discWrap.style.display = t.disc > 0 ? 'flex' : 'none';
   set('checkoutShipping', `$${t.ship.toFixed(2)}`);
-  set('checkoutTaxLabel', getTaxLabel());
   set('checkoutTax', `$${t.tax.toFixed(2)}`);
   set('checkoutGrandTotal', `$${t.grand.toFixed(2)}`);
 }
