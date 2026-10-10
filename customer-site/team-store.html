@@ -126,10 +126,13 @@ body {
   pointer-events: none;
 }
 .ts-hero-logo {
-  width: 92px;
-  height: 92px;
+  /* Logo spans 1/4 of the banner's width, never smaller than 92px on phones */
+  width: 25%;
+  min-width: 92px;
+  height: auto;
+  aspect-ratio: 1;
   object-fit: contain;
-  margin-bottom: 16px;
+  margin: 0 auto 16px;
   border-radius: 50%;
   border: 2px solid rgba(255,255,255,.15);
 }
@@ -830,6 +833,10 @@ body {
 .ts-success-msg { font-size: 14px; color: var(--up-mist); max-width: 360px; line-height: 1.6; }
 
 /* ── RESPONSIVE ── */
+/* Phones/iPads: logo is 75% bigger than the original 92px (92 * 1.75 = 161) */
+@media (max-width: 1024px) {
+  .ts-hero-logo { width: 161px; }
+}
 @media (max-width: 600px) {
   .ts-hero-name { font-size: 32px; }
   .ts-cart-drawer { width: 100vw; }
