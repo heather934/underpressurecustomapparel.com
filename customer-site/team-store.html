@@ -833,9 +833,10 @@ body {
 .ts-success-msg { font-size: 14px; color: var(--up-mist); max-width: 360px; line-height: 1.6; }
 
 /* ── RESPONSIVE ── */
-/* Phones/iPads: logo is 75% bigger than the original 92px (92 * 1.75 = 161) */
+/* Phones/iPads: logo is double the previous 161px, sits on the left edge,
+   and never overflows a narrow phone's banner */
 @media (max-width: 1024px) {
-  .ts-hero-logo { width: 161px; }
+  .ts-hero-logo { width: 322px; max-width: 100%; margin-left: 0; }
 }
 @media (max-width: 600px) {
   .ts-hero-name { font-size: 32px; }
